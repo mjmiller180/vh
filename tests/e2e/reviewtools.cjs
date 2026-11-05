@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0130
+// Last compiled at 2026-11-05_0138
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -13,6 +13,33 @@ const FORM = fs.readFileSync(path.join(__dirname, "fixtures", "review-form.html"
 const render = () => FORM;
 // 1x1 PNG
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+
+// ---- fake Google Drive (list, thumbnail, file) behind the route mock
+const driveLog = [];
+const DRIVE_BYTES = PNG;
+function driveRoute(route, url) {
+	const u = new URL(url);
+	const json = (o) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(o) });
+	driveLog.push(u.host + u.pathname + (u.searchParams.get("q") ? " q=" + u.searchParams.get("q") : "") + (u.searchParams.get("alt") ? " alt=" + u.searchParams.get("alt") : ""));
+	if (u.host === "lh3.googleusercontent.com") return route.fulfill({ status: 200, contentType: "image/png", body: DRIVE_BYTES });
+	if (u.pathname === "/drive/v3/files") {
+		const q = u.searchParams.get("q") || "";
+		if (q.includes("'1FolderAAAAAA' in parents")) return json({ files: [{ id: "photoInFolder1", name: "order-folder-pic.png", mimeType: "image/png", size: String(PNG.length), thumbnailLink: "https://lh3.googleusercontent.com/in=s220" }] });
+		if (q.includes("name contains 'tire'")) return json({ files: [{ id: "photoSearch001", name: "tire-front.png", mimeType: "image/png", size: String(PNG.length) }] });
+		return json({
+			files: [
+				{ id: "1FolderAAAAAA", name: "<b>Order 111-1000001</b>", mimeType: "application/vnd.google-apps.folder" },
+				{ id: "photoRecent001", name: "20261025_155816.png", mimeType: "image/png", size: String(PNG.length), thumbnailLink: "https://lh3.googleusercontent.com/r1=s220" },
+				{ id: "photoRecent002", name: "20261025_155829.png", mimeType: "image/png", size: String(PNG.length), thumbnailLink: "https://lh3.googleusercontent.com/r2=s220" },
+			],
+		});
+	}
+	const m = u.pathname.match(/^\/drive\/v3\/files\/([^/]+)$/);
+	if (m && u.searchParams.get("alt") === "media") return route.fulfill({ status: 200, contentType: "image/png", body: DRIVE_BYTES });
+	if (m && m[1] === "1FolderAAAAAA") return json({ id: m[1], name: "Order 111-1000001" });
+	if (m) return json({ id: m[1], name: m[1] + ".png", mimeType: "image/png", size: String(PNG.length) });
+	return route.fulfill({ status: 404, body: "{}" });
+}
 
 const results = [];
 async function test(name, fn) {
@@ -29,7 +56,16 @@ async function test(name, fn) {
 
 (async () => {
 	const sheetMessages = [];
-	const { ctx, log, sw } = await launch({ pageRenderer: render });
+	const { ctx, log, sw } = await launch({
+		pageRenderer: render,
+		extraRoutes: async (route, url) => {
+			if (/^https:\/\/(www\.googleapis\.com\/drive\/|lh3\.googleusercontent\.com\/)/.test(url)) {
+				await driveRoute(route, url);
+				return true;
+			}
+			return false;
+		},
+	});
 	await sw.evaluate(() => {
 		self.__msgs = [];
 		chrome.runtime.onMessage.addListener((m) => {
@@ -59,6 +95,7 @@ async function test(name, fn) {
 	const val = (page, id) => page.evaluate((id) => document.getElementById(id).value, id);
 	const btn = (page, title) => page.locator(`[data-vt="toolbar"] button[title="${title}"]`);
 
+	await waitFor(async () => (await sw.evaluate(() => chrome.storage.local.get("settings"))).settings);
 	console.log("\nReview form tools");
 	await test("toolbar appears on the form; Bold turns the selection into bold letters and the page is told (input event)", async () => {
 		const page = await open();
@@ -220,6 +257,66 @@ async function test(name, fn) {
 		await page.close();
 	});
 
+	const enableDrive = (on, folder = "") =>
+		sw.evaluate(async ({ on, folder }) => {
+			chrome.identity.getAuthToken = (opts, cb) => cb("fake-token"); // Chrome sign-in stub
+			const { settings } = await chrome.storage.local.get("settings");
+			settings.google = { ...(settings.google || {}), drive: { enabled: on, folder } };
+			await chrome.storage.local.set({ settings, settingsModifiedAt: Date.now() });
+		}, { on, folder });
+
+	await test("Drive picker is not offered while the Drive switch is off", async () => {
+		await enableDrive(false);
+		const page = await open();
+		assert.equal(await page.getByRole("button", { name: "Add from Google Drive…" }).count(), 0);
+		assert.deepEqual(driveLog, [], "nothing reached Google");
+		await page.close();
+	});
+
+	await test("Drive picker: newest pictures with previews, tick two, they arrive in Amazon's upload input; names with HTML stay text", async () => {
+		await enableDrive(true);
+		const page = await open();
+		await page.getByRole("button", { name: "Add from Google Drive…" }).click();
+		await page.locator(".vtd-item", { hasText: "20261025_155816.png" }).waitFor();
+		assert.equal(await page.locator(".vtd-name img, .vtd-grid b").count(), 0, "a folder name with <b> is shown as text");
+		await waitFor(() => page.evaluate(() => [...document.querySelectorAll(".vtd-item img")].filter((i) => i.src.startsWith("data:image/png")).length === 2));
+		await page.locator(".vtd-item", { hasText: "20261025_155816.png" }).click();
+		await page.locator(".vtd-item", { hasText: "20261025_155829.png" }).click();
+		assert.equal(await page.getByRole("button", { name: "Add 2 pictures" }).count(), 1);
+		await page.getByRole("button", { name: "Add 2 pictures" }).click();
+		await waitFor(() => page.evaluate(() => window.__uploads.length === 2), 20000);
+		const up = await page.evaluate(() => window.__uploads);
+		assert.deepEqual(up.map((u) => [u[0], u[1], u[2]]), [["photoRecent001.png", "image/png", PNG.length], ["photoRecent002.png", "image/png", PNG.length]]);
+		assert.equal(await page.locator(".vtd-modal").count(), 0, "the window closes");
+		await page.close();
+	});
+
+	await test("Drive picker: open a folder, go Up, search by name", async () => {
+		await enableDrive(true);
+		const page = await open();
+		await page.getByRole("button", { name: "Add from Google Drive…" }).click();
+		await page.locator(".vtd-item", { hasText: "Order 111-1000001" }).click();
+		await page.locator(".vtd-item", { hasText: "order-folder-pic.png" }).waitFor();
+		assert.match(await page.locator(".vtd-bar strong").textContent(), /Order 111-1000001/);
+		await page.getByRole("button", { name: "↑ Up" }).click();
+		await page.locator(".vtd-item", { hasText: "20261025_155816.png" }).waitFor();
+		await page.locator(".vtd-bar input[type=search]").fill("tire");
+		await page.locator(".vtd-bar input[type=search]").press("Enter");
+		await page.locator(".vtd-item", { hasText: "tire-front.png" }).waitFor();
+		assert.equal(await page.locator(".vtd-item").count(), 1);
+		await page.close();
+	});
+
+	await test("Drive picker: without a Chrome sign-in it explains instead of failing silently", async () => {
+		await enableDrive(true);
+		await sw.evaluate(() => { chrome.identity.getAuthToken = (opts, cb) => { chrome.runtime.lastError; cb(undefined); }; });
+		const page = await open();
+		await page.getByRole("button", { name: "Add from Google Drive…" }).click();
+		await waitFor(async () => /Sign in to Google first/.test(await page.locator(".vtd-msg").textContent()), 25000);
+		await page.close();
+		await sw.evaluate(() => { chrome.identity.getAuthToken = (opts, cb) => cb("fake-token"); });
+	});
+
 	await test("with the tools switched off in settings nothing is added to the page", async () => {
 		await sw.evaluate(async () => {
 			const { settings } = await chrome.storage.local.get("settings");
@@ -239,7 +336,8 @@ async function test(name, fn) {
 	});
 
 	const hosts = new Set(log.requests.map((r) => new URL(r.url).host));
-	assert.deepEqual([...hosts].filter((h) => h !== "www.amazon.com"), [], "the review tools contact nobody");
+	assert.deepEqual([...hosts].filter((h) => !/^(www\.amazon\.com|www\.googleapis\.com|lh3\.googleusercontent\.com)$/.test(h)), [], "only Amazon and (when Drive pictures are on) Google Drive");
+	assert.ok(driveLog.every((l) => !/ (POST|PUT|PATCH|DELETE)/.test(l)), "Drive is read only");
 	await ctx.close();
 	const failed = results.filter((r) => !r).length;
 	console.log(`\n${results.length - failed}/${results.length} passed`);

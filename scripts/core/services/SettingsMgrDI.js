@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0130
+// Last compiled at 2026-11-05_0138
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -479,6 +479,11 @@ export class SettingsMgrDI {
 					enabled: false,
 					id: "", //spreadsheet URL or ID
 					tab: "DASHBOARD",
+				},
+				// Pictures for reviews, read from the owner's Google Drive (read only)
+				drive: {
+					enabled: false,
+					folder: "", //folder URL or ID to start in; empty = newest pictures anywhere in Drive
 				},
 			},
 

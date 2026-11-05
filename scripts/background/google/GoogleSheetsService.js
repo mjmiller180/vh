@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0130
+// Last compiled at 2026-11-05_0138
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -8,6 +8,7 @@
  * Results are plain objects: {ok:true,...} or {ok:false, reason|error, status?} - never a thrown error, never a token.
  */
 import { buildOrderValidation } from "./orderValidation.js";
+import { extractFolderId, toBase64 } from "./DriveClient.js";
 
 const ID_RE = /^[A-Za-z0-9_-]{20,}$/;
 
@@ -37,7 +38,7 @@ function withTimeout(promise, ms, message) {
 	});
 }
 
-export function createGoogleSheetsService({ getConfig, auth, makeClient, tokenTimeoutMs = 15000, signInTimeoutMs = 180000 }) {
+export function createGoogleSheetsService({ getConfig, auth, makeClient, makeDrive, getDriveConfig = () => ({}), tokenTimeoutMs = 15000, signInTimeoutMs = 180000 }) {
 	// `override` (the values typed in the settings page) is only ever used by the read-only calls: test() and dry runs.
 	const config = (override) => {
 		const cfg = { ...(getConfig() || {}), ...(override && typeof override === "object" ? { id: override.id, tab: override.tab } : {}) };
@@ -51,6 +52,21 @@ export function createGoogleSheetsService({ getConfig, auth, makeClient, tokenTi
 			clearToken: (t) => auth.clearToken(t),
 		});
 
+	const tokenGetter = () => ({
+		getToken: () => withTimeout(auth.getToken(false), tokenTimeoutMs, "Google did not answer: you are not signed in."),
+		clearToken: (t) => auth.clearToken(t),
+	});
+	// Pictures from Drive: only when switched on in the settings; reads only.
+	const drive = async (fn) => {
+		const cfg = getDriveConfig() || {};
+		if (!cfg.enabled) return { ok: false, reason: "disabled" };
+		try {
+			return { ok: true, ...(await fn(makeDrive(tokenGetter()), cfg)) };
+		} catch (e) {
+			return fail(e);
+		}
+	};
+
 	const fail = (e) => {
 		const message = String(e?.message || e);
 		if (/not signed in|sign-in|OAuth2|interactive|did not approve/i.test(message)) return { ok: false, reason: "signin", error: message };
@@ -58,6 +74,29 @@ export function createGoogleSheetsService({ getConfig, auth, makeClient, tokenTi
 	};
 
 	return {
+		/** Pictures/videos and folders for the picker. `folderId` may be a Drive URL or ID; empty = pictures anywhere in Drive. */
+		driveList({ folderId, search, pageToken } = {}) {
+			return drive(async (d, cfg) => {
+				const wanted = folderId === "start" ? extractFolderId(cfg.folder || "") || undefined : folderId === undefined || folderId === null || folderId === "" ? undefined : folderId;
+				if (wanted !== undefined && wanted !== "root" && !extractFolderId(wanted)) throw new Error("That is not a Drive folder");
+				const res = await d.listFiles({ folderId: wanted, search, pageToken });
+				const name = wanted && wanted !== "root" ? await d.folderName(wanted).catch(() => "") : wanted === "root" ? "My Drive" : "";
+				return { ...res, folderId: wanted || null, folderName: name };
+			});
+		},
+		driveThumb({ link } = {}) {
+			return drive(async (d) => {
+				const t = await d.thumbnail(link);
+				return { mimeType: t.mimeType, base64: toBase64(t.bytes) };
+			});
+		},
+		driveFile({ id } = {}) {
+			return drive(async (d) => {
+				const f = await d.download(id);
+				return { name: f.name, mimeType: f.mimeType, base64: toBase64(f.bytes) };
+			});
+		},
+
 		/** Must be called from a user click (Chrome shows Google's window). */
 		async signIn() {
 			try {

@@ -11,7 +11,7 @@
 		"identity"
 	],
 	"content_security_policy": {
-		"extension_pages": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://discord.com https://discordapp.com https://sheets.googleapis.com; img-src 'self' data: https://*.media-amazon.com;"
+		"extension_pages": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://discord.com https://discordapp.com https://sheets.googleapis.com https://www.googleapis.com https://*.googleusercontent.com; img-src 'self' data: https://*.media-amazon.com;"
 	},
 	"icons": {
 		"32": "resource/image/icon-32.png",
@@ -208,7 +208,8 @@
 	"oauth2": {
 		"client_id": "REPLACE_WITH_YOUR_CLIENT_ID.apps.googleusercontent.com",
 		"scopes": [
-			"https://www.googleapis.com/auth/spreadsheets"
+			"https://www.googleapis.com/auth/spreadsheets",
+			"https://www.googleapis.com/auth/drive.readonly"
 		]
 	}
 }

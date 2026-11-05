@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0123
+// Last compiled at 2026-11-05_0138
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -19,6 +19,7 @@ import { initializeServices, getSettingsManager } from "/scripts/infrastructure/
 import { sendWebhook } from "/scripts/background/DiscordSender.js";
 import { createBrowserFolderSync } from "/scripts/background/FolderSync.js";
 import { createGoogleAuth } from "/scripts/background/google/GoogleAuth.js";
+import { createDriveClient } from "/scripts/background/google/DriveClient.js";
 import { createSheetsClient } from "/scripts/background/google/SheetsClient.js";
 import { createGoogleSheetsService } from "/scripts/background/google/GoogleSheetsService.js";
 
@@ -70,6 +71,8 @@ const googleSheets = createGoogleSheetsService({
 	}),
 	auth: createGoogleAuth(),
 	makeClient: (deps) => createSheetsClient(deps),
+	makeDrive: (deps) => createDriveClient(deps),
+	getDriveConfig: () => ({ enabled: Settings?.get("google.drive.enabled"), folder: Settings?.get("google.drive.folder") }),
 });
 
 async function runGoogle(action) {
@@ -111,6 +114,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 	if (message.type === "googleUpdateReviews") {
 		runGoogle(() => googleSheets.updateReviews(message.reviews, { dryRun: !!message.dryRun, config: message.config })).then(sendResponse);
+		return true;
+	}
+
+	if (message.type === "googleDriveList") {
+		runGoogle(() => googleSheets.driveList(message)).then(sendResponse);
+		return true;
+	}
+
+	if (message.type === "googleDriveThumb") {
+		runGoogle(() => googleSheets.driveThumb(message)).then(sendResponse);
+		return true;
+	}
+
+	if (message.type === "googleDriveFile") {
+		runGoogle(() => googleSheets.driveFile(message)).then(sendResponse);
 		return true;
 	}
 

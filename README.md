@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_0049 -->
+<!-- Last compiled at 2026-11-05_0138 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -36,6 +36,17 @@ key applies the brake (and also goes back one page), and the next-page / hide-al
 The queue, keys, delays (never below 2 seconds), and a page limit are configurable. The session lives in the tab only and
 nothing is sent anywhere. Automated paging is outside what Amazon's Vine terms expect from normal use, so treat it as a
 convenience you run at your own risk and keep the delays generous.
+
+## Google Sheet, review tools and Drive pictures (Settings → Google)
+
+- **Orders → sheet.** Open Vine → Orders: new orders are added to the DASHBOARD tab of your sheet (date, order number,
+  picture, ORDERED, title, ETV). The button above the list ("Send all orders to the sheet") does every page.
+- **Reviews → sheet.** Open Vine → Reviews (Awaiting / Reviewed): status, quality score and review link are filled in on the
+  matching rows. Anything you set by hand (TAKEN DOWN ...) is left alone.
+- **Review form.** On Amazon's "write a review" page: formatting toolbar (bold, italic ... with Unicode letters, bullets,
+  numbering), saved phrases and templates, automatic drafts, paste or drop pictures, "Add from Google Drive…". Pressing
+  Submit records the star rating and date on the sheet.
+- Everything is off until you switch it on; try it on a copy of your sheet first (see `docs/GOOGLE_INTEGRATION.md`).
 
 ## Discord (Settings → Discord)
 

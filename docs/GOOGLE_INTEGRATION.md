@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_0035 -->
+<!-- Last compiled at 2026-11-05_0138 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -39,8 +39,8 @@ order page and may be filled when that page is visited. Anything the extension c
   it writes straight into the existing "Reviews" workbook. `drive.file` is used for the app's own files (the sync file).
 * **DASHBOARD is the target.** The "Order List" tab was only scratch space for building links; the extension writes rows
   to DASHBOARD directly, matching columns by header text.
-* **Pictures:** existing photos live both in per-order folders and in a shared folder; reading them needs `drive.readonly`
-  (personal use only) - to be decided when the review-page work starts.
+* **Pictures:** existing photos live both in per-order folders and in a shared folder, so the extension reads Drive with
+  `drive.readonly` (restricted scope: fine for personal use, Google shows its "unverified app" screen once).
 
 ## DASHBOARD columns (owner's spec) and where each value comes from
 
@@ -64,16 +64,25 @@ order page and may be filled when that page is visited. Anything the extension c
 
 ## Status
 
-* **Built and unit tested (against an in-memory fake of the Sheets API):** `scripts/core/utils/DashboardRow.js` (column
-  mapping by header, date serials, linked cells, IMAGE formula, ORDERED) and `scripts/background/google/SheetsClient.js`
-  (first empty row, copies formatting + dropdowns from the last row, one cell per write so manual columns/formulas are never
-  cleared, duplicate order numbers skipped, token refresh on 401, retry on 429/5xx, dry run). Not wired into the extension
-  yet, so it cannot reach Google.
-* **Blocked on the owner:** (1) the OAuth client ID (setup below); (2) saved samples of the Amazon pages the extension has
-  to read: order confirmation, Your Orders list, one order details page (shows the ETV), the review form with the photo
-  upload area, and the submitted-reviews list.
-* **Next, once those arrive:** sign-in + settings tab (sheet ID, tab name, dry run, "test on a copy"), order capture ->
-  rows, review helper -> review columns and pictures, Drive-API sync.
+* **Built and tested against fakes (the sandbox cannot sign in to Google or reach Amazon):**
+  * Orders: the Vine **Orders** page (`/vine/orders`) has everything per order - title, ASIN (product link), thumbnail, order
+    date, Fair market value (= ETV) and the order number (link to Order details) - so no other Amazon page is needed.
+    New orders are added oldest-first; an order number already on the sheet is never added again. "Send all orders" walks
+    every page of the list (one request every 2 s, Amazon's own pages).
+  * Reviews: the Vine **Reviews** pages (Awaiting / Reviewed) update REVIEW SATUS (LIVE / NOT SUBMITTED / REJECTED /
+    PENDING APPROVAL), REVIEW SCORE, REVIEW LINK, and STATUS -> COMPLETED when a review goes live. The row is found by the
+    ASIN in the TITLE cell's link (and the order date when an ASIN appears twice). Values you set by hand (TAKEN DOWN,
+    DECLINE TO REVIEW, UNABLE TO REVIEW) are never replaced, unchanged cells are not rewritten.
+  * Review form: pressing Submit writes star rating (as stars), today's date, PENDING APPROVAL / PENDING.
+  * Pictures: "Add from Google Drive..." on the review form (Drive read only: newest pictures anywhere, a start folder, folder
+    browsing, search by name; previews are fetched by the service worker so the Amazon page never contacts Google).
+  * The sheet's REVIEW columns are strict dropdowns: only the exact list values are written.
+* **Not verifiable here:** real Google sign-in, real Sheets/Drive calls, Amazon's live pages. Do the first run on a COPY of
+  the sheet (the settings page has a dry-run preview). Drive thumbnails use the `thumbnailLink` Google returns; if Google
+  refuses them with a bearer token the picker still lists the files by name.
+* **Blocked on the owner:** the OAuth client ID (setup below). Because Drive was added, the OAuth consent screen needs the
+  `drive.readonly` scope too, and after upgrading press "Sign in to Google" once more.
+* **Still to do:** Drive-API replacement for the folder sync (settings / hidden / pinned on any computer).
 
 ## Phases
 

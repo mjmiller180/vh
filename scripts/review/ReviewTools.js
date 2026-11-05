@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0130
+// Last compiled at 2026-11-05_0138
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -13,6 +13,7 @@
  * Everything the owner or Amazon wrote is put on the page with textContent / value, never as HTML.
  */
 import { toggleStyle, stripStyles, bulletLines, numberLines, unlistLines } from "/scripts/review/UnicodeStyles.js";
+import { openDrivePicker } from "/scripts/review/DrivePicker.js";
 import { createDraftStore, createSnippetStore, draftKeyFor, pickImages, newId, todayIso } from "/scripts/review/ReviewData.js";
 
 const SELECTORS = {
@@ -321,6 +322,7 @@ export async function startReviewTools() {
 		});
 		zone.parentNode.insertBefore(
 			el("div", { class: "vt-toolbar" }, [
+				...(settings?.google?.drive?.enabled ? [button("Add from Google Drive…", "Pick pictures from your Google Drive", () => openDrivePicker({ attach }))] : []),
 				button("Paste picture from clipboard", "Add the picture you copied", async () => {
 					try {
 						const files = [];

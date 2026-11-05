@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Last compiled at 2026-11-05_0123
+// Last compiled at 2026-11-05_0138
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -21,8 +21,8 @@ const HOST_ALLOW = [/(^|\.)amazon\.[a-z.]+$/, /(^|\.)media-amazon\.com$/, /^(dis
 // reach it from the service worker, whose requests the manifest CSP connect-src governs, so this guard checks the
 // manifest separately. Content scripts are NOT limited by the extension CSP, which is why the primitive check
 // below matters.)
-const GOOGLE_API_HOSTS = ["sheets.googleapis.com"]; //(add www.googleapis.com only when the Drive API is wired in)
-const GOOGLE_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
+const GOOGLE_API_HOSTS = ["sheets.googleapis.com", "www.googleapis.com", "*.googleusercontent.com"]; //Sheets, Drive (read only) and Drive thumbnails
+const GOOGLE_SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive.readonly"];
 const GOOGLE_DIR = "scripts/background/google/";
 const hostOk = (h) => HOST_ALLOW.some((r) => r.test(h.toLowerCase())) || h.includes("*.amazon.") || h.includes("${") || h.includes("{{");
 
@@ -30,6 +30,7 @@ const hostOk = (h) => HOST_ALLOW.some((r) => r.test(h.toLowerCase())) || h.inclu
 const PRIMITIVE_ALLOW = {
 	"scripts/background/DiscordSender.js": { fetch: "POSTs to the user's Discord webhook (URL validated)" },
 	"scripts/core/utils/Template.js": { fetch: "loads the extension's own template files (chrome.runtime.getURL)" },
+	"scripts/background/google/DriveClient.js": { fetch: "reads the user's own Google Drive pictures (read only, token from Chrome sign-in; fetchFn is injected)" },
 	"scripts/background/google/SheetsClient.js": { fetch: "calls the Google Sheets API with the user's own token (fetchFn is injected; the host is fixed in BASE)" },
 	"scripts/core/services/SheetSync.js": { fetch: "reads the other pages of the user's own Vine orders/reviews lists on amazon (same site) for 'send all pages'" },
 	"scripts/inj.js": { fetch: "wraps Amazon's own fetch (origFetch) to read Amazon's responses" },
@@ -137,4 +138,4 @@ if (problems.length) {
 	[...new Set(problems)].forEach((p) => console.error("  " + p));
 	process.exit(1);
 }
-console.log("check-no-external: OK (reachable: Amazon, the user's own Discord webhook, and the Google Sheets API after sign-in)");
+console.log("check-no-external: OK (reachable: Amazon, the user's own Discord webhook, and Google Sheets + Drive (read only) after sign-in)");

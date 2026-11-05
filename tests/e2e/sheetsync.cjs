@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0123
+// Last compiled at 2026-11-05_0138
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -116,6 +116,7 @@ async function test(name, fn) {
 
 	// a first visit creates the default settings
 	await (await open("/vine/orders")).close();
+	await waitFor(async () => (await sw.evaluate(() => chrome.storage.local.get("settings"))).settings);
 	await sw.evaluate(async () => {
 		chrome.identity.getAuthToken = (opts, cb) => cb("fake-token"); // Chrome sign-in stub
 		const { settings } = await chrome.storage.local.get("settings");

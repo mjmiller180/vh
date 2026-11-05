@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_0130 -->
+<!-- Last compiled at 2026-11-05_0138 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -35,6 +35,26 @@
 		<button id="googlePreview">3. Preview a sample order (writes nothing)</button>
 		<div id="googleStatus" style="margin-top: 8px"></div>
 		<pre id="googleResult" style="max-height: 320px; overflow: auto; white-space: pre-wrap"></pre>
+	</fieldset>
+
+	<fieldset>
+		<legend>Pictures from Google Drive (for reviews)</legend>
+		<p>
+			Adds an "Add from Google Drive…" button to Amazon's review form. It shows your newest pictures (or the folder
+			below) with small previews; the ones you tick are attached to the review. VineTools only <em>reads</em> Drive,
+			and only when you open that window. It needs the extra "view your Drive files" permission: after switching
+			this on, press <strong>Sign in to Google</strong> above again so Google can ask you.
+		</p>
+		<div class="setting-container">
+			<label for="google.drive.enabled">
+				<input type="checkbox" name="google.drive.enabled" value="1" />
+				Allow VineTools to read pictures from my Google Drive
+			</label>
+		</div>
+		<div class="setting-container" style="flex-direction: column; align-items: stretch">
+			<label for="google.drive.folder">Start in this folder (optional, paste its web address or ID):</label>
+			<input type="text" name="google.drive.folder" style="width: 100%" placeholder="empty = newest pictures anywhere in Drive" />
+		</div>
 	</fieldset>
 
 	<fieldset>
