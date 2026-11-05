@@ -1,0 +1,73 @@
+.invert {
+	filter: invert(1);
+}
+
+div[role="navigation"] > ul > li {
+	overflow: hidden;
+}
+
+@media (prefers-color-scheme: dark) {
+	.vh-icon-request {
+		filter: invert(1);
+	}
+}
+
+.vh-icon-12 {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+}
+
+.vh-icon-16 {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+}
+.vh-icon-32 {
+	display: inline-block;
+	width: 32px;
+	height: 32px;
+}
+.vh-icon-48 {
+	display: inline-block;
+	width: 48px;
+	height: 48px;
+}
+.vh-switch-32 {
+	display: inline-block;
+	width: 32px;
+	height: 18px;
+	background-position-y: -7px;
+}
+
+.vh-button-icon {
+	padding-left: 25px;
+	background-size: 15px !important;
+	background-position-x: 5px;
+	background-position-y: center;
+}
+
+.vh-icon-only-button {
+	width: 25px;
+	background-size: 12px !important;
+	background-position-x: 5px;
+	background-position-y: center;
+}
+
+.vh-disabled {
+	filter: opacity(0.3);
+	pointer-events: none;
+}
+
+.vh-icon-premium {
+	margin-left: 5px;
+	text-align: center;
+	vertical-align: middle;
+	font-weight: bold;
+	color: #fff;
+	text-shadow: 0px 0px 2px black;
+	font-family: courier;
+	width: 18px !important;
+	height: 18px !important;
+	padding-top: 2px;
+}

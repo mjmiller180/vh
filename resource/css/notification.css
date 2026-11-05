@@ -1,0 +1,59 @@
+/* Notifications */
+#vh-notifications-container {
+	position: fixed;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	width: 300px;
+	z-index: 1008;
+	pointer-events: none;
+	display: flex;
+	justify-content: flex-end;
+	flex-direction: column;
+	padding-right: 10px;
+	color: #0f1111;
+}
+
+#vh-notifications-container .vh-notification-box {
+	width: 100%;
+	background-color: #fff;
+	border: 1px solid #000;
+	pointer-events: auto;
+	margin-bottom: 10px;
+	position: relative;
+}
+
+#vh-notifications-container .vh-notification-toolbar {
+	border: 1px solid #444;
+	background-color: #eee;
+	padding: 3px;
+	margin: 3px;
+	cursor: pointer;
+}
+#vh-notifications-container .vh-notification-content {
+	padding: 5px;
+	height: 90px;
+	overflow-y: scroll;
+}
+
+#vh-notifications-container .vh-notification-title-only .vh-notification-content {
+	padding: 0;
+	overflow-y: none;
+	height: 0px;
+}
+
+#vh-notifications-container .vh-notification-close {
+	float: right;
+}
+
+.vh-notification-loading {
+	position: relative;
+	margin-left: auto;
+	margin-right: 0;
+	width: 30px;
+	height: 30px;
+}
+
+.vh-notification-toggle {
+	cursor: pointer;
+}

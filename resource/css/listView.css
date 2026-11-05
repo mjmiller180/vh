@@ -1,0 +1,64 @@
+#vh-tabs #vvp-items-grid.tab-grid,
+#vh-tabs #tab-unavailable.tab-grid,
+#vh-tabs #tab-hidden.tab-grid,
+#vh-tabs #tab-pinned.tab-grid {
+	grid-template-columns: auto !important;
+}
+
+#vh-tabs > .tab-grid > .vvp-item-tile {
+	display: flex;
+	flex-direction: row;
+	margin: 10px;
+}
+
+#vh-tabs > .tab-grid > .vvp-item-tile .vvp-item-tile-content {
+	display: flex;
+	flex-grow: 1;
+	flex-direction: column;
+	margin-left: 10px;
+	width: 100% !important;
+}
+
+#vh-tabs > .tab-grid > .vvp-item-tile .vvp-item-tile-content .a-truncate {
+	height: unset;
+}
+
+#vh-tabs > .tab-grid > .vvp-item-tile .vvp-item-tile-content > * {
+	margin: 2px 0 !important;
+}
+
+#vh-tabs .vvp-item-tile .vvp-item-tile-content > div.vh-status {
+	margin-top: 0px !important;
+	flex-grow: unset;
+}
+
+#vh-tabs > .tab-grid > .vvp-item-tile .vvp-details-btn,
+#vh-tabs > .tab-grid > .vvp-item-tile .vvp-details-btn-mobile {
+	width: 150px;
+	margin: 0 auto !important;
+	margin-bottom: 2px !important;
+}
+
+div.vh-status-container {
+	position: relative;
+}
+
+#vh-tabs.smallitems .vh-img-container {
+	width: 130px !important;
+}
+
+.tab-grid div.vh-toolbar-etv,
+.vh-notification-monitor div.vh-toolbar-etv {
+	min-width: unset;
+	flex-basis: unset;
+	padding-left: 0px;
+}
+
+/* Remove the min-width from the main page */
+body,
+.vvp-body,
+.a-container,
+#navFooter.navLeftFooter,
+#navbar {
+	min-width: unset !important;
+}

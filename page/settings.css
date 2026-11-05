@@ -1,0 +1,434 @@
+/* #################################### */
+/* HEADER */
+/* #################################### */
+
+/* Chrome 29+ */
+@media screen and (-webkit-min-device-pixel-ratio: 0) and (min-resolution: 0.001dpcm) {
+	.vh-icon-logo {
+		background-size: 40%;
+		background-image: url("chrome-extension://__MSG_@@extension_id__/resource/image/logo.png");
+		background-repeat: no-repeat;
+	}
+}
+
+@supports (-moz-appearance: none) {
+	.vh-icon-logo {
+		background-size: 40%;
+		background-image: url("/resource/image/logo.png");
+		background-repeat: no-repeat;
+	}
+}
+
+/* Safari on MacOS and iOS */
+@supports (background: -webkit-named-image(i)) {
+	.vh-icon-logo {
+		background-size: 40%;
+		background-image: url("../resource/image/logo.png");
+		background-repeat: no-repeat;
+	}
+}
+
+.header-logo {
+	background-position-x: -30px;
+	background-position-y: -40px;
+	width: 350px;
+	padding-left: 200px;
+	height: 100px;
+	margin-left: -10px;
+	margin-top: -15px;
+	margin-bottom: 10px;
+}
+
+.header-text {
+	display: inline-block;
+	text-align: center;
+}
+
+body {
+	font-family: "Segoe UI", Tahoma, sans-serif;
+	font-size: 75%;
+}
+
+/* Screen reader only - for accessibility */
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+/* #################################### */
+/* TABS */
+/* #################################### */
+
+/* Reduce tab padding to fit on two lines */
+#tabs-index.vh-tabs li {
+	padding: 2px 6px;
+	font-size: 11px;
+}
+
+#tabs-index.vh-tabs ul {
+	display: flex;
+	flex-wrap: wrap;
+	max-width: 600px;
+}
+
+#tabs-content .tab {
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	flex-grow: 1;
+	width: 600px;
+	margin-top: -1px;
+}
+
+/* #################################### */
+/* TAB CONTENT */
+/* #################################### */
+
+.setting-container {
+	margin-top: 10px;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+}
+
+label {
+	flex: none;
+	border: 0px solid var(--border-light, #ddd);
+	flex-grow: 1;
+	text-align: left;
+	margin: 1px;
+	padding: 4px;
+	cursor: pointer;
+}
+
+.tabulation {
+	border-left: 3px solid #000;
+	margin-left: 10px;
+	padding-left: 5px;
+}
+
+fieldset {
+	margin-top: 5px;
+}
+
+.tab fieldset:last-child {
+	margin-bottom: 10px;
+}
+
+legend {
+	font-weight: bold;
+}
+.setting-section {
+	font-weight: bold;
+	font-size: 16pt;
+	margin-top: 20px;
+}
+
+label.right-align input,
+label.right-align select {
+	float: right;
+	margin-right: 0px;
+	margin-left: auto;
+}
+
+.setting-summary {
+	font-style: italic;
+	margin-left: 30px;
+	background-color: #f6f6f6;
+	border: 1px solid #eee;
+	padding: 5px;
+	padding-left: 25px;
+}
+
+.vh-toolbar-icon {
+	margin-left: -20px;
+}
+
+textarea {
+	margin-left: 20px;
+	width: 500px;
+	height: 200px;
+}
+
+div.buttons-header {
+	display: none;
+	width: 600px;
+	flex-direction: row;
+	margin-bottom: 10px;
+}
+div.button-notification-monitor {
+	flex-grow: 1;
+	border: 2px solid #000000;
+	border-radius: 5px;
+	background-color: var(--tab-border);
+	margin-right: 5px;
+	font-size: 12pt;
+	line-height: 2.5em;
+	font-weight: bold;
+}
+div.button-notification-monitor:hover {
+	background-color: var(--tab-border-active);
+}
+div.button-notification-monitor a {
+	text-decoration: none;
+	color: #ffffff;
+}
+div.button-settings {
+	border: 2px solid #000000;
+	border-radius: 5px;
+	background-color: #cccccc;
+	padding: 5px;
+}
+div.button-settings:hover {
+	background-color: #aaaaaa;
+}
+div.buttons-header .button-inner {
+	color: #ffffff;
+	text-align: center;
+}
+
+a.toggle {
+	cursor: pointer;
+}
+
+#premiumTier {
+	font-size: 14pt;
+	font-family: "Lucida Handwriting", cursive;
+}
+
+#patreonCharacterDescription::first-letter {
+	font-family: "Lucida Handwriting", cursive;
+	font-size: 18pt;
+	font-weight: bold;
+	color: #2c8e38;
+}
+
+.patreonLevelbar {
+	display: flex;
+	flex-direction: row;
+	margin-top: 10px;
+}
+
+.patreonLevelbarSegment {
+	width: 50px;
+	height: 15px;
+	background-color: #eee;
+	border: 2px solid #000;
+	border-radius: 7px;
+	margin-right: 5px;
+	box-shadow: -3px 3px 5px black;
+	text-align: center;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	font-size: 8pt;
+	font-family: "Lucida Handwriting", cursive;
+}
+
+.patreonLevelbarSegment.filled0 {
+	background-color: #5fbd63;
+}
+
+.patreonLevelbarSegment.filled1 {
+	background-color: #5fbd63;
+	filter: brightness(1.1);
+}
+
+.patreonLevelbarSegment.filled2 {
+	background-color: #5fbd63;
+	filter: brightness(1.2);
+}
+
+.patreonLevelbarSegment.filled3 {
+	background-color: #5fbd63;
+	filter: brightness(1.3);
+}
+
+#patreonCharacterDescription {
+	font-style: italic;
+}
+
+/* Toggle switches */
+input:where([type="checkbox"][role="switch"]) {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	position: relative;
+	font-size: inherit;
+	width: 2em;
+	height: 1em;
+	box-sizing: content-box;
+	border: 1px solid;
+	border-radius: 1em;
+	vertical-align: text-bottom;
+	margin: auto;
+	color: inherit;
+}
+
+input:where([type="checkbox"][role="switch"])::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 0;
+	transform: translate(0, -50%);
+	box-sizing: border-box;
+	width: 0.7em;
+	height: 0.7em;
+	margin: 0 0.15em;
+	border: 1px solid;
+	border-radius: 50%;
+	background: currentcolor;
+}
+
+input:where([type="checkbox"][role="switch"]):checked::before {
+	left: 1em;
+}
+
+/* if the input is disabled, display the switch in gray */
+input:where([type="checkbox"][role="switch"]):disabled::before {
+	color: #ccc;
+	border-color: #ccc;
+}
+
+/* Dual range slider */
+.range_container {
+	display: flex;
+	flex-direction: column;
+	width: 80%;
+	margin: 0 auto;
+}
+
+.sliders_control {
+	position: relative;
+	min-height: 20px;
+}
+
+.form_control {
+	position: relative;
+	display: flex;
+	justify-content: space-between;
+	color: #635a5a;
+}
+
+input.dualslider[type="range"]::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	pointer-events: all;
+	width: 16px;
+	height: 16px;
+	background-color: #fff;
+	border-radius: 50%;
+	box-shadow: 0 0 0 1px #c6c6c6;
+	cursor: pointer;
+}
+
+input.dualslider[type="range"]::-moz-range-thumb {
+	-moz-appearance: none;
+	pointer-events: all;
+	width: 16px;
+	height: 16px;
+	background-color: #fff;
+	border-radius: 50%;
+	box-shadow: 0 0 0 1px #c6c6c6;
+	cursor: pointer;
+}
+
+input.dualslider[type="range"]::-webkit-slider-thumb:hover {
+	background: #f7f7f7;
+}
+
+input.dualslider[type="range"]::-webkit-slider-thumb:active {
+	-webkit-box-shadow:
+		inset 0 0 3px #387bbe,
+		0 0 9px #387bbe;
+	box-shadow:
+		inset 0 0 3px #387bbe,
+		0 0 9px #387bbe;
+}
+
+input.dualslider[type="number"] {
+	color: #8a8383;
+	border: none;
+}
+
+input.dualslider[type="number"]::-webkit-inner-spin-button,
+input.dualslider[type="number"]::-webkit-outer-spin-button {
+	opacity: 1;
+}
+
+input.dualslider[type="range"] {
+	-webkit-appearance: none;
+	appearance: none;
+	height: 5px;
+	width: 100%;
+	position: absolute;
+	background-color: #c6c6c6;
+	pointer-events: none;
+}
+
+#fromSlider {
+	height: 0;
+	z-index: 1;
+	margin-top: 4px;
+}
+
+/* #################################### */
+/* MEMORY DEBUGGING CONTROLS */
+/* #################################### */
+
+.memory-debug-controls {
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.memory-debug-controls .setting-container {
+	margin-bottom: 12px;
+}
+
+.memory-debug-btn {
+	padding: 6px 10px;
+	font-size: 12px;
+	background: #fff;
+	border: 1px solid #ccc;
+	border-radius: 3px;
+	cursor: pointer;
+	transition: all 0.2s;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.memory-debug-btn:hover {
+	background: #f0f0f0;
+	border-color: #999;
+}
+
+.memory-debug-btn:active {
+	background: #e0e0e0;
+}
+
+.memory-debug-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+/* Responsive adjustments for narrow views */
+@media (max-width: 400px) {
+	.memory-debug-controls .setting-container {
+		padding: 8px;
+	}
+	
+	.memory-debug-btn {
+		font-size: 11px;
+		padding: 5px 8px;
+	}
+	
+	#memoryDebugLog {
+		height: 120px !important;
+		font-size: 10px !important;
+	}
+}

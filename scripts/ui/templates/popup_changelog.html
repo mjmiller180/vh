@@ -1,0 +1,76 @@
+<br />
+<br /><strong>Version {{$appVersion}} change notes:</strong>
+<br />
+This update fix some bug, but mainly introduce the ability to choose between the WebSocket connection being created and
+held by the Service Worker or the Monitor Tab itself. The later option is now the new default, and should help avoid
+unwanted connection from devices not actively using the monitor. Service Worker mode (the old default) is still
+available as it provide a more stable connection on devices with a battery optimization system.
+<br />
+<br />Note that new Tier3 features are still Beta and may not work as expected.
+<br />
+<br />
+<br />
+<h2>Change log:</h2>
+<h3>General:</h3>
+<ul>
+	<li>
+		<span style="color: #ff0000">NEW:</span> Ability to select the WebSocket connection mode betwee Service Worker
+		(SW) or Tab Mode (Tab). Service Worker is a more resillient connection, but will be established regardless if
+		the monitor is opened or not. Tab mode will attach the connection to the Monitor Tab (the Master tab) and will
+		only connect if the monitor is opened. Tab mode is more prone to be put to sleep by battery optimization
+		systems.
+	</li>
+	<li>
+		<span style="color: #ff9000">CHANGE:</span> Defaulting websocket connection mode to Tab Mode as many people
+		reported having issues with unwanted device establishing a connection.
+	</li>
+
+	<li><span style="color: #0099ff">FIX:</span> Keywords testing tool was not working correctly.</li>
+	<li><span style="color: #0099ff">FIX:</span> Keyword with 0 ETV max value would not match items with 0 ETV.</li>
+</ul>
+<br />
+
+<h3>Notifications Monitor:</h3>
+<ul>
+	<li>
+		<span style="color: #ff0000">NEW:</span> Long pressing the Fetch Last button will display additional options to
+		fetch less items.
+	</li>
+	<li>
+		<span style="color: #0099ff">FIX:</span> Keyboard shortcuts were working in the notifications monitor when they
+		should not.
+	</li>
+</ul>
+<br />
+
+<h3>Premium feature(s):</h3>
+<ul>
+	<li>
+		<span style="color: #ff0000">NEW:</span> Tier3: If available, display Amazon prices and thumbnails carousel to
+		display additional images (Beta)
+	</li>
+	<li><span style="color: #ff0000">NEW:</span> Tier3: Advanced hooks content (Beta)</li>
+	<li><span style="color: #ff0000">NEW:</span> Tier3: 0ETV hook (Beta)</li>
+	<li><span style="color: #ff0000">New:</span> Tier2: ETV modifier to display ETVs according to your tax rate.</li>
+</ul>
+<br />
+
+<div class="support-links">
+	<div>
+		<a href="https://www.patreon.com/VineHelper" class="patreon-link" target="_blank">VineHelper's Patreon</a>
+	</div>
+	<div>
+		<form action="https://www.paypal.com/donate" method="post" target="_blank">
+			<input type="hidden" name="hosted_button_id" value="MMS5MYRDRALBG" />
+			<input
+				type="image"
+				src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif"
+				border="0"
+				name="submit"
+				title="PayPal - The safer, easier way to pay online!"
+				alt="Donate with PayPal button"
+			/>
+			<img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1" />
+		</form>
+	</div>
+</div>

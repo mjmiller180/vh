@@ -1,0 +1,177 @@
+.vh_flex_column {
+	display: grid;
+	flex: 1 1 auto;
+}
+.vh_flex_column div {
+	text-align: center;
+}
+
+.vh_visible_container h1,
+.vh_visible_container h2,
+.vh_visible_container h3,
+.vh_visible_container h4,
+.vh_visible_container h5 {
+	padding: 0;
+	margin: 0;
+	padding-bottom: 4px;
+}
+
+/* tooltip */
+.hover-tooltip {
+	position: absolute;
+	background-color: #333;
+	color: #fff;
+	padding: 5px;
+	border-radius: 3px;
+	display: none;
+	font-size: 14px;
+	z-index: 1000;
+	width: 200px;
+}
+
+/* Icons overlay on top of product image */
+.vh-img-container {
+	position: relative;
+}
+.vh-variant-indicator-container {
+	position: absolute;
+	margin-top: -20px;
+	right: 0;
+}
+.vh-indicator-icon {
+	width: 16px;
+	height: 16px;
+}
+
+.vh-date-added {
+	position: absolute;
+	margin-top: -14px;
+	left: 0;
+	height: 14px;
+	line-height: 10px;
+	padding: 2px;
+	font-size: 10px;
+	text-shadow: 0px 0px 1px #fff;
+	background-color: rgba(255, 255, 255, 0.5);
+	color: #0f1111;
+}
+.vh-delayed-indicator-container {
+	position: absolute;
+	margin-top: -30px;
+	left: 0;
+	height: 16px;
+	line-height: 16px;
+}
+.vh-new-corner-discovered {
+	position: absolute;
+	z-index: 5;
+	top: 0;
+	right: 0;
+	width: 100px;
+	height: 2.5em;
+	font-size: 8pt;
+	line-height: 8pt;
+	clip-path: polygon(75% 0, 25% 0, 0 100%, 100% 100%);
+	transform-origin: 50px 50px;
+	transform: rotate(45deg);
+	padding-top: 2px;
+	background-color: #ff0000;
+	color: #fff;
+	text-transform: uppercase;
+	font-weight: bold;
+	text-align: center;
+
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+.vh-corner-rfy {
+	position: absolute;
+	z-index: 5;
+	top: 0;
+	right: 0;
+	width: 100px;
+	height: 1.5em;
+	font-size: 8pt;
+	line-height: 8pt;
+	clip-path: polygon(75% 0, 25% 0, 10px 100%, 100% 100%);
+	transform-origin: 50px 50px;
+	transform: rotate(45deg);
+	padding-top: 2px;
+	background-color: #ff0000;
+	color: #fff;
+	text-transform: uppercase;
+	font-weight: bold;
+	text-align: center;
+
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+.vvp-container-right-align {
+	flex-flow: row wrap;
+}
+.vvp-items-button-and-search-container {
+	margin: 0px !important;
+}
+div#bookmark {
+	margin: 0px;
+	margin-top: 10px;
+	text-align: left;
+}
+
+/* Add visual cues for the keybinding */
+a.vh-hideall span,
+a.vh-hideallnext span,
+a.vh-showall span,
+.vh-pagination-previous {
+	display: inline-block;
+}
+
+ul.a-pagination li:first-child a span:last-child::first-letter,
+div:not([class*="topPaginationVerbose"]) > ul.a-pagination li:last-child a::first-letter,
+a.vh-hideall span::first-letter,
+a.vh-showall span::first-letter {
+	text-decoration: underline;
+}
+
+/* Make the pin tab render like other tabs for smallitems */
+#vh-tabs.smallitems #tab-pinned {
+	grid-template-columns: repeat(auto-fill, minmax(var(--grid-column-width, 110px), auto)) !important;
+}
+
+div#vh-tabs {
+	clear: both;
+}
+
+.unavailable-banner {
+	position: absolute;
+	z-index: 1000;
+	top: 50%;
+	bottom: 50%;
+	left: 0px;
+	right: 0px;
+	height: 25px;
+	padding: 3px;
+	background-color: red;
+	text-align: center;
+	color: white;
+	font-weight: bold;
+}
+
+.a-box {
+	border: none !important;
+}
+.a-box-inner {
+	padding: 14px 10px;
+}
+
+/** Force the full title to be visible */
+.a-truncate > span.a-truncate-full {
+	display: block !important;
+	visibility: visible !important;
+	opacity: 1 !important;
+	position: relative !important;
+	z-index: 1 !important;
+}
+
+/** Force the cut title to be visible */
+.a-truncate > span.a-truncate-cut {
+	display: none !important;
+}

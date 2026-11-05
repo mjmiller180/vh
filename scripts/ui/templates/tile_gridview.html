@@ -1,0 +1,154 @@
+<div
+	id="vh-notification-{{$asin}}"
+	class="vvp-item-tile vh-gridview"
+	data-asin="{{$asin}}"
+	data-recommendation-id="{{$recommendationId}}"
+	data-img-url="{{$img_url}}"
+	data-type="0"
+	data-queue="{{$queue}}"
+	data-feed-paused="{{$feedPaused}}"
+	data-tier="{{$tier}}"
+	style="display: none"
+>
+	<div class="vvp-item-tile-content">
+		<div class="vh-status">
+			<div class="vh-status-container">
+				<a href="#" id="vh-hide-link-{{$asin}}" class="vh-floating-icon vh-hide-link" title="Hide item">
+					<div class="vh-toolbar-icon vh-icon-hide" data-asin="{{$asin}}"></div>
+				</a>
+				<div class="vh-status-container2">
+					{{if announce}}
+					<a
+						href="#{{$asin}}"
+						id="vh-announce-link-{{$asin}}"
+						class="vh-floating-icon vh-announce-link"
+						title="Announce the product on discord! (The ETV must be known)"
+					>
+						<div
+							class="vh-toolbar-icon vh-icon-announcement"
+							style="opacity: 1"
+							data-asin="{{$asin}}"
+							data-queue="{{$queue}}"
+						></div>
+					</a>
+					{{endif}} {{if pinned}}
+					<a
+						href="#{{$asin}}"
+						id="vh-pin-link-{{$asin}}"
+						class="vh-floating-icon vh-pin-link"
+						title="Pin item"
+					>
+						<div
+							class="vh-toolbar-icon vh-icon-pin"
+							data-asin="{{$asin}}"
+							data-queue="{{$queue}}"
+							data-is-parent-asin="{{$is_parent_asin}}"
+							data-enrollment-guid="{{$enrollment_guid}}"
+							data-title="{{$description}}"
+							data-thumbnail="{{$img_url}}"
+						></div>
+					</a>
+					{{endif}}
+					<a
+						href="{{$search_url}}"
+						id="vh-search-link-{{$asin}}"
+						class="vh-floating-icon vh-search-link"
+						title="Search for this item"
+						target="_blank"
+					>
+						<div class="vh-toolbar-icon vh-icon-search"></div>
+					</a>
+					<a
+						href="#{{$asin}}"
+						id="vh-reason-link-{{$asin}}"
+						class="vh-floating-icon"
+						title="Technical details"
+					>
+						<div
+							class="vh-toolbar-icon vh-icon-question"
+							data-asin="{{$asin}}"
+							data-date-received="{{$date_received}}"
+							data-date-sent="{{$date_sent}}"
+							data-date-added="{{$date_added}}"
+							data-reason="{{$reason}}"
+							data-highlightkw="{{$highlightKW}}"
+							data-blurkw="{{$blurKW}}"
+							data-queue="{{$queue}}"
+							data-tier="{{$tier}}"
+						></div>
+					</a>
+
+					<a
+						href="#"
+						id="vh-report-link-{{$asin}}"
+						class="vh-floating-icon vh-report-link"
+						title="If this item is not a real vine item, report the user who submitted it."
+					>
+						<div class="vh-toolbar-icon vh-icon-report" data-asin="{{$asin}}"></div>
+					</a>
+
+					<div class="etv vh-toolbar-etv" data-etv-min="" data-etv-max="" style="display: none">
+						<span class="etv">&nbsp;</span>
+						<span class="price"></span>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="vh-img-container">
+			<img alt="" src="{{$img_url}}" />
+			{{if is_parent_asin}}
+			<div class="vh-variant-indicator-container">
+				<a href="#" onclick="return false;" style="cursor: default" title="The item has variant(s)">
+					<div class="vh-indicator-icon vh-icon-choice"></div>
+				</a>
+			</div>
+			{{endif}} {{if delayed}}
+			<div class="vh-delayed-indicator-container">
+				<a
+					href="#"
+					onclick="return false;"
+					style="cursor: default"
+					title="Delayed broadcast. Click (?) for details."
+				>
+					<div class="vh-indicator-icon vh-icon-delayed"></div>
+				</a>
+			</div>
+			{{endif}}
+			<div class="vh-date-added">{{$date_displayed}}</div>
+		</div>
+		<div class="vvp-item-product-title-container">
+			<a class="a-link-normal" target="_blank" rel="noopener" href="/dp/{{$asin}}">
+				<span
+					class="a-truncate"
+					data-a-word-break="normal"
+					data-a-max-rows="2"
+					data-a-overflow-marker="&amp;hellip;"
+					style="line-height: 1.3em !important; max-height: 2.6em"
+					data-a-recalculate="false"
+					data-a-updated="true"
+				>
+					<span class="a-truncate-full">{{$description}}</span>
+				</span>
+			</a>
+		</div>
+		<span class="vh-btn-container" style="display: flex; margin: 8px 0px">
+			<span class="a-button a-button-primary vvp-details-btn{{$mobileSuffix}}" id="a-autoid-0">
+				<span class="a-button-inner">
+					<input
+						data-asin="{{$asin}}"
+						data-is-parent-asin="{{$is_parent_asin}}"
+						data-is-pre-release="{{$is_pre_release}}"
+						data-recommendation-id="{{$recommendationId}}"
+						data-recommendation-type="{{$recommendationType}}"
+						data-queue="{{$queue}}"
+						data-enrollment-guid="{{$enrollment_guid}}"
+						class="a-button-input"
+						type="submit"
+						aria-labelledby="a-autoid-0-announce"
+					/>
+					<span class="a-button-text" aria-hidden="true" id="a-autoid-0-announce">See details</span>
+				</span>
+			</span>
+		</span>
+	</div>
+</div>

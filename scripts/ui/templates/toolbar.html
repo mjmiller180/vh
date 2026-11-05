@@ -1,0 +1,54 @@
+<div id="{{$toolbarId}}" class="vh-status">
+	<div class="vh-status-container">
+		{{if toggleview}}
+		<a
+			href="#{{$asin}}"
+			id="vh-hide-link-{{$asin}}"
+			class="vh-floating-icon vh-hide-link"
+			style="margin-left: auto"
+			title="Move a product to, or out of, the hidden tab."
+			onclick="return false;"
+		>
+			<div class="vh-toolbar-icon"></div>
+		</a>
+		{{endif}}
+		<div class="vh-status-container2">
+			{{if announce}}
+			<a
+				href="#{{$asin}}"
+				id="vh-announce-link-{{$asin}}"
+				class="vh-floating-icon vh-announce-link"
+				title="Announce the product on discord! (The ETV must be known)"
+				onclick="return false;"
+			>
+				<div class="vh-toolbar-icon vh-icon-announcement"></div>
+			</a>
+			{{endif}}{{if pinned}}
+			<a
+				href="#{{$asin}}"
+				id="vh-pin-link-{{$asin}}"
+				class="vh-floating-icon vh-announce-link"
+				title="Pin item"
+				onclick="return false;"
+			>
+				<div id="vh-pin-icon-{{$asin}}" class="vh-toolbar-icon {{$pinnedClass}}"></div>
+			</a>
+			{{endif}}{{if details}}
+			<a
+				href="#{{$asin}}"
+				id="vh-details-link-{{$asin}}"
+				class="vh-floating-icon vh-details-link"
+				title="Details"
+				onclick="return false;"
+			>
+				<div class="vh-toolbar-icon vh-icon-question"></div>
+			</a>
+			{{endif}} {{$orderWidget}}
+
+			<div class="vh-toolbar-etv">
+				<span class="etv"></span>
+				<span class="price"></span>
+			</div>
+		</div>
+	</div>
+</div>

@@ -1,0 +1,81 @@
+/* Grid */
+div.vh-grid,
+#vvp-items-grid,
+#tab-unavailable,
+#tab-hidden {
+	display: grid;
+	border: 1px solid #ccc;
+	grid-template-columns: repeat(auto-fill, minmax(236px, auto));
+	padding: 1px;
+}
+
+#vvp-items-grid .vvp-item-tile,
+#tab-unavailable .vvp-item-tile,
+#tab-hidden .vvp-item-tile {
+	margin-top: -1px;
+	margin-left: -1px;
+	display: flex;
+}
+
+div.vh-grid .vvp-item-tile {
+	border: 1px solid #ddd;
+	margin-top: -1px;
+	margin-left: -1px;
+}
+
+#vvp-items-grid.tab-grid .vvp-item-tile .vvp-item-tile-content,
+div.tab-grid .vvp-item-tile .vvp-item-tile-content,
+div.vh-grid .vvp-item-tile .vvp-item-tile-content {
+	overflow: hidden;
+	margin: 0 auto;
+	display: flex;
+	flex-direction: column;
+}
+
+#vvp-items-grid-container .vvp-item-tile a,
+#vvp-items-grid-container .vvp-item-tile a:visited,
+#vvp-items-grid-container .vvp-item-tile a:active {
+	color: var(--item-link-light);
+}
+
+body.darktheme #vvp-items-grid-container .vvp-item-tile a,
+body.darktheme #vvp-items-grid-container .vvp-item-tile a:visited,
+body.darktheme #vvp-items-grid-container .vvp-item-tile a:active {
+	color: var(--item-link-dark);
+}
+
+body.darktheme .vh-btn-variants-count {
+	color: black; /* the element's color gets inverted in dark theme */
+}
+
+#vvp-items-grid.listview {
+	grid-template-columns: auto !important;
+}
+
+#vvp-items-grid-container {
+	margin: 0px !important;
+}
+
+#vvp-items-grid {
+	column-gap: 0px !important;
+}
+
+#vvp-items-grid .vh-placeholder-tile {
+	opacity: 0.1;
+	background-size: 80%;
+	background-position-y: center;
+	background-position-x: center;
+}
+
+.vh-listview .vvp-details-btn {
+	width: 150px !important;
+}
+
+body.darktheme #vvp-items-grid-container .vvp-item-product-title-container {
+	text-shadow: 0 0 1px #000;
+}
+
+/* body without the class darktheme */
+body:not(.darktheme) #vvp-items-grid-container .vvp-item-product-title-container {
+	text-shadow: 0 0 1px #fff;
+}

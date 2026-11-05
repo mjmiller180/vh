@@ -1,0 +1,318 @@
+<div>
+	<fieldset>
+		<legend>
+			<a class="toggle"
+				><div class="vh-toolbar-icon vh-icon-toggler-down" style="margin-left: 3px"></div>
+				Highlight items keywords
+			</a>
+		</legend>
+		<div class="toggle-container">
+			<div class="setting-container">
+				<label for="general.highlightKWFirst">
+					<input type="checkbox" name="general.highlightKWFirst" value="1" />
+					On listing pages, bump the highlighted matches.
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					Automatically move the items which match the highlighted keywords to the top of the listing.
+				</div>
+			</div>
+
+			<div id="general.highlightKeywords">
+				<table>
+					<tbody>
+						<tr>
+							<th style="width: 50%">Contains</th>
+							<th style="width: 30%">but without</th>
+							<th style="width: 7%">ETV min</th>
+							<th style="width: 7%">ETV max</th>
+							<th style="width: auto"></th>
+						</tr>
+					</tbody>
+				</table>
+				<div class="toolbar" style="display: flex; margin-top: 10px">
+					<input
+						type="button"
+						class="vh-icon-add"
+						name="add"
+						style="display: flex; width: 30px; background-position: center"
+					/>
+					<p
+						style="
+							display: flex;
+							flex-grow: 1;
+							flex-direction: column;
+							margin: 0;
+							text-align: center;
+							font-size: 8pt;
+						"
+					>
+						ETV cond. won't match unknown ETV.<br />
+						Don't forget to click Save for any changes.
+					</p>
+					<input
+						type="button"
+						name="save"
+						value="Save"
+						class="vh-button-icon vh-icon-save"
+						style="display: flex"
+					/>
+				</div>
+				<div style="text-align: center; font-weight: bold">Use REGEX syntax.</div>
+				<fieldset>
+					<legend>Bulk actions</legend>
+					<div class="setting-container" style="flex-wrap: wrap; justify-content: space-evenly">
+						<div
+							style="
+								width: 100%;
+								margin-bottom: 8px;
+								display: flex;
+								width: 100%;
+								margin-bottom: 8px;
+								flex-wrap: wrap;
+								justify-content: space-evenly;
+							"
+						>
+							<input
+								type="button"
+								id="bulkDeletehighlightkeywords"
+								class="vh-button-icon vh-icon-trash"
+								value="Delete All"
+							/>
+						</div>
+						<input
+							type="button"
+							id="bulkImportCSVhighlightkeywords"
+							class="vh-button-icon vh-icon-import"
+							value="Import CSV"
+						/>
+						<input
+							type="button"
+							id="bulkExportCSVhighlightkeywords"
+							class="vh-button-icon vh-icon-export"
+							value="Export CSV"
+						/>
+						<input
+							type="button"
+							id="bulkImportJSONhighlightkeywords"
+							class="vh-button-icon vh-icon-import"
+							value="Import JSON"
+						/>
+						<input
+							type="button"
+							id="bulkExportJSONhighlightkeywords"
+							class="vh-button-icon vh-icon-export"
+							value="Export JSON"
+						/>
+					</div>
+				</fieldset>
+				<fieldset>
+					<legend>
+						Remote storage
+						<div class="vh-toolbar-icon vh-icon-premium">2</div>
+					</legend>
+					<div class="setting-container premium-feature-2">
+						<input
+							type="button"
+							id="loadhighlightKeywords"
+							class="vh-button-icon vh-icon-download-server"
+							value="Load from server"
+						/>
+						<input
+							type="button"
+							id="savehighlightKeywords"
+							class="vh-button-icon vh-icon-upload-server"
+							value="Save to server"
+						/>
+					</div>
+				</fieldset>
+			</div>
+		</div>
+	</fieldset>
+
+	<div class="vh-container">
+		If the item title does not match one of the highlighed keywords, then check the auto-hide keywords.
+	</div>
+
+	<fieldset>
+		<legend>
+			<a class="toggle"
+				><div class="vh-toolbar-icon vh-icon-toggler-down" style="margin-left: 3px"></div>
+				Auto-hide items keywords
+			</a>
+		</legend>
+		<div class="toggle-container">
+			<div id="general.hideKeywords">
+				<table>
+					<tbody>
+						<tr>
+							<th style="width: 50%">Contains</th>
+							<th style="width: 30%">but without</th>
+							<th style="width: 7%">ETV min</th>
+							<th style="width: 7%">ETV max</th>
+							<th style="width: auto"></th>
+						</tr>
+					</tbody>
+				</table>
+				<div class="toolbar" style="display: flex; margin-top: 10px">
+					<input
+						type="button"
+						class="vh-icon-add"
+						name="add"
+						style="display: flex; width: 30px; background-position: center"
+					/>
+					<p
+						style="
+							display: flex;
+							flex-grow: 1;
+							flex-direction: column;
+							margin: 0;
+							text-align: center;
+							font-size: 8pt;
+						"
+					>
+						ETV cond. won't match unknown ETV.<br />
+						Don't forget to click Save for any changes.
+					</p>
+					<input
+						type="button"
+						name="save"
+						value="Save"
+						class="vh-button-icon vh-icon-save"
+						style="display: flex"
+					/>
+				</div>
+				<div style="text-align: center; font-weight: bold">Use REGEX syntax.</div>
+				<fieldset>
+					<legend>Bulk actions</legend>
+					<div class="setting-container" style="flex-wrap: wrap; justify-content: space-evenly">
+						<div
+							style="
+								width: 100%;
+								margin-bottom: 8px;
+								display: flex;
+								width: 100%;
+								margin-bottom: 8px;
+								flex-wrap: wrap;
+								justify-content: space-evenly;
+							"
+						>
+							<input
+								type="button"
+								id="bulkDeletehiddenkeywords"
+								class="vh-button-icon vh-icon-trash"
+								value="Delete All"
+							/>
+						</div>
+						<input
+							type="button"
+							id="bulkImportCSVhiddenkeywords"
+							class="vh-button-icon vh-icon-import"
+							value="Import CSV"
+						/>
+						<input
+							type="button"
+							id="bulkExportCSVhiddenkeywords"
+							class="vh-button-icon vh-icon-export"
+							value="Export CSV"
+						/>
+						<input
+							type="button"
+							id="bulkImportJSONhiddenkeywords"
+							class="vh-button-icon vh-icon-import"
+							value="Import JSON"
+						/>
+						<input
+							type="button"
+							id="bulkExportJSONhiddenkeywords"
+							class="vh-button-icon vh-icon-export"
+							value="Export JSON"
+						/>
+					</div>
+				</fieldset>
+				<fieldset>
+					<legend>
+						Remote storage
+						<div class="vh-toolbar-icon vh-icon-premium">2</div>
+					</legend>
+					<div class="setting-container premium-feature-2">
+						<input
+							type="button"
+							id="loadhiddenKeywords"
+							class="vh-button-icon vh-icon-download-server"
+							value="Load from server"
+						/>
+						<input
+							type="button"
+							id="savehiddenKeywords"
+							class="vh-button-icon vh-icon-upload-server"
+							value="Save to server"
+						/>
+					</div>
+				</fieldset>
+			</div>
+		</div>
+	</fieldset>
+
+	<fieldset id="keywords-testing">
+		<legend>
+			Keywords Testing
+			<div id="pin-keywords-testing" class="vh-icon-16 vh-icon-pin" style="margin-left: 5px"></div>
+		</legend>
+		<p>
+			Enter a test title to test which highlight/hidden keywords matches. Matching keywords will get a green
+			background.
+		</p>
+		<textarea id="testTitle" style="height: 30px"></textarea>
+		<input type="button" id="testTitleAgain" value="Test Again" style="float: right" />
+	</fieldset>
+
+	<fieldset>
+		<legend>
+			<a class="toggle"
+				><div class="vh-toolbar-icon vh-icon-toggler-down" style="margin-left: 3px"></div>
+				Blur items matching the following keywords
+			</a>
+			<div class="vh-toolbar-icon vh-icon-premium">2</div>
+		</legend>
+		<div class="toggle-container">
+			<div class="setting-container premium-feature-2">
+				<label for="general.unblurImageOnHover">
+					<input type="checkbox" name="general.unblurImageOnHover" value="1" />
+					Reveal blurred images on hover
+					<div class="vh-toolbar-icon vh-icon-premium">2</div>
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					Temporarily show blurred product images when hovering over them, matching the title behavior.
+				</div>
+			</div>
+			<div class="premium-feature-2">
+				<textarea name="general.blurKeywords"></textarea>
+				<div style="text-align: center; font-weight: bold">
+					Separate keywords with a comma (,). Use REGEX syntax.
+				</div>
+			</div>
+			<fieldset>
+				<legend>
+					Remote storage
+					<div class="vh-toolbar-icon vh-icon-premium">2</div>
+				</legend>
+				<div class="setting-container premium-feature-2">
+					<input
+						type="button"
+						id="loadblurKeywords"
+						class="vh-button-icon vh-icon-download-server"
+						value="Load from server"
+					/>
+					<input
+						type="button"
+						id="saveblurKeywords"
+						class="vh-button-icon vh-icon-upload-server"
+						value="Save to server"
+					/>
+				</div>
+			</fieldset>
+		</div>
+	</fieldset>
+</div>

@@ -1,0 +1,614 @@
+<div>
+	<fieldset>
+		<legend>
+			<label for="notification.active">
+				<input type="checkbox" name="notification.active" value="1" />
+				Enable notifications & Assisted page loads
+			</label>
+		</legend>
+		<div class="setting-container" style="margin-bottom: 10px">
+			<fieldset style="display: flex; flex-direction: column; flex-grow: 1">
+				<legend>Connection mode</legend>
+				<label>
+					<input type="radio" name="notification.connectionMode" value="0" />
+					Tab Mode: Only connect if the monitor is open.
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					This will only establish a connection to the server if you have the notifications monitor open. The
+					connection may be less stable and more prone to be put to sleep by the battery optimization of your
+					device.
+				</div>
+				<label>
+					<input type="radio" name="notification.connectionMode" value="1" />
+					SW Mode: Connect via Service Worker.
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					This will provide a more stable connection, but will use 1 connection as soon as the extension is
+					active, regardless if you have a notification monitor open.
+				</div>
+			</fieldset>
+		</div>
+		<div class="setting-container">
+			<label for="notification.hideList">
+				<input type="checkbox" name="notification.hideList" value="1" />
+				Hide Notifications matching Hide Keywords list
+			</label>
+			<div class="setting-summary">
+				<div class="vh-toolbar-icon vh-icon-question"></div>
+				Hides a notification when it matches a hide keyword and does not also match a highlight keyword.
+			</div>
+		</div>
+		<div class="setting-container">
+			<label for="notification.monitor.hideGoldNotificationsForSilverUser">
+				<input type="checkbox" name="notification.monitor.hideGoldNotificationsForSilverUser" value="1" />
+				Hide Gold-tier Notifications for Silver-tier user
+			</label>
+			<div class="setting-summary">
+				<div class="vh-toolbar-icon vh-icon-question"></div>
+				When enabled, items above your ETV limit (Gold-tier items) will be completely hidden in the notification
+				monitor.
+			</div>
+		</div>
+		<div class="setting-container premium-feature-2">
+			<label for="notification.monitor.ETV.modifier">
+				Tax rate modifier
+				<input type="range" name="notification.monitor.ETV.modifier" min="0" max="1" step="0.01" value="1" />
+				<span id="notification.monitor.ETV.modifierValue">1.00</span>
+				<div class="vh-toolbar-icon vh-icon-premium">2</div>
+			</label>
+			<div class="setting-summary">
+				<div class="vh-toolbar-icon vh-icon-question"></div>
+				Multiply the ETV value by the tax rate modifier to display the estimated value you would have to pay for
+				the item.
+			</div>
+		</div>
+
+		<div class="setting-container">
+			<label for="notification.soundCooldownDelay" style="margin-left: 20px; margin-top: 5px"
+				>Sound cooldown:&nbsp;
+				<select name="notification.soundCooldownDelay">
+					<option value="0">Instant</option>
+					<option value="2000">2 secs</option>
+					<option value="10000">10 secs</option>
+					<option value="30000">30 sec</option>
+					<option value="60000">1 min</option>
+				</select>
+			</label>
+			<div class="setting-summary">
+				<div class="vh-toolbar-icon vh-icon-question"></div>
+				Enforce a cooldown period between notification sound playing.
+			</div>
+		</div>
+		<fieldset>
+			<legend>
+				<label for="notification.screen.active">
+					<input type="checkbox" name="notification.screen.active" value="1" />
+					Display on Screen Notifications
+				</label>
+			</legend>
+			<div class="setting-container">
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					Will display on screen notification if you are on a listing page.
+				</div>
+			</div>
+
+			<div class="setting-container">
+				<label for="notification.screen.thumbnail">
+					<input type="checkbox" name="notification.screen.thumbnail" value="1" />
+					Display thumbnail
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					Display a product image in the new items notification.
+				</div>
+			</div>
+			<div class="setting-container">
+				<label for="notification.screen.position" style="margin-left: 20px">
+					<span style="display: inline-block; width: 55px">Position:</span>
+					<input type="number" name="notification.screen.position" placeholder="0" />
+					px
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					Toast notification position in pixels. <code>0px</code> by default.
+				</div>
+			</div>
+			<div class="setting-container">
+				<label for="notification.screen.regular.sound" style="margin-left: 20px"
+					>Sound:&nbsp;
+					<select name="notification.screen.regular.sound">
+						<option value="0">None</option>
+						<option value="notification">Notification</option>
+						<option value="upgrade">Upgrade</option>
+						<option value="vintage-horn">Vintage Horn</option>
+					</select>
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					Defines what sound effect to play when a notification matching the list of highlight keywords
+					occurs.
+				</div>
+			</div>
+			<div class="setting-container">
+				<label for="notification.screen.regular.volume" style="margin-left: 20px"
+					>Volume&nbsp;
+					<input type="range" name="notification.screen.regular.volume" min="0" max="1" step="0.05" />
+					<button id="playScreenNotification" aria-label="Play notification sound">&#9654;</button>
+				</label>
+			</div>
+		</fieldset>
+
+		<fieldset>
+			<legend>Notifications Monitor</legend>
+			<div class="setting-container">
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					Open a dedicated tab where notifications will appear and not vanish after 60 seconds.
+				</div>
+			</div>
+			<div class="setting-container">
+				<label for="notification.monitor.bump0ETV">
+					<input type="checkbox" name="notification.monitor.bump0ETV" value="1" />
+					Bump 0 ETV notifications to the top of the list
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					When enabled, notifications with a zero ETV will be bumped to the top of the list when the ETV is
+					discovered.
+				</div>
+			</div>
+			<div class="setting-container">
+				<label for="notification.monitor.placeholders">
+					<input type="checkbox" name="notification.monitor.placeholders" value="1" />
+					Display placeholders to keep items from shifting
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					Will display placeholder tiles on the first row as items are added to help maintain the horizontal
+					alignment of the tiles as they are added. This limit the grid's items from shifting when a new item
+					is added.
+				</div>
+			</div>
+			<div class="setting-container">
+				<label for="notification.monitor.mouseoverPause">
+					<input type="checkbox" name="notification.monitor.mouseoverPause" value="1" />
+					Pause feed when mouseover See Details button
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					Pause the notifications monitor feed when the mouse is over the See Details button. Resume the feed
+					when the mouse is no longer over the See Details button.
+				</div>
+			</div>
+			<div class="setting-container">
+				<label for="notification.monitor.pauseOverlay">
+					<input type="checkbox" name="notification.monitor.pauseOverlay" value="1" />
+					Show red overlay when paused
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					Show a red overlay over the monitor when the feed is paused.
+				</div>
+			</div>
+
+			<div class="setting-container">
+				<label for="notification.monitor.hideAddsToHiddenList">
+					<input type="checkbox" name="notification.monitor.hideAddsToHiddenList" value="1" />
+					Hiding a single item will add that item to the hidden items list
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					When enabled, clicking the hide icon for an item in the Notifications Monitor will also add the item
+					to your global hidden items list (so it will appear in the Hidden tab/lists).
+				</div>
+			</div>
+
+			<div class="setting-container">
+				<label for="notification.monitor.listView">
+					<input type="checkbox" name="notification.monitor.listView" value="1" />
+					List view (mobile view)
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					Displayed items as a list instead of a grid.
+					<br />
+					<strong>Note:</strong> that is will not work with the smallitems style sheet, or the mobile
+					stylesheets.
+					<br />
+					<strong>Note:</strong>This option with ignore the tile size settings.
+				</div>
+			</div>
+			<div class="setting-container">
+				<label for="notification.monitor.24hrsFormat">
+					<input type="checkbox" name="notification.monitor.24hrsFormat" value="1" />
+					Display time with 24hrs format.
+				</label>
+			</div>
+			<div class="setting-container premium-feature-3">
+				<label for="notification.monitor.displayPrice">
+					<input type="checkbox" name="notification.monitor.displayPrice" value="1" />
+					Display Amazon Price in Toolbar
+					<div class="vh-toolbar-icon vh-icon-premium">3</div>
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					If available, displays the Amazon price in the toolbar.
+				</div>
+			</div>
+			<div class="setting-container premium-feature-3">
+				<label for="notification.monitor.carousel.active">
+					<input type="checkbox" name="notification.monitor.carousel.active" value="1" />
+					Display Carousel of Thumbnails
+					<div class="vh-toolbar-icon vh-icon-premium">3</div>
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					If additional images are available, display a carousel of thumbnails in the image container.
+				</div>
+			</div>
+			<div class="setting-container">
+				<label for="notification.monitor.hideDuplicateThumbnail">
+					<input type="checkbox" name="notification.monitor.hideDuplicateThumbnail" value="1" />
+					Hide Notifications with Duplicate Images
+				</label>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					This hides a notification in the monitor tab when it has the same image as another notification
+					already present in the notification tab.
+				</div>
+			</div>
+			<div class="setting-container" style="margin-bottom: 10px">
+				<fieldset style="display: flex; flex-direction: column; flex-grow: 1">
+					<legend>See Details button behavior</legend>
+					<label>
+						<input type="radio" name="notification.monitor.openLinksInNewTab" value="0" />
+						Open in place (Notif. Mon. will be redirected)
+					</label>
+					<div class="tabulation">
+						<span style="font-size: 10px">(Open in place may not work reliably on Firefox.)</span>
+						<div class="setting-container">
+							<label for="notification.monitor.preventUnload">
+								<input type="checkbox" name="notification.monitor.preventUnload" value="1" />
+								Prevent page unload (will show a popup)
+							</label>
+							<div class="setting-summary">
+								<div class="vh-toolbar-icon vh-icon-question"></div>
+								When an order is successful, Vine redirects the page. This option prevents the page from
+								being unloaded by showing a confirmation popup, which you can decline to stay on the
+								notifications monitor's page.
+							</div>
+						</div>
+					</div>
+					<label
+						><input type="radio" name="notification.monitor.openLinksInNewTab" value="1" />
+						Open in new tab (preserve the Notif. Mon.)
+					</label>
+				</fieldset>
+			</div>
+
+			Match Highlight KW
+			<div class="tabulation" style="margin-bottom: 10px">
+				<div class="setting-container">
+					<label for="notification.monitor.highlight.sound"
+						>Sound:&nbsp;
+						<select name="notification.monitor.highlight.sound">
+							<option value="0">None</option>
+							<option value="cash-register">Cash Register</option>
+							<option value="notification">Notification</option>
+							<option value="upgrade">Upgrade</option>
+							<option value="tada">Tada</option>
+							<option value="vintage-horn">Vintage Horn</option>
+						</select>
+					</label>
+					<div class="setting-summary">
+						<div class="vh-toolbar-icon vh-icon-question"></div>
+						Defines what sound effect to play when a notification matching the list of highlight keywords
+						occurs.
+					</div>
+				</div>
+				<div class="setting-container">
+					<label for="notification.monitor.highlight.volume"
+						>Volume:&nbsp;
+						<input type="range" name="notification.monitor.highlight.volume" min="0" max="1" step="0.05" />
+						<button id="playMonitorHighlightNotification" aria-label="Play highlight notification sound">
+							&#9654;
+						</button>
+					</label>
+				</div>
+				<div class="setting-container">
+					<label for="notification.monitor.highlight.colorActive"
+						><input type="checkbox" name="notification.monitor.highlight.colorActive" value="1" />
+						Color:&nbsp;
+						<input type="color" name="notification.monitor.highlight.color" size="7" maxlength="7" />
+					</label>
+					<div class="setting-summary">
+						<div class="vh-toolbar-icon vh-icon-question"></div>
+						Defines the background color of notifications matching highlight keywords.
+					</div>
+				</div>
+				<div class="setting-container">
+					<label for="notification.monitor.highlight.ignore0ETVhighlight">
+						<input type="checkbox" name="notification.monitor.highlight.ignore0ETVhighlight" value="1" />
+						Ignore 0 ETV coloring when highlight match.
+					</label>
+					<div class="setting-summary">
+						<div class="vh-toolbar-icon vh-icon-question"></div>
+						When there is a highlight keyword match, notifications with a zero ETV will not be highlighted.
+					</div>
+				</div>
+				<div class="setting-container">
+					<label for="notification.monitor.highlight.ignoreUnknownETVhighlight">
+						<input
+							type="checkbox"
+							name="notification.monitor.highlight.ignoreUnknownETVhighlight"
+							value="1"
+						/>
+						Ignore unknown ETV when highlight match.
+					</label>
+					<div class="setting-summary">
+						<div class="vh-toolbar-icon vh-icon-question"></div>
+						When there is a highlight keyword match, notifications with an unknown ETV will not be
+						highlighted.
+					</div>
+				</div>
+			</div>
+			Zero ETV
+			<div class="tabulation" style="margin-bottom: 10px">
+				<div class="setting-container">
+					<label for="notification.monitor.zeroETV.sound"
+						>Sound:&nbsp;
+						<select name="notification.monitor.zeroETV.sound">
+							<option value="0">None</option>
+							<option value="cash-register">Cash Register</option>
+							<option value="notification">Notification</option>
+							<option value="upgrade">Upgrade</option>
+							<option value="tada">Tada</option>
+							<option value="vintage-horn">Vintage Horn</option>
+						</select>
+					</label>
+					<div class="setting-summary">
+						<div class="vh-toolbar-icon vh-icon-question"></div>
+						Defines what sound effect to play when a notification has a zero ETV.
+					</div>
+				</div>
+				<div class="setting-container">
+					<label for="notification.monitor.zeroETV.volume"
+						>Volume:&nbsp;
+						<input type="range" name="notification.monitor.zeroETV.volume" min="0" max="1" step="0.05" />
+						<button id="playMonitorZeroETVNotification" aria-label="Play zero ETV notification sound">
+							&#9654;
+						</button>
+					</label>
+				</div>
+				<div class="setting-container">
+					<label for="notification.monitor.zeroETV.colorActive">
+						<input type="checkbox" name="notification.monitor.zeroETV.colorActive" value="1" />
+						Color:&nbsp;
+						<input type="color" name="notification.monitor.zeroETV.color" size="7" maxlength="7" />
+					</label>
+					<div class="setting-summary">
+						<div class="vh-toolbar-icon vh-icon-question"></div>
+						Defines the background color of notifications with a zero ETV.
+					</div>
+				</div>
+			</div>
+
+			Unknown ETV
+			<div class="tabulation" style="margin-bottom: 10px">
+				<div class="setting-container">
+					<label for="notification.monitor.unknownETV.colorActive">
+						<input type="checkbox" name="notification.monitor.unknownETV.colorActive" value="1" />
+						Color:&nbsp;
+						<input type="color" name="notification.monitor.unknownETV.color" size="7" maxlength="7" />
+					</label>
+					<div class="setting-summary">
+						<div class="vh-toolbar-icon vh-icon-question"></div>
+						Defines the background color of notifications with an unknown ETV.
+					</div>
+				</div>
+			</div>
+			RFY
+			<div class="tabulation" style="margin-bottom: 10px">
+				<div class="setting-container">
+					<label for="notification.RFYReload.active">
+						<input type="checkbox" name="notification.RFYReload.active" value="1" />
+						Reload RFY page when items are dropping.
+					</label>
+					<div class="setting-summary">
+						<div class="vh-toolbar-icon vh-icon-question"></div>
+						When new items are dropping, the notification monitor will send a message to the tabs to order
+						an RFY tab (if any is open) to reload itself. The reloads are spaces out between 2 and 4
+						minutes.
+					</div>
+				</div>
+				<div class="setting-container">
+					<label for="notification.monitor.rfy.sound"
+						>Sound:&nbsp;
+						<select name="notification.monitor.rfy.sound">
+							<option value="0">None</option>
+							<option value="cash-register">Cash Register</option>
+							<option value="notification">Notification</option>
+							<option value="upgrade">Upgrade</option>
+							<option value="tada">Tada</option>
+							<option value="vintage-horn">Vintage Horn</option>
+						</select>
+					</label>
+					<div class="setting-summary">
+						<div class="vh-toolbar-icon vh-icon-question"></div>
+						Defines what sound effect to play when an RFY item drops.
+					</div>
+				</div>
+				<div class="setting-container">
+					<label for="notification.monitor.rfy.volume"
+						>Volume:&nbsp;
+						<input type="range" name="notification.monitor.rfy.volume" min="0" max="1" step="0.05" />
+						<button id="playMonitorRFYNotification" aria-label="Play RFY notification sound">
+							&#9654;
+						</button>
+					</label>
+				</div>
+				<div class="setting-container">
+					<label for="notification.monitor.rfy.colorActive"
+						><input type="checkbox" name="notification.monitor.rfy.colorActive" value="1" />
+						Color:&nbsp;
+						<input type="color" name="notification.monitor.rfy.color" size="7" maxlength="7" />
+					</label>
+					<div class="setting-summary">
+						<div class="vh-toolbar-icon vh-icon-question"></div>
+						Defines the background color of RFY notifications.
+					</div>
+				</div>
+			</div>
+			Regular notifications
+			<div class="tabulation">
+				<div class="setting-container">
+					<label for="notification.monitor.regular.sound"
+						>Sound:&nbsp;
+						<select name="notification.monitor.regular.sound">
+							<option value="0">None</option>
+							<option value="cash-register">Cash Register</option>
+							<option value="notification">Notification</option>
+							<option value="upgrade">Upgrade</option>
+							<option value="tada">Tada</option>
+							<option value="vintage-horn">Vintage Horn</option>
+						</select>
+					</label>
+					<div class="setting-summary">
+						<div class="vh-toolbar-icon vh-icon-question"></div>
+						Defines what sound effect to play when a notification occurs.
+					</div>
+				</div>
+				<div class="setting-container">
+					<label for="notification.monitor.regular.volume"
+						>Volume:&nbsp;
+						<input type="range" name="notification.monitor.regular.volume" min="0" max="1" step="0.05" />
+						<button id="playMonitorRegularNotification" aria-label="Play regular notification sound">
+							&#9654;
+						</button>
+					</label>
+				</div>
+			</div>
+		</fieldset>
+	</fieldset>
+	<fieldset>
+		<legend>Assisted Page Loads</legend>
+		<br /><strong>Interval</strong><br />
+		<div class="setting-container">
+			<div class="range_container" style="clear: both">
+				<div class="sliders_control">
+					<label for="fromSlider" class="sr-only">Minimum interval slider</label>
+					<input id="fromSlider" class="dualslider" type="range" value="2" min="1" max="10" />
+					<label for="toSlider" class="sr-only">Maximum interval slider</label>
+					<input id="toSlider" class="dualslider" type="range" value="5" min="1" max="10" />
+				</div>
+				<div class="form_control">
+					<div class="form_control_container">
+						<label for="fromInput"
+							>Min:
+							<input
+								class="dualslider form_control_container__time__input"
+								type="number"
+								id="fromInput"
+								value="2"
+								min="1"
+								max="5"
+								style="width: 30px"
+							/>
+							minute(s)</label
+						>
+					</div>
+					<div class="form_control_container">
+						<label for="toInput"
+							>Max:
+							<input
+								class="dualslider form_control_container__time__input"
+								type="number"
+								id="toInput"
+								value="5"
+								min="1"
+								max="10"
+								style="width: 30px"
+							/>
+							minute(s)</label
+						>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="setting-summary">
+			<div class="vh-toolbar-icon vh-icon-question"></div>
+			Will assist you in loading pages when the notifications monitor is active. This allow you to define the
+			intervals between assisted loads. The interval will be picked at random between the selected range.
+		</div>
+		<br /><strong>Active time range</strong><br />
+		<div class="setting-container">
+			<label for="notification.autoload.hourStart"
+				>Start time <input type="time" name="notification.autoload.hourStart" value="03:00"
+			/></label>
+			<label for="notification.autoload.hourEnd"
+				>End time <input type="time" name="notification.autoload.hourEnd" value="17:00"
+			/></label>
+		</div>
+		<div class="setting-summary">
+			<div class="vh-toolbar-icon vh-icon-question"></div>
+			Limit to assisted load behavior to a time range. Has to be at least 8 hours of range otherwise the range
+			will default to 3AM to 5PM.
+		</div>
+		<div class="setting-container">
+			<label for="notification.autoload.speedBoost">
+				Speed Boost during drops
+				<input type="range" name="notification.autoload.speedBoost" value="2.0" min="1" max="5" step="0.1" />
+				<span id="notification.autoload.speedBoostMultiplicator">1.0x</span>
+			</label>
+			<div class="setting-summary">
+				<div class="vh-toolbar-icon vh-icon-question"></div>
+				When items are actively dropping, will speed up the assisted page loads by the specified factor.
+				<br />(1.0 = no speed boost, 2.0 = 2x speed, 3.0 = 3x speed, etc.)
+			</div>
+		</div>
+	</fieldset>
+	<fieldset>
+		<legend>Misc</legend>
+		<div class="setting-container">
+			<label for="notification.reduce">
+				<input type="checkbox" name="notification.reduce" value="1" />
+				Reduce system notifications
+			</label>
+			<div class="setting-summary">
+				<div class="vh-toolbar-icon vh-icon-question"></div>
+				Will not display 'ETV updated' and 'Settings saved' on screen notifications
+			</div>
+		</div>
+	</fieldset>
+
+	<fieldset>
+		<legend>BETA</legend>
+		<div class="vh-container">
+			BETA features are not working reliably yet. Feel free to try them out, but expect some issues.
+		</div>
+
+		<div class="setting-container">
+			<label for="notification.pushNotificationsAFA">
+				<input type="checkbox" name="notification.pushNotificationsAFA" value="1" />
+				Push Notification for all AFA items.
+			</label>
+			<div class="setting-summary">
+				<div class="vh-toolbar-icon vh-icon-question"></div>
+				Send push notifications when a new item from AFA is detected
+			</div>
+		</div>
+		<div class="setting-container">
+			<label for="notification.pushNotifications">
+				<input type="checkbox" name="notification.pushNotifications" value="1" />
+				Push Notification when KW match.
+			</label>
+			<div class="setting-summary">
+				<div class="vh-toolbar-icon vh-icon-question"></div>
+				Send push notifications when a new item match the highlight keywords
+			</div>
+		</div>
+	</fieldset>
+</div>

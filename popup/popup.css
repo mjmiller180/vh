@@ -1,0 +1,67 @@
+.setting-summary {
+	display: none;
+	width: 0px;
+}
+
+.setting-container {
+	margin: 0;
+}
+.buttons-header {
+	display: flex !important;
+}
+
+label {
+	padding: 0;
+}
+
+#tabs-index.vh-tabs ul li {
+	padding: 4px 10px;
+}
+#tabs-content .tab {
+	width: 350px;
+}
+
+textarea {
+	width: 250px;
+}
+
+body {
+	width: 350px;
+	height: 500px;
+	overflow-x: hidden;
+}
+
+div.buttons-header {
+	width: 335px;
+}
+
+#guid-txt {
+	width: 300px;
+	overflow-x: scroll;
+}
+/* Chrome thin scrollbar */
+::-webkit-scrollbar {
+	-webkit-appearance: none;
+	width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+	border-radius: 5px;
+	background-color: rgba(0, 0, 0, 0.5);
+	-webkit-box-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+/* Firefox thin scrollbar */
+@-moz-document url-prefix() {
+	* {
+		scrollbar-width: thin; /* Options: auto, thin */
+		scrollbar-color: rgba(0, 0, 0, 0.5) transparent; /* thumb color and track color */
+	}
+}
+
+*::-moz-scrollbar-thumb {
+	/* Firefox */
+	border-radius: 5px;
+	background-color: rgba(0, 0, 0, 0.5);
+	box-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
+}

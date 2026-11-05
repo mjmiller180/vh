@@ -1,0 +1,63 @@
+/*================================================================
+{{ thorvarium | vine-styling | desktop | collapsible-categories }}
+Modified version with button toggle instead of hover
+================================================================*/
+
+#vvp-browse-nodes-container {
+  transition: width 0.5s !important;
+  position: relative !important;
+}
+
+/* Collapsed state */
+#vvp-browse-nodes-container.collapsed {
+  width: 80px !important;
+  margin-right: 20px;
+}
+
+#vvp-browse-nodes-container.collapsed .parent-node {
+  height: 15px !important;
+  width: unset !important;
+}
+
+#vvp-browse-nodes-container.collapsed .parent-node .selectedNode~span {
+  font-weight: bold !important;
+}
+
+#vvp-browse-nodes-container.collapsed .child-node {
+  display: none !important;
+}
+
+#vvp-browse-nodes-container.collapsed .parent-node a {
+  font-size: 0 !important;
+}
+
+#vvp-browse-nodes-container.collapsed .parent-node a:before {
+  font-size: 15px !important;
+}
+
+/* Toggle button styles */
+#category-toggle-btn {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #232F3E;
+  color: #FF9900;
+  border: 1px solid #FF9900;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  width: 100%;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+#category-toggle-btn:hover {
+  background-color: #FF9900;
+  color: #232F3E;
+}
+
+/* Adjust button width when collapsed */
+#vvp-browse-nodes-container.collapsed #category-toggle-btn {
+  width: 60px;
+  padding: 8px 5px;
+  font-size: 12px;
+}
