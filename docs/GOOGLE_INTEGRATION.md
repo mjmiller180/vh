@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_1050 -->
+<!-- Last compiled at 2026-11-05_1200 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -61,6 +61,15 @@ order page and may be filled when that page is visited. Anything the extension c
 | M | GENERAL REVIEW NOTES | notes for writing the review (manual) | manual |
 | N | REVIEW DATE | date the review was submitted | reviews page / review helper |
 | O | REVIEW LINK | link from the submitted reviews list | reviews list |
+| (new) | REVIEW TITLE | the title you submitted | review form (on Submit) |
+| (new) | REVIEW TEXT | the text you submitted (plain text, max 50,000 characters) | review form (on Submit) |
+
+The letters above only describe the current layout. The extension never uses a column letter or number: every column is
+found by the text of its header, so columns can be moved, inserted or added (also beyond column Z). The header row is the
+row that contains "ORDER #" (row 2 on the owner's sheet, row 1 holds totals); data starts on the row after it (row 3).
+A column whose header is missing is skipped. Accepted headers: ORDER DATE, ORDER # / ORDER NUMBER, IMAGE, STATUS, TITLE
+(PRODUCT LINK) / TITLE, ETV, DELIVERY STATUS, DELIVERY DATE, PICS, REVIEW SATUS / REVIEW STATUS, REVIEW SCORE, STAR RATING,
+GENERAL REVIEW NOTES, REVIEW DATE, REVIEW LINK, REVIEW TITLE, REVIEW TEXT.
 
 ## Status
 

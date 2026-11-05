@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_1050 -->
+<!-- Last compiled at 2026-11-05_1200 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -48,7 +48,7 @@ convenience you run at your own risk and keep the delays generous.
   matching rows. Anything you set by hand (TAKEN DOWN ...) is left alone.
 - **Review form.** On Amazon's "write a review" page: formatting toolbar (bold, italic ... with Unicode letters, bullets,
   numbering), saved phrases and templates, automatic drafts, paste or drop pictures, "Add from Google Drive…". Pressing
-  Submit records the star rating and date on the sheet.
+  Submit records the star rating, date, review title and text on the sheet (columns "REVIEW TITLE" and "REVIEW TEXT").
 - The order/review sync reads **amazon.com** only (other sites write dates and amounts differently).
 - Everything is off until you switch it on; try it on a copy of your sheet first (see `docs/GOOGLE_INTEGRATION.md`).
 

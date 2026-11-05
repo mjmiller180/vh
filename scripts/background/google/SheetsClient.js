@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0209
+// Last compiled at 2026-11-05_1200
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -76,9 +76,11 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 		const meta = await request("GET", `/v4/spreadsheets/${id}?fields=${encodeURIComponent("sheets.properties(sheetId,title,gridProperties)")}`);
 		const sheet = (meta.sheets || []).map((s) => s.properties).find((p) => p.title === sheetName);
 		if (!sheet) throw new SheetsError(404, `Sheet tab "${sheetName}" not found`);
-		const values = (await request("GET", `/v4/spreadsheets/${id}/values/${encodeURIComponent(`${quoteSheet(sheetName)}!A1:Z`)}`)).values || [];
+		// every column of the tab (not a fixed A:Z), so columns added further right are seen too
+		const lastCol = colLetter(Math.max(26, sheet.gridProperties?.columnCount || 0) - 1);
+		const values = (await request("GET", `/v4/spreadsheets/${id}/values/${encodeURIComponent(`${quoteSheet(sheetName)}!A1:${lastCol}`)}`)).values || [];
 
-		const headerRow = values.slice(0, 10).findIndex((r) => (r || []).some((c) => ["ORDER#", "ORDERNUMBER", "ORDERNO"].includes(normaliseHeader(c))));
+		const headerRow = values.slice(0, 30).findIndex((r) => (r || []).some((c) => ["ORDER#", "ORDERNUMBER", "ORDERNO"].includes(normaliseHeader(c))));
 		if (headerRow < 0) throw new Error(NO_ORDER_NUMBER_COLUMN);
 		const colMap = mapColumns(values[headerRow]);
 
@@ -268,6 +270,7 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 			if (score && score !== cur(row, "reviewScore")) fields.reviewScore = score;
 			if (status === "LIVE" && DONE_BEFORE_REVIEW.includes(cur(row, "status"))) fields.status = "COMPLETED";
 			if (r.reviewLink && r.reviewLink !== cur(row, "reviewLink")) fields.reviewLink = r.reviewLink;
+			for (const key of ["reviewTitle", "reviewText"]) if (r[key] && String(r[key]).slice(0, 50000) !== cur(row, key)) fields[key] = r[key];
 			if (r.starRating && starsText(r.starRating) !== cur(row, "starRating")) fields.starRating = r.starRating;
 			if (r.reviewDate) {
 				let want = null;

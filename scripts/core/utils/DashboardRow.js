@@ -1,11 +1,12 @@
-// Last compiled at 2026-11-05_1050
+// Last compiled at 2026-11-05_1200
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
 /**
  * Builds the cells of a DASHBOARD row (pure: no chrome.*, no network, unit tested in Node).
  *
- * Columns are found by their header text, not by position, so the owner can move columns around.
+ * Columns are found by their header text, not by position or letter, so the owner can move, insert or add columns
+ * (the header row itself is found by its "ORDER #" cell: on the owner's sheet it is row 2, data starts on row 3).
  * Cells are produced one per column ({column, cell}) so that only the columns we know about are ever written:
  * the manual columns (delivery date, pics, notes ...) and any formulas next to them are left alone.
  */
@@ -27,6 +28,8 @@ const ALIASES = {
 	notes: ["GENERALREVIEWNOTES", "REVIEWNOTES", "NOTES"],
 	reviewDate: ["REVIEWDATE"],
 	reviewLink: ["REVIEWLINK"],
+	reviewTitle: ["REVIEWTITLE", "REVIEWHEADLINE"],
+	reviewText: ["REVIEWTEXT", "REVIEWBODY", "REVIEWCONTENT"],
 };
 
 export const normaliseHeader = (h) => String(h ?? "").toUpperCase().replace(/[^A-Z0-9#]/g, "");
@@ -167,6 +170,8 @@ export function buildFieldCells(fields, colMap) {
 	}
 	if (present(fields.etv) && typeof fields.etv === "number") put("etv", num(fields.etv));
 	for (const key of ["deliveryDate", "reviewDate"]) if (present(fields[key])) put(key, num(dateToSerial(fields[key])));
+	// the review as submitted (Sheets keeps at most 50,000 characters in a cell); written as plain text, never parsed as a formula
+	for (const key of ["reviewTitle", "reviewText"]) if (present(fields[key])) put(key, text(String(fields[key]).slice(0, 50000)));
 	if (present(fields.reviewLink)) put("reviewLink", AMAZON_URL_RE.test(fields.reviewLink) ? linked(fields.reviewLink, fields.reviewLink) : text(fields.reviewLink));
 	return out.sort((a, b) => a.column - b.column);
 }

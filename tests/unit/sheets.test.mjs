@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0209
+// Last compiled at 2026-11-05_1200
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -24,7 +24,7 @@ function fakeSheets({ rows, rowCount = 988, sheetId = 0, title = "DASHBOARD" }) 
 		}
 		const json = (o) => ({ ok: true, status: 200, json: async () => o, headers: { get: () => null } });
 		if (method === "GET" && /\/v4\/spreadsheets\/[^/]+\?/.test(url)) {
-			return json({ sheets: [{ properties: { sheetId, title, gridProperties: { rowCount: state.rowCount, columnCount: 31 } } }] });
+			return json({ sheets: [{ properties: { sheetId, title, gridProperties: { rowCount: state.rowCount, columnCount: state.columnCount || 31 } } }] });
 		}
 		if (method === "GET" && url.includes("/values/")) {
 			return json({ values: grid.map((r) => r.slice()) });
@@ -272,4 +272,29 @@ test("addOrders: a half-filled row below the data counts as used (not overwritte
 	assert.ok(!res.requests.some((r) => r.copyPaste), "no source row -> no copy");
 	const withFmt = res.requests.filter((r) => r.updateCells && r.updateCells.fields.includes("numberFormat"));
 	assert.equal(withFmt.length, 2, "date and ETV cells carry their number format");
+});
+
+test("layout of the owner's sheet: totals row 1, header row 2, first data row 3; pre-filled =image(\"\") placeholders do not count as used rows", async () => {
+	const placeholders = [3, 4, 5, 6].map(() => ["", "", "#ERROR!", "", "", "", "", "", "", "", "", "", "", "", ""]); // the image formula column shows an error/empty
+	const fake = fakeSheets({ rows: [["", "", "", "", "", "", "", "", "", "52.63%", "80.00%"], HEADERS, ...placeholders] });
+	const res = await makeClient(fake).addOrders("SID", "DASHBOARD", [ORDER]);
+	assert.equal(res.added, 1);
+	const reqs = fake.calls.find((c) => c.method === "POST").body.requests;
+	const rows = [...new Set(reqs.filter((r) => r.updateCells).map((r) => r.updateCells.start.rowIndex))];
+	assert.deepEqual(rows, [2], "the first order goes to row 3 (index 2), over the placeholder");
+	assert.ok(!reqs.some((r) => r.copyPaste), "no data row above to copy from: the placeholder rows are already formatted");
+	const image = reqs.find((r) => r.updateCells && r.updateCells.start.columnIndex === 2);
+	assert.match(image.updateCells.rows[0].values[0].userEnteredValue.formulaValue, /^=IMAGE\("https:\/\/m\.media-amazon\.com/);
+});
+
+test("columns are found by header name wherever they are: inserted columns, moved columns, columns beyond Z", async () => {
+	const headers = ["ORDER #", "NEW COLUMN", "ORDER DATE", ...Array(25).fill("SPARE"), "REVIEW TITLE", "REVIEW TEXT", "TITLE (PRODUCT LINK)", "STATUS", "ETV"];
+	const idx = (h) => headers.indexOf(h);
+	const fake = fakeSheets({ rows: [["totals"], headers] });
+	fake.state.columnCount = 40;
+	await makeClient(fake).addOrders("SID", "DASHBOARD", [ORDER]);
+	const cols = Object.fromEntries(fake.calls.find((c) => c.method === "POST").body.requests.filter((r) => r.updateCells).map((r) => [r.updateCells.start.columnIndex, true]));
+	assert.deepEqual(Object.keys(cols).map(Number).sort((a, b) => a - b), [idx("ORDER #"), idx("ORDER DATE"), idx("TITLE (PRODUCT LINK)"), idx("STATUS"), idx("ETV")].sort((a, b) => a - b));
+	const read = fake.calls.find((c) => c.method === "GET" && c.url.includes("/values/"));
+	assert.match(decodeURIComponent(read.url), /!A1:AN$/, "the whole width of the tab is read (40 columns = AN), not a fixed A:Z");
 });

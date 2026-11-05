@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0209
+// Last compiled at 2026-11-05_1200
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -10,7 +10,7 @@ import { mapReviewStatus, mapReviewScore, starsText, buildFieldCells, mapColumns
 import { createSheetsClient } from "../../scripts/background/google/SheetsClient.js";
 import { createGoogleSheetsService } from "../../scripts/background/google/GoogleSheetsService.js";
 
-const HEADERS = ["ORDER DATE", "ORDER #", "IMAGE", "STATUS", "TITLE (PRODUCT LINK)", "ETV", "DELIVERY STATUS", "DELIVERY DATE", "PICS", "REVIEW SATUS", "REVIEW SCORE", "STAR RATING", "GENERAL REVIEW NOTES", "REVIEW DATE", "REVIEW LINK"];
+const HEADERS = ["ORDER DATE", "ORDER #", "IMAGE", "STATUS", "TITLE (PRODUCT LINK)", "ETV", "DELIVERY STATUS", "DELIVERY DATE", "PICS", "REVIEW SATUS", "REVIEW SCORE", "STAR RATING", "GENERAL REVIEW NOTES", "REVIEW DATE", "REVIEW LINK", "REVIEW TITLE", "REVIEW TEXT"];
 
 test("decodeEntities: Amazon's double-escaped titles come out as plain text", () => {
 	assert.equal(decodeEntities("Dogs &amp;amp; Cats"), "Dogs & Cats");
@@ -260,4 +260,46 @@ test("orders of the same day come out oldest first, not newest first (M4); a cap
 	assert.equal(isCapped({ pages: 61 }), true);
 	assert.equal(isCapped({ pages: 60 }), false);
 	assert.equal(isCapped(null), false);
+});
+
+test("review title and text are written to the REVIEW TITLE / REVIEW TEXT columns, as plain text, only when they changed", async () => {
+	const f = fake(baseRows().map((r) => [...r, ...Array(17 - r.length).fill("")]), LINKS);
+	const review = { asin: "B0CCCCCCCC", status: "Pending approval", score: "Pending", starRating: 5, reviewDate: "2026-11-05", reviewTitle: "Great value", reviewText: "=HYPERLINK(\"http://evil.example\")\nSecond line" };
+	const res = await client(f).updateReviews("S", "DASHBOARD", [review]);
+	assert.equal(res.updated, 1);
+	const cell = f.posts[0].requests.map((r) => r.updateCells).filter((u) => u.start.columnIndex === 16)[0].rows[0].values[0];
+	assert.equal(cell.userEnteredValue.stringValue, review.reviewText, "stored as a string value: Sheets does not parse it as a formula");
+	assert.equal(cell.userEnteredValue.formulaValue, undefined);
+	assert.deepEqual(f.posts[0].requests.map((r) => r.updateCells.start.columnIndex).sort((a, b) => a - b), [9, 10, 11, 13, 15, 16]);
+	// the sheet now shows what was written: a second submit of the same text changes nothing
+	const f2 = fake(baseRows().map((r) => [...r, ...Array(17 - r.length).fill("")]), LINKS);
+	f2.grid[5][9] = "PENDING APPROVAL"; f2.grid[5][10] = "PENDING"; f2.grid[5][11] = "⭐⭐⭐⭐⭐"; f2.grid[5][13] = "11/5/2026"; f2.grid[5][15] = "Great value"; f2.grid[5][16] = review.reviewText;
+	assert.equal((await client(f2).updateReviews("S", "DASHBOARD", [review])).updated, 0);
+	f2.grid[5][16] = "old text";
+	assert.equal((await client(f2).updateReviews("S", "DASHBOARD", [review])).updated, 1, "an edited review replaces the old text");
+});
+
+test("a sheet without REVIEW TITLE / REVIEW TEXT columns simply skips them", async () => {
+	const rows = baseRows().map((r) => r.slice(0, 15));
+	const f = fake(rows.map((r) => [...r, ...Array(15 - r.length).fill("")]), LINKS);
+	const res = await client(f).updateReviews("S", "DASHBOARD", [{ asin: "B0CCCCCCCC", status: "Pending approval", reviewTitle: "t", reviewText: "x" }]);
+	assert.equal(res.updated, 1);
+	assert.deepEqual(f.posts[0].requests.map((r) => r.updateCells.start.columnIndex), [9]);
+});
+
+test("service: review title and text are length-limited and must be strings", async () => {
+	const f = fake(baseRows().map((r) => [...r, ...Array(17 - r.length).fill("")]), LINKS);
+	const svc = createGoogleSheetsService({
+		getConfig: () => ({ enabled: true, id: "1o1zOgVLvMNbmqvcSjWJ9wgfpEkrwlNBndEgRzSVMBpI", tab: "DASHBOARD" }),
+		auth: { getToken: async () => "t", clearToken: async () => {} },
+		makeClient: (deps) => createSheetsClient({ ...deps, fetchFn: f.handler, sleep: async () => {} }),
+	});
+	await svc.updateReviews([{ asin: "B0CCCCCCCC", status: "Pending approval", reviewTitle: "T".repeat(900), reviewText: "x".repeat(60000) }]);
+	const byCol = Object.fromEntries(f.posts[0].requests.map((r) => [r.updateCells.start.columnIndex, r.updateCells.rows[0].values[0].userEnteredValue.stringValue]));
+	assert.equal(byCol[15].length, 500);
+	assert.equal(byCol[16].length, 50000);
+	const f2 = fake(baseRows().map((r) => [...r, ...Array(17 - r.length).fill("")]), LINKS);
+	const svc2 = createGoogleSheetsService({ getConfig: () => ({ enabled: true, id: "1o1zOgVLvMNbmqvcSjWJ9wgfpEkrwlNBndEgRzSVMBpI", tab: "DASHBOARD" }), auth: { getToken: async () => "t" }, makeClient: (deps) => createSheetsClient({ ...deps, fetchFn: f2.handler, sleep: async () => {} }) });
+	await svc2.updateReviews([{ asin: "B0CCCCCCCC", status: "Pending approval", reviewTitle: { evil: 1 }, reviewText: 5 }]);
+	assert.deepEqual(f2.posts[0].requests.map((r) => r.updateCells.start.columnIndex), [9], "non-string values are ignored");
 });

@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0138
+// Last compiled at 2026-11-05_1200
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -137,6 +137,8 @@ export function createGoogleSheetsService({ getConfig, auth, makeClient, makeDri
 					score: typeof r.score === "string" ? r.score.slice(0, 30) : "",
 					starRating: Number.isInteger(r.starRating) && r.starRating >= 1 && r.starRating <= 5 ? r.starRating : undefined,
 					reviewDate: typeof r.reviewDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r.reviewDate) ? r.reviewDate : undefined,
+					reviewTitle: typeof r.reviewTitle === "string" && r.reviewTitle.trim() ? r.reviewTitle.slice(0, 500) : undefined,
+					reviewText: typeof r.reviewText === "string" && r.reviewText.trim() ? r.reviewText.slice(0, 50000) : undefined,
 					reviewLink: typeof r.reviewLink === "string" && /^https:\/\/www\.amazon\.[a-z.]{2,7}\/[^\s]*$/i.test(r.reviewLink) ? r.reviewLink : "",
 				});
 			}

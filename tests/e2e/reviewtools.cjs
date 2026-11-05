@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0209
+// Last compiled at 2026-11-05_1200
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -220,7 +220,7 @@ async function test(name, fn) {
 		await page.locator("input[type=submit]").click();
 		await waitFor(async () => (await sw.evaluate(() => self.__msgs.length)) === 1);
 		const m = (await sw.evaluate(() => self.__msgs))[0];
-		assert.deepEqual(m.reviews[0], { asin: "B0SUBMIT01", status: "Pending approval", score: "Pending", starRating: 4, reviewDate: m.reviews[0].reviewDate });
+		assert.deepEqual(m.reviews[0], { asin: "B0SUBMIT01", status: "Pending approval", score: "Pending", starRating: 4, reviewDate: m.reviews[0].reviewDate, reviewTitle: "Good value", reviewText: "It does the job." });
 		assert.match(m.reviews[0].reviewDate, /^\d{4}-\d{2}-\d{2}$/);
 		await page.waitForTimeout(1300); // longer than the autosave delay: a save queued before Submit must not undo the "submitted" mark
 		await page.reload();

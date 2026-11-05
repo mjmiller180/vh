@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0209
+// Last compiled at 2026-11-05_1200
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -354,7 +354,7 @@ export async function startReviewTools() {
 			const asin = new URL(location.href).searchParams.get("asin");
 			if (asin && rating >= 1 && rating <= 5) {
 				try {
-					chrome.runtime.sendMessage({ type: "googleUpdateReviews", reviews: [{ asin, status: "Pending approval", score: "Pending", starRating: rating, reviewDate: todayIso() }] }, () => void chrome.runtime.lastError);
+					chrome.runtime.sendMessage({ type: "googleUpdateReviews", reviews: [{ asin, status: "Pending approval", score: "Pending", starRating: rating, reviewDate: todayIso(), reviewTitle: title, reviewText: ta.value }] }, () => void chrome.runtime.lastError);
 				} catch (e) {}
 			}
 		},
