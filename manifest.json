@@ -1,5 +1,6 @@
 {
 	"manifest_version": 3,
+	"key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7YVov2s8ksebCT/wGzmwa5Eo0pMi9QebX8k00B/6AcxU9VPgK9K+1WF5jcHCtYiP23s6ViWPp1gEFnRjIGzn5Q6wmDG0ecmKS8gkMdLZO6eFXrR8mdYW2N+dGbyx7W1KzZGCS5Mh5LPeHsQT7Vc33wYjmAvAQ+2pjVemUR1lvgJEF1Oub58lCPnsnZn1wKIu4SYptw1pm9DjF7A0YpderScyviMnTqRSS9uyGcXI6dOiMA+frEDi/E44b4053NTkvhgkJpKLsXMyVzOU4++jY7om4RemMd3CM0lw4xzKhlTe4zAZ1lovyQYVuL6+o2sxa45IHmt2+ygESqjdTApDuQIDAQAB",
 	"name": "Vine Helper",
 	"description": "Improve the Amazon Vine experience.",
 	"version": "4.5",
