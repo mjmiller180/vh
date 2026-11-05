@@ -1,11 +1,11 @@
-// Last compiled at 2026-11-05_0130
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
 import test from "node:test";
 import assert from "node:assert/strict";
 import { decodeEntities, parseMoney, parseUsDate } from "../../scripts/core/utils/VineListParser.js";
-import { pageKind, oldestFirst, chunk, toSheetOrders, describeOrdersResult, describeReviewsResult, pageCount } from "../../scripts/core/utils/SheetSyncLogic.js";
+import { pageKind, oldestFirst, chunk, toSheetOrders, describeOrdersResult, describeReviewsResult, pageCount, isCapped, isSupportedHost } from "../../scripts/core/utils/SheetSyncLogic.js";
 import { mapReviewStatus, mapReviewScore, starsText, buildFieldCells, mapColumns, buildOrderCells } from "../../scripts/core/utils/DashboardRow.js";
 import { createSheetsClient } from "../../scripts/background/google/SheetsClient.js";
 import { createGoogleSheetsService } from "../../scripts/background/google/GoogleSheetsService.js";
@@ -91,8 +91,8 @@ test("ETV cell is linked to the order's invoice page like the owner's sheet", ()
 	const m = mapColumns(HEADERS);
 	const cells = buildOrderCells({ orderNumber: "111-1000001-2000003", orderDate: "2026-11-04", asin: "B0H7GXLHFK", title: "T", etv: 0 }, m);
 	const etv = cells.find((c) => c.column === 5).cell;
-	assert.equal(etv.userEnteredValue.numberValue, 0, "a zero ETV is still recorded");
-	assert.equal(etv.textFormatRuns[0].format.link.uri, "https://www.amazon.com/gp/css/summary/print.html?orderID=111-1000001-2000003");
+	assert.equal(etv.userEnteredValue.formulaValue, '=HYPERLINK("https://www.amazon.com/gp/css/summary/print.html?orderID=111-1000001-2000003", 0.00)', "a zero ETV is still recorded, as a number");
+	assert.equal(etv.textFormatRuns, undefined, "rich-text links are only valid on text cells: the number is linked with HYPERLINK()");
 });
 
 // ---------------------------------------------------------------- updateReviews against a tiny fake
@@ -103,9 +103,17 @@ function fake(rows, links) {
 		const method = opts.method || "GET";
 		const ok = (o) => ({ ok: true, status: 200, json: async () => o, headers: { get: () => null } });
 		if (method === "GET" && url.includes("/values/")) return ok({ values: grid.map((r) => r.slice()) });
-		if (method === "GET" && url.includes("ranges=")) return ok({ sheets: [{ data: [{ startRow: 0, rowData: grid.map((_, i) => ({ values: [links[i] ? { hyperlink: links[i] } : {}] })) }] }] });
+		if (method === "GET" && url.includes("ranges=")) {
+			// a link is reported either as `hyperlink` or (rich text) only in the text runs: "runs:" prefix = the second form
+			return ok({ sheets: [{ data: [{ startRow: 0, rowData: grid.map((_, i) => ({ values: [!links[i] ? {} : String(links[i]).startsWith("runs:") ? { textFormatRuns: [{ format: { link: { uri: links[i].slice(5) } } }] } : { hyperlink: links[i] }] })) }] }] });
+		}
 		if (method === "GET") return ok({ sheets: [{ properties: { sheetId: 1, title: "DASHBOARD", gridProperties: { rowCount: 100, columnCount: 15 } } }] });
-		posts.push(JSON.parse(opts.body));
+		const body = JSON.parse(opts.body);
+		for (const r of body.requests) {
+			const v = r.updateCells?.rows[0].values[0];
+			if (v?.textFormatRuns && v.userEnteredValue.stringValue === undefined) return { ok: false, status: 400, json: async () => ({ error: { message: "textFormatRuns are only valid on user entered strings" } }), headers: { get: () => null } };
+		}
+		posts.push(body);
 		return ok({});
 	};
 	return { handler, posts, grid };
@@ -140,10 +148,12 @@ test("updateReviews: values that are already right are not rewritten; the same r
 
 test("updateReviews: an ASIN on the sheet twice is told apart by the order date; undecidable ones are skipped, not guessed", async () => {
 	const f = fake(baseRows(), LINKS);
-	// two rows for B0BBBBBBBB: 1/8/26 and 2/9/2026 (the second is a manual TAKEN DOWN state)
-	const byDate = await client(f).updateReviews("S", "DASHBOARD", [{ asin: "B0BBBBBBBB", orderDate: "2026-02-09", status: "Approved", score: "Good" }]);
+	// two rows for B0BBBBBBBB: 1/8/26 (row 3, LIVE) and 2/9/2026 (row 4, a manual TAKEN DOWN state)
+	const byDate = await client(f).updateReviews("S", "DASHBOARD", [{ asin: "B0BBBBBBBB", orderDate: "2026-01-08", status: "Approved", score: "Good" }]);
 	assert.equal(byDate.updated, 1);
-	assert.deepEqual(writes(f).filter((w) => w[0] === 4).map((w) => w[1]).sort((a, b) => a - b), [10], "score written; TAKEN DOWN kept");
+	assert.deepEqual(writes(f).map((w) => [w[0], w[1]]), [[3, 10]], "the 1/8/26 row got the new score and nothing else");
+	const manual = await client(fake(baseRows(), LINKS)).updateReviews("S", "DASHBOARD", [{ asin: "B0BBBBBBBB", orderDate: "2026-02-09", status: "Approved", score: "Good" }]);
+	assert.deepEqual([manual.updated, manual.unchanged], [0, 1], "the TAKEN DOWN row is not touched");
 	const f2 = fake(baseRows(), LINKS);
 	const amb = await client(f2).updateReviews("S", "DASHBOARD", [{ asin: "B0BBBBBBBB", status: "Approved" }]);
 	assert.deepEqual([amb.ambiguous, amb.updated, f2.posts.length], [1, 0, 0]);
@@ -194,4 +204,60 @@ test("updateReviews: a review submitted from the form records stars, today's dat
 	const w = writes(f).sort((a, b) => a[1] - b[1]);
 	assert.deepEqual(w.map((x) => x[1]), [9, 10, 11, 13]);
 	assert.deepEqual([w[0][2], w[1][2], w[2][2]], ["PENDING APPROVAL", "PENDING", "⭐⭐⭐⭐"]);
+});
+
+// ---------------------------------------------------------------- fixes from the independent review
+test("review of a re-order: the sheet has the ASIN once, the list has it twice -> only the review with the matching order date is used (C1)", async () => {
+	const rows = baseRows();
+	rows[2][0] = "1/6/2026"; // Thing A, B0AAAAAAAA, ordered 1/6/2026
+	const f = fake(rows, LINKS);
+	const res = await client(f).updateReviews("S", "DASHBOARD", [
+		{ asin: "B0AAAAAAAA", orderDate: "2026-09-01", status: "Approved", score: "Poor", reviewLink: "https://www.amazon.com/gp/customer-reviews/RSEPT" }, // newest first, the re-order: not on the sheet
+		{ asin: "B0AAAAAAAA", orderDate: "2026-01-06", status: "Approved", score: "Excellent", reviewLink: "https://www.amazon.com/gp/customer-reviews/RJAN" },
+	]);
+	assert.deepEqual([res.updated, res.unmatched], [1, 1]);
+	const w = writes(f);
+	assert.ok(w.some((x) => x[2] === "EXCELLENT"));
+	assert.ok(!w.some((x) => x[2] === "POOR" || String(x[2]).includes("RSEPT")), "the September review is not written onto the January row");
+	// without any date a second review for the same row is reported, not silently dropped
+	const f2 = fake(baseRows(), LINKS);
+	const dup = await client(f2).updateReviews("S", "DASHBOARD", [{ asin: "B0AAAAAAAA", status: "Approved" }, { asin: "B0AAAAAAAA", status: "Approved" }]);
+	assert.deepEqual([dup.updated, dup.ambiguous], [1, 1]);
+});
+
+test("a row whose REVIEW STATUS the owner set by hand is left completely alone: no score, stars, date or link (I2)", async () => {
+	const f = fake(baseRows(), LINKS);
+	const res = await client(f).updateReviews("S", "DASHBOARD", [{ asin: "B0BBBBBBBB", orderDate: "2026-02-09", status: "Pending approval", score: "Pending", starRating: 2, reviewDate: "2026-11-05", reviewLink: "https://www.amazon.com/gp/customer-reviews/R9" }]);
+	assert.deepEqual([res.updated, res.unchanged], [0, 1]);
+	assert.equal(f.posts.length, 0);
+});
+
+test("stars and review date already on the sheet are not rewritten (I2)", async () => {
+	const rows = baseRows();
+	rows[5][9] = "PENDING APPROVAL";
+	rows[5][10] = "PENDING";
+	rows[5][11] = "⭐⭐⭐⭐";
+	rows[5][13] = "11/5/2026";
+	const f = fake(rows, LINKS);
+	const res = await client(f).updateReviews("S", "DASHBOARD", [{ asin: "B0CCCCCCCC", status: "Pending approval", score: "Pending", starRating: 4, reviewDate: "2026-11-05" }]);
+	assert.deepEqual([res.updated, res.unchanged], [0, 1]);
+});
+
+test("a title link that only exists as rich text (no `hyperlink` field) is still found", async () => {
+	const f = fake(baseRows(), { ...LINKS, 2: "runs:https://www.amazon.com/dp/B0AAAAAAAA" });
+	const res = await client(f).updateReviews("S", "DASHBOARD", [{ asin: "B0AAAAAAAA", status: "Approved" }]);
+	assert.equal(res.updated, 1);
+});
+
+test("only www.amazon.com is read: other marketplaces use D/M/YYYY dates and '16,99 €' amounts (I3)", () => {
+	assert.ok(isSupportedHost("www.amazon.com"));
+	for (const h of ["www.amazon.co.uk", "www.amazon.de", "www.amazon.ca", "amazon.com.evil.example", "", null]) assert.ok(!isSupportedHost(h), String(h));
+});
+
+test("orders of the same day come out oldest first, not newest first (M4); a capped list is reported (M3)", () => {
+	const listed = [{ orderDate: "2026-11-04", n: "newest" }, { orderDate: "2026-11-04", n: "older" }, { orderDate: "2026-11-02", n: "earlier day" }];
+	assert.deepEqual(oldestFirst(listed).map((o) => o.n), ["earlier day", "older", "newest"]);
+	assert.equal(isCapped({ pages: 61 }), true);
+	assert.equal(isCapped({ pages: 60 }), false);
+	assert.equal(isCapped(null), false);
 });

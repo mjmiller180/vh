@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0138
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -53,6 +53,10 @@ function sheetsApi(route) {
 	if (req.method() === "GET") return json({ sheets: [{ properties: { sheetId: 7, title: "DASHBOARD", gridProperties: { rowCount: sheet.rowCount, columnCount: 31 } } }] });
 	if (req.method() === "POST" && url.pathname.endsWith(":batchUpdate")) {
 		const body = JSON.parse(req.postData());
+		for (const r of body.requests) {
+			const c = r.updateCells?.rows[0].values[0];
+			if (c?.textFormatRuns && c.userEnteredValue.stringValue === undefined) return route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: { message: "textFormatRuns are only valid on user entered strings" } }) });
+		}
 		sheet.posts.push(body);
 		for (const r of body.requests) {
 			if (r.appendDimension) sheet.rowCount += r.appendDimension.length;
@@ -61,7 +65,7 @@ function sheetsApi(route) {
 				while (sheet.grid.length <= rowIndex) sheet.grid.push([]);
 				const cell = r.updateCells.rows[0].values[0];
 				const v = cell.userEnteredValue;
-				sheet.grid[rowIndex][columnIndex] = v.stringValue ?? (v.numberValue !== undefined ? String(v.numberValue) : v.formulaValue);
+								sheet.grid[rowIndex][columnIndex] = v.stringValue ?? (v.numberValue !== undefined ? String(v.numberValue) : v.formulaValue);
 				const link = cell.textFormatRuns?.[0]?.format?.link?.uri;
 				if (columnIndex === 4 && link) sheet.links[rowIndex] = link;
 			}
@@ -137,7 +141,7 @@ async function test(name, fn) {
 		assert.match(added[0][2], /^=IMAGE\("https:\/\/m\.media-amazon\.com\//);
 		const writes = sheet.posts.flatMap((p) => p.requests).filter((r) => r.updateCells);
 		const etv = writes.find((r) => r.updateCells.start.columnIndex === 5);
-		assert.match(etv.updateCells.rows[0].values[0].textFormatRuns[0].format.link.uri, /^https:\/\/www\.amazon\.com\/gp\/css\/summary\/print\.html\?orderID=111-/);
+		assert.match(etv.updateCells.rows[0].values[0].userEnteredValue.formulaValue, /^=HYPERLINK\("https:\/\/www\.amazon\.com\/gp\/css\/summary\/print\.html\?orderID=111-\d{7}-\d{7}", \d+\.\d\d\)$/);
 		const titles = added.map((r) => r[4]);
 		assert.ok(titles.some((t) => t.includes('13" x 50"')), "&#34; in the page's title became a real quote: " + titles.join("|"));
 		assert.ok(titles.every((t) => !/&amp;|&#34;/.test(t)), "no leftover entities");

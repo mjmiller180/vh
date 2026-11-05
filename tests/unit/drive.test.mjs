@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0138
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -137,4 +137,17 @@ test("service: thumbnail and file come back as base64; failures are plain result
 	assert.deepEqual([nope.ok, nope.status], [false, 415]);
 	const noToken = createGoogleSheetsService({ getConfig: () => ({}), auth: { getToken: async () => { throw new Error("The user is not signed in."); } }, makeClient: () => {}, makeDrive: (d) => createDriveClient({ ...d, fetchFn: f.handler }), getDriveConfig: () => ({ enabled: true }) });
 	assert.equal((await noToken.driveList({})).reason, "signin");
+});
+
+test("thumbnail hosts: only lh3-lh6.googleusercontent.com get the token; a 401 there does not drop the cached token (M7)", async () => {
+	const f = fakeDrive();
+	for (const bad of ["https://lh7.googleusercontent.com/x", "https://docs.googleusercontent.com/x", "https://evil.googleusercontent.com.example/x", "https://googleusercontent.com/x"]) {
+		await assert.rejects(() => client(f).thumbnail(bad), /thumbnail/, bad);
+	}
+	const calls = f.calls.length;
+	assert.equal(calls, 0, "no request was made for a refused address");
+	let cleared = 0;
+	f.calls.failNext = [401];
+	await assert.rejects(() => client(f, { clearToken: async () => cleared++ }).thumbnail("https://lh3.googleusercontent.com/abc=s220"), (e) => e.status === 401);
+	assert.equal(cleared, 0, "the Drive token is still good; only this thumbnail was refused");
 });

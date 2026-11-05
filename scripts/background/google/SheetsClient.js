@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0130
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -14,7 +14,7 @@
  *    (manual columns, formulas) is ever cleared
  *  - an order number that is already on the sheet is never added twice
  */
-import { mapColumns, buildOrderCells, buildFieldCells, normaliseHeader, NO_ORDER_NUMBER_COLUMN, mapReviewStatus, mapReviewScore, dateToSerial, MANUAL_REVIEW_STATES } from "../../core/utils/DashboardRow.js";
+import { mapColumns, buildOrderCells, buildFieldCells, normaliseHeader, NO_ORDER_NUMBER_COLUMN, mapReviewStatus, mapReviewScore, dateToSerial, starsText, MANUAL_REVIEW_STATES } from "../../core/utils/DashboardRow.js";
 
 const BASE = "https://sheets.googleapis.com";
 const CELL_FIELDS = "userEnteredValue,textFormatRuns";
@@ -121,12 +121,15 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 		if (dash.colMap.title === undefined) return new Map();
 		const col = colLetter(dash.colMap.title);
 		const range = `${quoteSheet(dash.sheetName)}!${col}1:${col}`;
-		const res = await request("GET", `/v4/spreadsheets/${encodeURIComponent(dash.spreadsheetId)}?ranges=${encodeURIComponent(range)}&fields=${encodeURIComponent("sheets.data(startRow,rowData.values.hyperlink)")}`);
+		const res = await request("GET", `/v4/spreadsheets/${encodeURIComponent(dash.spreadsheetId)}?ranges=${encodeURIComponent(range)}&fields=${encodeURIComponent("sheets.data(startRow,rowData.values(hyperlink,textFormatRuns.format.link.uri))")}`);
 		const data = res.sheets?.[0]?.data?.[0] || {};
 		const start = data.startRow || 0;
 		const out = new Map();
 		(data.rowData || []).forEach((r, i) => {
-			const m = String(r?.values?.[0]?.hyperlink || "").match(/\/dp\/([A-Z0-9]{10})(?:[/?#]|$)/i);
+			const cell = r?.values?.[0];
+			// a whole-cell link comes back as `hyperlink`; a link written as rich text may only show up in the text runs
+			const link = cell?.hyperlink || cell?.textFormatRuns?.find((t) => t?.format?.link?.uri)?.format.link.uri || "";
+			const m = String(link).match(/\/dp\/([A-Z0-9]{10})(?:[/?#]|$)/i);
 			if (m) out.set(start + i, m[1].toUpperCase());
 		});
 		return out;
@@ -196,8 +199,9 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 		return { updated: cells.length, requests };
 	}
 
-	const rowSerial = (dash, row) => {
-		const v = String((dash.values[row] || [])[dash.colMap.orderDate] ?? "").trim();
+	/** Serial of a date cell shown as M/D/YYYY or M/D/YY (null when empty or not a date). */
+	const cellSerial = (dash, row, key) => {
+		const v = String((dash.values[row] || [])[dash.colMap[key]] ?? "").trim();
 		try {
 			return v ? dateToSerial(/^\d{1,2}\/\d{1,2}\/\d{2}$/.test(v) ? v.replace(/\/(\d{2})$/, "/20$1") : v) : null;
 		} catch (e) {
@@ -225,12 +229,17 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 		let updated = 0, unchanged = 0, unmatched = 0, ambiguous = 0;
 		for (const r of reviews) {
 			let rows = rowsByAsin.get(String(r.asin || "").toUpperCase()) || [];
-			if (rows.length > 1 && r.orderDate) {
+			if (r.orderDate) {
+				// The order date decides which order a review belongs to, also when the sheet has the ASIN only once
+				// (a re-order that is not on the sheet must not write onto the older order's row).
 				let want = null;
 				try {
 					want = dateToSerial(r.orderDate);
 				} catch (e) {}
-				if (want !== null) rows = rows.filter((x) => rowSerial(dash, x) === want);
+				if (want !== null) rows = rows.filter((x) => {
+					const have = cellSerial(dash, x, "orderDate");
+					return have === null || have === want; // an unreadable date on the sheet does not rule the row out
+				});
 			}
 			if (rows.length === 0) {
 				unmatched++;
@@ -241,21 +250,32 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 				continue;
 			}
 			const row = rows[0];
-			if (seenRows.has(row)) continue;
+			if (seenRows.has(row)) {
+				ambiguous++; // two reviews in the list point at the same row: only the first is used, the other is reported
+				continue;
+			}
 			seenRows.add(row);
 
+			const now = cur(row, "reviewStatus");
+			if (MANUAL_REVIEW_STATES.includes(now)) {
+				unchanged++; // the owner set this row by hand: nothing on it is touched
+				continue;
+			}
 			const fields = {};
 			const status = mapReviewStatus(r.status);
-			const now = cur(row, "reviewStatus");
-			if (status && !MANUAL_REVIEW_STATES.includes(now)) {
-				if (status === "NOT SUBMITTED" ? now === "" || now === "PENDING APPROVAL" : status !== now) fields.reviewStatus = status;
-			}
+			if (status && (status === "NOT SUBMITTED" ? now === "" || now === "PENDING APPROVAL" : status !== now)) fields.reviewStatus = status;
 			const score = mapReviewScore(r.score);
 			if (score && score !== cur(row, "reviewScore")) fields.reviewScore = score;
-			if (status === "LIVE" && !MANUAL_REVIEW_STATES.includes(now) && DONE_BEFORE_REVIEW.includes(cur(row, "status"))) fields.status = "COMPLETED";
+			if (status === "LIVE" && DONE_BEFORE_REVIEW.includes(cur(row, "status"))) fields.status = "COMPLETED";
 			if (r.reviewLink && r.reviewLink !== cur(row, "reviewLink")) fields.reviewLink = r.reviewLink;
-			if (r.starRating) fields.starRating = r.starRating;
-			if (r.reviewDate) fields.reviewDate = r.reviewDate;
+			if (r.starRating && starsText(r.starRating) !== cur(row, "starRating")) fields.starRating = r.starRating;
+			if (r.reviewDate) {
+				let want = null;
+				try {
+					want = dateToSerial(r.reviewDate);
+				} catch (e) {}
+				if (want !== null && cellSerial(dash, row, "reviewDate") !== want) fields.reviewDate = r.reviewDate;
+			}
 
 			const cells = buildFieldCells(fields, dash.colMap);
 			if (cells.length === 0) {

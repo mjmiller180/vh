@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0123
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -107,8 +107,9 @@ export function buildOrderCells(order, colMap, { withFormats = false } = {}) {
 	put("status", text(order.status || "ORDERED"));
 	if (present(order.title)) put("title", ASIN_RE.test(order.asin || "") ? linked(order.title, `https://${host}/dp/${order.asin}`) : text(order.title));
 	if (typeof order.etv === "number" && Number.isFinite(order.etv)) {
-		// the owner's sheet links the ETV cell to the order's invoice page
-		const c = { ...num(order.etv), textFormatRuns: [{ startIndex: 0, format: { link: { uri: `https://${host}/gp/css/summary/print.html?orderID=${order.orderNumber}` } } }] };
+		// the owner's sheet links the ETV cell to the order's invoice page. Rich-text links are only valid on text cells,
+		// so the number is kept as a number with =HYPERLINK(url, value).
+		const c = { userEnteredValue: { formulaValue: `=HYPERLINK("https://${host}/gp/css/summary/print.html?orderID=${order.orderNumber}", ${Number(order.etv).toFixed(2)})` } };
 		if (withFormats) c.userEnteredFormat = moneyFormat;
 		put("etv", c);
 	}

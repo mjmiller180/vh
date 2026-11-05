@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0138
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -124,7 +124,7 @@ export async function startReviewTools() {
 		let { selectionStart: s, selectionEnd: e, value } = ta;
 		if (s === e) {
 			if (!wholeLineWhenEmpty) return say("Select some text first.");
-			s = value.lastIndexOf("\n", s - 1) + 1;
+			s = s === 0 ? 0 : value.lastIndexOf("\n", s - 1) + 1; // (lastIndexOf with -1 would find a newline at 0)
 			const nl = value.indexOf("\n", e);
 			e = nl < 0 ? value.length : nl;
 		}
@@ -345,6 +345,7 @@ export async function startReviewTools() {
 	form?.addEventListener(
 		"submit",
 		() => {
+			clearTimeout(timer); // a save still waiting from the last keystroke would rewrite the draft without its "submitted" mark
 			const stars = [...document.querySelectorAll(SELECTORS.stars)];
 			const rating = stars.findIndex((s) => s.getAttribute("aria-checked") === "true") + 1;
 			const title = titleInput ? titleInput.value.trim() : "";

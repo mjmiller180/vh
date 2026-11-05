@@ -1,10 +1,16 @@
-// Last compiled at 2026-11-05_0123
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
 /** Pure helpers for SheetSync (unit tested in Node). */
 
-/** Which list page the URL is: "orders", "reviews" or null. Works for every marketplace. */
+/**
+ * Only the US site is read: its page formats (M/D/YYYY dates, "$16.99") are what the parser understands. Other
+ * marketplaces write dates as D/M/YYYY and amounts like "16,99 €", which would put wrong values on the sheet.
+ */
+export const isSupportedHost = (hostname) => /^www\.amazon\.com$/i.test(String(hostname || ""));
+
+/** Which list page the URL is: "orders", "reviews" or null. */
 export function pageKind(pathname) {
 	const p = String(pathname || "").replace(/\/+$/, "");
 	if (/\/vine\/orders$/.test(p)) return "orders";
@@ -14,7 +20,8 @@ export function pageKind(pathname) {
 
 /** Amazon lists newest first; the sheet is oldest first, so new rows must be added in the reverse order. */
 export function oldestFirst(orders) {
-	return [...orders].sort((a, b) => (a.orderDate || "").localeCompare(b.orderDate || "") || 0).filter(Boolean);
+	// reverse first: the sort is stable, so orders of the same day also come out oldest first
+	return [...orders].reverse().sort((a, b) => (a.orderDate || "").localeCompare(b.orderDate || ""));
 }
 
 export function chunk(list, size) {
@@ -61,8 +68,15 @@ function describeFailure(res) {
 	return "Google sheet: " + String(res.error || "something went wrong").slice(0, 200);
 }
 
+export const MAX_PAGES = 60;
+
 /** Total pages to walk for "sync all": never more than `cap`, at least 1. */
-export function pageCount(pagination, cap = 60) {
+export function pageCount(pagination, cap = MAX_PAGES) {
 	const pages = Number.isInteger(pagination?.pages) ? pagination.pages : 1;
 	return Math.max(1, Math.min(cap, pages));
+}
+
+/** True when the list has more pages than "sync all" will read. */
+export function isCapped(pagination, cap = MAX_PAGES) {
+	return Number.isInteger(pagination?.pages) && pagination.pages > cap;
 }

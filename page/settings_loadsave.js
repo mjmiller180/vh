@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0049
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -185,7 +185,7 @@ async function initiateSettings(firstRun = false) {
 	document.getElementById("factoryReset")?.addEventListener("click", async function () {
 		if (
 			await confirmPrompt(
-				"Reset all VineTools settings & local storage to default?\n\nThis deletes your settings, hidden items and pinned items on this computer.\n\nIf folder sync is set up, the next sync will bring your settings and lists BACK from the shared file (this computer is treated as a fresh install). To really start over, press 'Stop syncing' on the Sync tab first."
+				"Reset all VineTools settings & local storage to default?\n\nThis deletes your settings, hidden items, pinned items, and the review phrases, templates and drafts on this computer.\n\nIf folder sync is set up, the next sync will bring your settings and lists BACK from the shared file (this computer is treated as a fresh install). To really start over, press 'Stop syncing' on the Sync tab first."
 			)
 		) {
 			await chrome.storage.local.clear();

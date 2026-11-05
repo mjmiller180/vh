@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0138
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -66,6 +66,7 @@ export function openDrivePicker({ attach }) {
 	const addBtn = mk("button", { type: "button", text: "Add 0 pictures", disabled: "" });
 	const more = mk("button", { type: "button", text: "Load more", hidden: "" });
 	const close = () => {
+		queue.length = 0; // no more thumbnails for a window that is gone
 		modal.remove();
 		style.remove();
 	};

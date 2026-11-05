@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0049
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -32,6 +32,8 @@ function fakeSheets({ rows, rowCount = 988, sheetId = 0, title = "DASHBOARD" }) 
 		if (method === "POST" && url.endsWith(":batchUpdate")) {
 			const { requests } = JSON.parse(opts.body);
 			for (const r of requests) {
+				const v0 = r.updateCells?.rows[0].values[0];
+				if (v0?.textFormatRuns && v0.userEnteredValue.stringValue === undefined) return { ok: false, status: 400, json: async () => ({ error: { message: "textFormatRuns are only valid on user entered strings" } }), headers: { get: () => null } };
 				if (r.appendDimension) state.rowCount += r.appendDimension.length;
 				if (r.updateCells) {
 					const { rowIndex, columnIndex } = r.updateCells.start;
@@ -91,7 +93,8 @@ test("buildOrderCells: the DASHBOARD columns from an order (links, IMAGE formula
 	assert.equal(byCol[3].userEnteredValue.stringValue, "ORDERED"); // STATUS
 	assert.equal(byCol[4].userEnteredValue.stringValue, 'Plant Covers 23.6" X 31.5" & more'); // plain text, not HTML-escaped
 	assert.equal(byCol[4].textFormatRuns[0].format.link.uri, "https://www.amazon.com/dp/B0FZ9Y2B2T");
-	assert.equal(byCol[5].userEnteredValue.numberValue, 15.99);
+	assert.equal(byCol[5].userEnteredValue.formulaValue, '=HYPERLINK("https://www.amazon.com/gp/css/summary/print.html?orderID=112-8085227-2269802", 15.99)');
+	assert.equal(byCol[5].textFormatRuns, undefined, "rich-text links are only valid on text cells");
 	assert.deepEqual(cells.map((c) => c.column).sort((a, b) => a - b), [0, 1, 2, 3, 4, 5], "must not touch the manual columns");
 });
 

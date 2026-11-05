@@ -1,10 +1,10 @@
-// Last compiled at 2026-11-05_0130
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyStyle, stripStyles, toggleStyle, isStyled, bulletLines, numberLines, unlistLines, STYLE_NAMES } from "../../scripts/review/UnicodeStyles.js";
+import { applyStyle, stripStyles, removeStyle, toggleStyle, isStyled, bulletLines, numberLines, unlistLines, STYLE_NAMES } from "../../scripts/review/UnicodeStyles.js";
 
 test("bold / italic / monospace / serif / cursive / wide / superscript give the expected letters", () => {
 	assert.equal(applyStyle("Abc 123", "bold"), "𝗔𝗯𝗰 𝟭𝟮𝟯");
@@ -23,9 +23,10 @@ test("underline and strikethrough add combining marks after letters and digits, 
 
 test("stripStyles is the exact inverse of every style (round trip)", () => {
 	const plain = "Hello World 2026 - great product!";
-	// (superscript has no capitals or some letters, so its round trip is checked on text it can fully express)
-	for (const s of STYLE_NAMES.filter((x) => x !== "superscript")) assert.equal(stripStyles(applyStyle(plain, s)), plain, s);
-	assert.equal(stripStyles(applyStyle("great product 2026", "superscript")), "great product 2026");
+	for (const s of ["bold", "italic", "serif", "cursive", "monospace", "underline", "strikethrough"]) assert.equal(stripStyles(applyStyle(plain, s)), plain, s);
+	// wide and superscript are taken back by removeStyle (stripStyles leaves them: real text uses those characters)
+	assert.equal(removeStyle(applyStyle(plain, "wide"), "wide"), plain);
+	assert.equal(removeStyle(applyStyle("great product 2026", "superscript"), "superscript"), "great product 2026");
 	assert.equal(stripStyles("plain text"), "plain text");
 });
 
@@ -50,7 +51,9 @@ test("toggleStyle: second click on the same style removes it; a different style 
 test("other scripts and emoji pass through untouched; surrogate pairs are never split", () => {
 	assert.equal(applyStyle("日本語 😀", "bold"), "日本語 😀");
 	assert.equal(stripStyles(applyStyle("a😀b", "bold")), "a😀b");
-	assert.equal(applyStyle("😀", "underline"), "😀̲");
+	assert.equal(applyStyle("😀", "underline"), "😀", "emoji get no mark");
+	assert.equal(applyStyle("👍🏽", "strikethrough"), "👍🏽", "a skin-tone emoji is not split by a mark");
+	assert.equal(applyStyle("a👍🏽b", "underline"), "a\u0332👍🏽b\u0332");
 });
 
 test("bullet and numbered lists: per non-empty line, idempotent, switchable, removable", () => {
@@ -65,4 +68,27 @@ test("bullet and numbered lists: per non-empty line, idempotent, switchable, rem
 
 test("unknown style is an error, not silently ignored", () => {
 	assert.throws(() => applyStyle("a", "sparkly"), /Unknown style/);
+});
+
+test("characters the user typed are never converted by styling or clearing (m², full-width Japanese)", () => {
+	assert.equal(stripStyles("area 5 m² and １２３ＡＢＣ"), "area 5 m² and １２３ＡＢＣ");
+	assert.equal(applyStyle("価格１２３円 m²", "bold"), "価格１２３円 𝗺²", "only the plain letters change");
+	assert.equal(applyStyle("price 5 m²", "bold"), "𝗽𝗿𝗶𝗰𝗲 𝟱 𝗺²");
+	assert.equal(toggleStyle(toggleStyle("price 5 m²", "bold"), "bold"), "price 5 m²");
+});
+
+test("superscript can be toggled off even when the text has letters it has no glyph for", () => {
+	const once = toggleStyle("Hi", "superscript");
+	assert.equal(once, "Hⁱ");
+	assert.equal(toggleStyle(once, "superscript"), "Hi");
+	assert.equal(toggleStyle(toggleStyle("Quiz", "superscript"), "superscript"), "Quiz");
+});
+
+test("underline then strikethrough: each button removes only its own mark", () => {
+	const u = applyStyle("ab", "underline");
+	const both = applyStyle(u, "underline") + ""; // (applying again keeps one mark)
+	assert.equal(both, u);
+	const struck = u.replace("b\u0332", "b\u0332\u0336");
+	assert.equal(removeStyle(struck, "underline"), "ab\u0336");
+	assert.equal(removeStyle(struck, "strikethrough"), "a\u0332b\u0332");
 });

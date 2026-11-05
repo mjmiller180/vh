@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0138
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -126,6 +126,21 @@ async function test(name, fn) {
 		await page.close();
 	});
 
+	await test("caret at the very start before a leading empty line: list buttons work instead of throwing", async () => {
+		const page = await open();
+		const errors = [];
+		page.on("pageerror", (e) => errors.push(String(e)));
+		await page.locator("#reviewText").fill("\nabc");
+		await page.evaluate(() => { const t = document.getElementById("reviewText"); t.focus(); t.setSelectionRange(0, 0); });
+		await btn(page, "Bullet list").click();
+		assert.equal(await val(page, "reviewText"), "\nabc", "the empty first line stays empty");
+		await page.evaluate(() => { const t = document.getElementById("reviewText"); t.focus(); t.setSelectionRange(1, 1); });
+		await btn(page, "Bullet list").click();
+		assert.equal(await val(page, "reviewText"), "\n● abc");
+		assert.deepEqual(errors, []);
+		await page.close();
+	});
+
 	await test("with nothing selected a style button says so instead of changing the text", async () => {
 		const page = await open();
 		await page.locator("#reviewText").fill("abc");
@@ -207,6 +222,7 @@ async function test(name, fn) {
 		const m = (await sw.evaluate(() => self.__msgs))[0];
 		assert.deepEqual(m.reviews[0], { asin: "B0SUBMIT01", status: "Pending approval", score: "Pending", starRating: 4, reviewDate: m.reviews[0].reviewDate });
 		assert.match(m.reviews[0].reviewDate, /^\d{4}-\d{2}-\d{2}$/);
+		await page.waitForTimeout(1300); // longer than the autosave delay: a save queued before Submit must not undo the "submitted" mark
 		await page.reload();
 		await page.waitForSelector('[data-vt="toolbar"]');
 		await page.waitForTimeout(500);

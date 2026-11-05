@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_0138 -->
+<!-- Last compiled at 2026-11-05_0209 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -18,6 +18,11 @@
   (read only, needs the extra Drive permission).
 
 ### Fixed
+- Independent review of the sheet/review/Drive code: reviews of a re-ordered ASIN could land on the older order's row; rows set
+  by hand got score/stars/date overwritten; ETV link used a rich-text link on a number cell (now `=HYPERLINK`); non-US
+  pages produced wrong amounts/dates (sync is amazon.com only); same-day orders were added newest first; styling converted
+  typed `m²` / full-width text; Submit within 0.7 s lost the draft's "submitted" mark; thumbnail requests are limited to
+  Google's lh3-lh6 image hosts.
 - On-screen messages could be silently dropped when sent before the notification container existed; the notifier now waits for it.
 
 ### Renamed

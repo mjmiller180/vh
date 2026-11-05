@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0130
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -45,37 +45,59 @@ FORWARD.wide = new Map();
 for (let c = 0x21; c <= 0x7e; c++) FORWARD.wide.set(String.fromCharCode(c), String.fromCodePoint(c + 0xfee0));
 FORWARD.superscript = new Map(Object.entries(SUPERSCRIPT));
 
-/** styled char -> plain char (every style together) */
-const BACKWARD = new Map();
-for (const m of Object.values(FORWARD)) for (const [plain, styled] of m) BACKWARD.set(styled, plain);
+/** styled char -> plain char, for one style */
+const reverseOf = (style) => new Map([...FORWARD[style]].map(([plain, styled]) => [styled, plain]));
+const BACKWARD = { wide: reverseOf("wide"), superscript: reverseOf("superscript") };
+/** The "Mathematical Alphanumeric" styles are the ones nobody types by hand, so they are always safe to take back. */
+const MATH_STYLES = ["bold", "italic", "serif", "cursive", "monospace"];
+const MATH_BACKWARD = new Map();
+for (const name of MATH_STYLES) for (const [plain, styled] of FORWARD[name]) MATH_BACKWARD.set(styled, plain);
 
 export const STYLE_NAMES = ["bold", "italic", "serif", "cursive", "monospace", "wide", "superscript", "underline", "strikethrough"];
 
 const cpArray = (text) => Array.from(String(text ?? ""));
 const isLetterOrDigit = (ch) => /[\p{L}\p{N}]/u.test(ch);
+const COMBINING = { underline: UNDERLINE, strikethrough: STRIKE };
 
-/** Remove every kind of styling this module can add (letters/digits back to ASCII, combining marks, list markers). */
+/** Grapheme clusters ("👍🏽" and "e\u0301" are one each), so a combining mark never lands inside one. */
+function graphemes(text) {
+	const t = String(text ?? "");
+	if (typeof Intl !== "undefined" && Intl.Segmenter) return Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(t), (x) => x.segment);
+	return Array.from(t);
+}
+// underline / strikethrough go after letters and digits only (not spaces, punctuation or emoji)
+const takesMark = (g) => /[\p{L}\p{N}]/u.test(g) && !/\p{Extended_Pictographic}/u.test(g);
+
+/**
+ * Take back the styling that cannot be mistaken for typed text: the Mathematical Alphanumeric letters (bold, italic,
+ * serif, cursive, monospace) and the underline / strikethrough marks. Wide and superscript letters are NOT touched here
+ * (real text such as "m²" or Japanese full-width digits uses them): see removeStyle.
+ */
 export function stripStyles(text) {
 	return cpArray(text)
 		.filter((ch) => ch !== UNDERLINE && ch !== STRIKE)
-		.map((ch) => BACKWARD.get(ch) ?? ch)
+		.map((ch) => MATH_BACKWARD.get(ch) ?? ch)
 		.join("");
 }
 
-const COMBINING = { underline: UNDERLINE, strikethrough: STRIKE };
+/** Take back ONE style: used when the user presses that style's button a second time. */
+export function removeStyle(text, style) {
+	if (MATH_STYLES.includes(style)) return stripStyles(text);
+	if (COMBINING[style]) return cpArray(text).filter((ch) => ch !== COMBINING[style]).join("");
+	const back = BACKWARD[style];
+	if (!back) throw new Error("Unknown style: " + style);
+	return cpArray(text).map((ch) => back.get(ch) ?? ch).join("");
+}
 
-/** True when every letter/digit of `text` is already in that style (and there is at least one). */
+/** True when every letter/digit that the style can express is already in that style (and there is at least one). */
 export function isStyled(text, style) {
-	const chars = cpArray(text).filter((c) => c !== UNDERLINE && c !== STRIKE ? true : false);
 	if (COMBINING[style]) {
-		const all = cpArray(text);
-		const marks = COMBINING[style];
 		let seen = 0;
-		for (let i = 0; i < all.length; i++) {
-			if (all[i] === marks || all[i] === UNDERLINE || all[i] === STRIKE) continue;
-			if (!isLetterOrDigit(all[i])) continue;
+		for (const g of graphemes(text)) {
+			const core = g.replace(/[\u0332\u0336]/g, ""); // a mark and its letter are one grapheme
+			if (!takesMark(core)) continue;
 			seen++;
-			if (all[i + 1] !== marks) return false;
+			if (!g.includes(COMBINING[style])) return false;
 		}
 		return seen > 0;
 	}
@@ -83,33 +105,25 @@ export function isStyled(text, style) {
 	if (!fwd) return false;
 	const styled = new Set(fwd.values());
 	let seen = 0;
-	for (const ch of chars) {
-		if (!isLetterOrDigit(ch) && !styled.has(ch)) continue;
-		if (/[^\u0000-\u007f]/.test(ch) && !styled.has(ch)) continue; // some other script: ignore
-		seen++;
-		if (!styled.has(ch)) return false;
+	for (const ch of cpArray(text)) {
+		if (styled.has(ch)) seen++;
+		else if (fwd.has(ch)) return false; // a letter this style could have changed, but did not
 	}
 	return seen > 0;
 }
 
-/** Apply a character style. Any earlier style is removed first, so styles replace each other instead of stacking. */
+/** Apply a style. Math styles and underline/strike replace each other instead of stacking. */
 export function applyStyle(text, style) {
-	const plain = stripStyles(text);
-	if (COMBINING[style]) {
-		return cpArray(plain)
-			.map((ch) => (/\s/.test(ch) ? ch : ch + COMBINING[style]))
-			.join("");
-	}
+	const base = stripStyles(text);
+	if (COMBINING[style]) return graphemes(base).map((g) => (takesMark(g) ? g + COMBINING[style] : g)).join("");
 	const fwd = FORWARD[style];
 	if (!fwd) throw new Error("Unknown style: " + style);
-	return cpArray(plain)
-		.map((ch) => fwd.get(ch) ?? ch)
-		.join("");
+	return cpArray(base).map((ch) => fwd.get(ch) ?? ch).join("");
 }
 
 /** Click on a style button: remove the style when the whole selection already has it, otherwise apply it. */
 export function toggleStyle(text, style) {
-	return isStyled(text, style) ? stripStyles(text) : applyStyle(text, style);
+	return isStyled(text, style) ? removeStyle(text, style) : applyStyle(text, style);
 }
 
 const BULLET = "● ";

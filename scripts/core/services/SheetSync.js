@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0123
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -17,17 +17,19 @@ import { ScreenNotifier, ScreenNotification } from "/scripts/ui/components/Scree
 const Notifications = new ScreenNotifier();
 
 import { parseOrdersPage, parseReviewsPage, parsePagination } from "/scripts/core/utils/VineListParser.js";
-import { pageKind, oldestFirst, chunk, toSheetOrders, describeOrdersResult, describeReviewsResult, pageCount } from "/scripts/core/utils/SheetSyncLogic.js";
+import { pageKind, oldestFirst, chunk, toSheetOrders, describeOrdersResult, describeReviewsResult, pageCount, isCapped, isSupportedHost, MAX_PAGES } from "/scripts/core/utils/SheetSyncLogic.js";
+import { escapeHTML } from "/scripts/core/utils/StringHelper.js";
 
 const BATCH = 50;
 const PAGE_DELAY_MS = 2000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function say(title, html, lifespan = 12) {
+// `text` is plain text (it may contain Google's or Chrome's error messages): it is escaped before it is shown
+function say(title, text, lifespan = 12) {
 	const note = new ScreenNotification();
 	note.title = title;
 	note.lifespan = lifespan;
-	note.content = html;
+	note.content = escapeHTML(text);
 	Notifications.pushNotification(note).catch((e) => console.error("[SheetSync] could not show a message:", e));
 }
 
@@ -54,7 +56,7 @@ class SheetSync {
 	/** Call once the page has loaded (and the settings have been refreshed). */
 	async onPageReady() {
 		const kind = pageKind(location.pathname);
-		if (!kind) return;
+		if (!kind || !isSupportedHost(location.hostname)) return;
 		if (!Settings.get("google.sheet.enabled")) return;
 		this.#addButton(kind);
 		await this.#syncPage(document, kind, true);
@@ -102,12 +104,14 @@ class SheetSync {
 
 	/** Walks every page of this list (page 1..N of the same address) and sends them. */
 	async #syncAll(kind, btn) {
-		if (this.#busy) return;
+		if (this.#busy) return say("VineTools", "The automatic sync of this page is still running. Try again in a moment.", 6);
 		const label = btn.textContent;
 		btn.disabled = true;
-		const totals = { added: 0, skipped: 0, updated: 0, unmatched: 0, failed: null };
+		const totals = { added: 0, skipped: 0, updated: 0, unmatched: 0, failed: null, capped: 0 };
 		try {
-			const pages = pageCount(parsePagination(document));
+			const pagination = parsePagination(document);
+			const pages = pageCount(pagination);
+			totals.capped = isCapped(pagination) ? pagination.pages : 0;
 			const orders = [];
 			const reviews = [];
 			for (let n = 1; n <= pages; n++) {
@@ -150,7 +154,7 @@ class SheetSync {
 			: kind === "orders"
 				? `Added ${totals.added} order(s); ${totals.skipped} were already on the sheet.`
 				: `Updated ${totals.updated} row(s); ${totals.unmatched} review(s) have no matching row on the sheet.`;
-		say("VineTools", text, 30);
+		say("VineTools", text + (totals.capped && !totals.failed ? ` Only the first ${MAX_PAGES} of ${totals.capped} pages were read.` : ""), 30);
 	}
 }
 

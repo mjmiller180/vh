@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_0138 -->
+<!-- Last compiled at 2026-11-05_0209 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -46,6 +46,7 @@ convenience you run at your own risk and keep the delays generous.
 - **Review form.** On Amazon's "write a review" page: formatting toolbar (bold, italic ... with Unicode letters, bullets,
   numbering), saved phrases and templates, automatic drafts, paste or drop pictures, "Add from Google Drive…". Pressing
   Submit records the star rating and date on the sheet.
+- The order/review sync reads **amazon.com** only (other sites write dates and amounts differently).
 - Everything is off until you switch it on; try it on a copy of your sheet first (see `docs/GOOGLE_INTEGRATION.md`).
 
 ## Discord (Settings → Discord)

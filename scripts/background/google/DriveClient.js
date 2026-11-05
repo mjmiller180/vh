@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0138
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -9,7 +9,8 @@
  */
 const BASE = "https://www.googleapis.com";
 const ID_RE = /^[A-Za-z0-9_-]{10,}$/;
-const THUMB_HOST_RE = /^https:\/\/[a-z0-9-]+\.googleusercontent\.com\//i;
+// Drive thumbnails are served from lh3-lh6.googleusercontent.com (the same hosts the CSP allows); nothing else gets the token
+const THUMB_HOST_RE = /^https:\/\/lh[3-6]\.googleusercontent\.com\//i;
 export const MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024;
 export const FOLDER_MIME = "application/vnd.google-apps.folder";
 
@@ -41,13 +42,13 @@ export function toBase64(bytes) {
 }
 
 export function createDriveClient({ fetchFn = globalThis.fetch?.bind(globalThis), getToken, clearToken = async () => {}, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), baseUrl = BASE }) {
-	async function get(url, { binary = false } = {}) {
+	async function get(url, { binary = false, refreshToken = true } = {}) {
 		let refreshed = false;
 		for (let attempt = 0; attempt < 4; attempt++) {
 			const token = await getToken();
 			const res = await fetchFn(url, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
 			if (res.ok) return binary ? res : res.json();
-			if (res.status === 401 && !refreshed) {
+			if (res.status === 401 && !refreshed && refreshToken) {
 				refreshed = true;
 				await clearToken(token);
 				continue;
@@ -116,7 +117,7 @@ export function createDriveClient({ fetchFn = globalThis.fetch?.bind(globalThis)
 		/** A small picture (data for an <img>), from the thumbnail link a listing returned. */
 		async thumbnail(link) {
 			if (!THUMB_HOST_RE.test(String(link || ""))) throw new DriveError(400, "Not a thumbnail address");
-			const res = await get(String(link).replace(/=s\d+$/, "") + "=s240", { binary: true });
+			const res = await get(String(link).replace(/=s\d+$/, "") + "=s240", { binary: true, refreshToken: false });
 			const type = (res.headers?.get?.("content-type") || "image/jpeg").split(";")[0];
 			if (!/^image\//.test(type)) throw new DriveError(415, "Not a picture");
 			return { mimeType: type, bytes: new Uint8Array(await res.arrayBuffer()) };

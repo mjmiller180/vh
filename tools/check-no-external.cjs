@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// Last compiled at 2026-11-05_0138
+// Last compiled at 2026-11-05_0209
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
-// Guard: this build must not talk to anything except Amazon (and the user's own Discord webhook).
+// Guard: this build must not talk to anything except Amazon, the user's own Discord webhook, and (after Chrome
+// sign-in, only from scripts/background/google/) Google Sheets and Google Drive (read only) with its thumbnail hosts.
 // Fails (exit 1) when:
 //  - a source file contains a URL to a host outside the allow-list
 //  - a network primitive (fetch, XHR, WebSocket, sendBeacon, EventSource, importScripts) is used in a
@@ -21,7 +22,7 @@ const HOST_ALLOW = [/(^|\.)amazon\.[a-z.]+$/, /(^|\.)media-amazon\.com$/, /^(dis
 // reach it from the service worker, whose requests the manifest CSP connect-src governs, so this guard checks the
 // manifest separately. Content scripts are NOT limited by the extension CSP, which is why the primitive check
 // below matters.)
-const GOOGLE_API_HOSTS = ["sheets.googleapis.com", "www.googleapis.com", "*.googleusercontent.com"]; //Sheets, Drive (read only) and Drive thumbnails
+const GOOGLE_API_HOSTS = ["sheets.googleapis.com", "www.googleapis.com", "lh3.googleusercontent.com", "lh4.googleusercontent.com", "lh5.googleusercontent.com", "lh6.googleusercontent.com"]; //Sheets, Drive (read only), Drive thumbnails
 const GOOGLE_SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive.readonly"];
 const GOOGLE_DIR = "scripts/background/google/";
 const hostOk = (h) => HOST_ALLOW.some((r) => r.test(h.toLowerCase())) || h.includes("*.amazon.") || h.includes("${") || h.includes("{{");
@@ -32,7 +33,7 @@ const PRIMITIVE_ALLOW = {
 	"scripts/core/utils/Template.js": { fetch: "loads the extension's own template files (chrome.runtime.getURL)" },
 	"scripts/background/google/DriveClient.js": { fetch: "reads the user's own Google Drive pictures (read only, token from Chrome sign-in; fetchFn is injected)" },
 	"scripts/background/google/SheetsClient.js": { fetch: "calls the Google Sheets API with the user's own token (fetchFn is injected; the host is fixed in BASE)" },
-	"scripts/core/services/SheetSync.js": { fetch: "reads the other pages of the user's own Vine orders/reviews lists on amazon (same site) for 'send all pages'" },
+	"scripts/core/services/SheetSync.js": { fetch: "ONE call: fetch(url) of the next page of the same Vine list, url built from location.href (same site). Any other fetch here must be reviewed." },
 	"scripts/inj.js": { fetch: "wraps Amazon's own fetch (origFetch) to read Amazon's responses" },
 };
 const PRIMITIVES = [

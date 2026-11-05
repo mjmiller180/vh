@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_0138 -->
+<!-- Last compiled at 2026-11-05_0209 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -76,6 +76,9 @@ order page and may be filled when that page is visited. Anything the extension c
   * Review form: pressing Submit writes star rating (as stars), today's date, PENDING APPROVAL / PENDING.
   * Pictures: "Add from Google Drive..." on the review form (Drive read only: newest pictures anywhere, a start folder, folder
     browsing, search by name; previews are fetched by the service worker so the Amazon page never contacts Google).
+  * Only **www.amazon.com** pages are read (other marketplaces use D/M/YYYY dates and "16,99 €" amounts). A row whose REVIEW
+    STATUS you set by hand is left completely alone. The ETV cell is `=HYPERLINK(invoice url, value)` because rich-text links
+    are only valid on text cells (check on a copy that the cell shows the amount and links to the invoice).
   * The sheet's REVIEW columns are strict dropdowns: only the exact list values are written.
 * **Not verifiable here:** real Google sign-in, real Sheets/Drive calls, Amazon's live pages. Do the first run on a COPY of
   the sheet (the settings page has a dry-run preview). Drive thumbnails use the `thumbnailLink` Google returns; if Google
