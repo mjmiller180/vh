@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0209
+// Last compiled at 2026-11-05_1050
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -24,8 +24,26 @@ function variant(html, page) {
 }
 const shortPager = (html) => html.replace(/page=15/g, "page=3").replace(/of 143 results/, "of 30 results").replace(/of 86 results/, "of 30 results").replace(/of 50 results/, "of 30 results");
 
+// stand-ins for the checkout page and the thank-you page (same ids / data attributes as the saved Amazon pages)
+function checkoutPage(purchaseId, asin, title, arriving) {
+	return `<!doctype html><html><head><meta charset="utf-8"><title>Place Your Order - Amazon Checkout</title></head><body>
+<form><input type="hidden" name="purchaseId" value="${purchaseId}"></form>
+<div data-optimistic-target="delivery-group:0"><div id="checkout-item-block-0"><h2><span><span class="break-word">${arriving}</span></span></h2>
+<span class="lineitem-title-text break-word"> ${title} </span><span data-testid="Item_asin_0_0_0" class="aok-hidden">${asin}</span></div></div>
+<span>Place your order</span></body></html>`;
+}
+function thankYouPage() {
+	return `<!doctype html><html><head><meta charset="utf-8"><title>Place Your Order - Amazon Checkout</title></head><body>
+<div cel_widget_id="typ-purchaseConfirmationStatus" class="celwidget"><h4 aria-level="1" class="a-color-success"><div class="a-box a-alert-inline a-alert-inline-success"><div class="a-box-inner a-alert-container"><h4 class="a-alert-heading">Order placed, thanks!</h4></div></div></h4></div>
+<div id="widget-deliveryPromise-orderGroupID0#itemGroupID0" class="a-row"><span id="delivery-promise-orderGroupID0#itemGroupID0"><span class="a-text-bold"><span class="break-word">Monday, Nov. 9</span></span><p><span class="break-word">Estimated delivery</span></p></span></div>
+</body></html>`;
+}
+
 function render(url) {
 	const u = new URL(url);
+	if (u.pathname === "/checkout/p/p-106-1111111-2222222/spc") return checkoutPage("106-1111111-2222222", "B0H7GXLHFK", "Pet Hair Removal Glove", "Arriving Nov 9, 2026");
+	if (u.pathname === "/checkout/p/p-106-3333333-4444444/spc") return checkoutPage("106-3333333-4444444", "B0HLPGVW5T", "Reversible Dog Toy Basket", "Arriving Nov 12, 2026");
+	if (u.pathname.startsWith("/gp/buy/thankyou/")) return thankYouPage();
 	const page = Number(u.searchParams.get("page") || 1);
 	if (u.pathname === "/vine/orders") return variant(shortPager(ORDERED), page);
 	if (u.pathname === "/vine/vine-reviews") return variant(shortPager(u.searchParams.get("review-type") === "completed" ? REVIEWED : AWAITING), page);
@@ -128,6 +146,36 @@ async function test(name, fn) {
 		await chrome.storage.local.set({ settings, settingsModifiedAt: Date.now() });
 	});
 
+	console.log("\nCheckout -> delivery date");
+	const pending = () => sw.evaluate(async () => (await chrome.storage.local.get("vt.checkout.pending"))["vt.checkout.pending"] || {});
+	await test("checkout page: the item and its arrival date are remembered; an abandoned checkout is not used", async () => {
+		const a = await open("/checkout/p/p-106-1111111-2222222/spc");
+		const b = await open("/checkout/p/p-106-3333333-4444444/spc");
+		await waitFor(async () => Object.keys(await pending()).length === 2); // (pages stay open until the capture has run)
+		await a.close();
+		await b.close();
+		const p = await pending();
+		assert.deepEqual(p["106-1111111-2222222"].groups, [{ arriving: "2026-11-09", items: [{ asin: "B0H7GXLHFK", title: "Pet Hair Removal Glove" }] }]);
+		assert.equal(p["106-1111111-2222222"].placedOn, null, "not placed yet");
+	});
+	await test("thank-you page: the purchase is marked placed (today), and an unknown purchase id is ignored", async () => {
+		const ty = await open("/gp/buy/thankyou/handlers/display.html?purchaseId=106-1111111-2222222&ref_=x");
+		await waitFor(async () => (await pending())["106-1111111-2222222"].placedOn);
+		await ty.close();
+		assert.match((await pending())["106-1111111-2222222"].placedOn, /^\d{4}-\d{2}-\d{2}$/);
+		const unknown = await open("/gp/buy/thankyou/handlers/display.html?purchaseId=106-9999999-9999999");
+		await new Promise((r) => setTimeout(r, 1500));
+		await unknown.close();
+		assert.equal((await pending())["106-9999999-9999999"], undefined);
+		assert.equal((await pending())["106-3333333-4444444"].placedOn, null);
+		// the fixture orders are dated 2026-11-04: pretend the order was placed that day, whatever today is
+		await sw.evaluate(async () => {
+			const o = (await chrome.storage.local.get("vt.checkout.pending"))["vt.checkout.pending"];
+			o["106-1111111-2222222"].placedOn = "2026-11-04";
+			await chrome.storage.local.set({ "vt.checkout.pending": o });
+		});
+	});
+
 	console.log("\nOrders and reviews -> sheet");
 	await test("Orders page: the 10 orders are added oldest-first with date, order #, picture, ORDERED, title (linked), ETV (linked to the invoice)", async () => {
 		const page = await open("/vine/orders");
@@ -142,6 +190,10 @@ async function test(name, fn) {
 		const writes = sheet.posts.flatMap((p) => p.requests).filter((r) => r.updateCells);
 		const etv = writes.find((r) => r.updateCells.start.columnIndex === 5);
 		assert.match(etv.updateCells.rows[0].values[0].userEnteredValue.formulaValue, /^=HYPERLINK\("https:\/\/www\.amazon\.com\/gp\/css\/summary\/print\.html\?orderID=111-\d{7}-\d{7}", \d+\.\d\d\)$/);
+		// DELIVERY DATE (column H) only for the order that was really placed (B0H7GXLHFK); serial of 2026-11-09
+		const serial = String(Math.round((Date.UTC(2026, 10, 9) - Date.UTC(1899, 11, 30)) / 86400000));
+		const delivery = added.map((r) => r[7]).filter(Boolean);
+		assert.deepEqual(delivery, [serial], "exactly one row has a delivery date");
 		const titles = added.map((r) => r[4]);
 		assert.ok(titles.some((t) => t.includes('13" x 50"')), "&#34; in the page's title became a real quote: " + titles.join("|"));
 		assert.ok(titles.every((t) => !/&amp;|&#34;/.test(t)), "no leftover entities");

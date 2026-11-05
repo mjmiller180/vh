@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_0209 -->
+<!-- Last compiled at 2026-11-05_1050 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -13,6 +13,7 @@
 - Google Sheet DASHBOARD sync (Settings -> Google): new orders from the Vine **Orders** page (title, ASIN, picture, order
   date, ETV, order number), review status / quality score / review link from the **Reviews** pages, "send all pages"
   buttons, star rating + date + status recorded when a review is submitted from the form. Tested against a fake Sheets API.
+- Delivery date from the checkout / "Order placed" pages is remembered and written to DELIVERY DATE when the order row is added.
 - Review form tools (replace the Tampermonkey "Amazon Review Toolkit"; written from scratch): formatting toolbar, saved
   phrases and templates, automatic drafts, paste / drag and drop of pictures, optional "Add from Google Drive…" picker
   (read only, needs the extra Drive permission).

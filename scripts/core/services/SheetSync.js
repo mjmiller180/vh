@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0209
+// Last compiled at 2026-11-05_1050
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -17,7 +17,7 @@ import { ScreenNotifier, ScreenNotification } from "/scripts/ui/components/Scree
 const Notifications = new ScreenNotifier();
 
 import { parseOrdersPage, parseReviewsPage, parsePagination } from "/scripts/core/utils/VineListParser.js";
-import { pageKind, oldestFirst, chunk, toSheetOrders, describeOrdersResult, describeReviewsResult, pageCount, isCapped, isSupportedHost, MAX_PAGES } from "/scripts/core/utils/SheetSyncLogic.js";
+import { pageKind, oldestFirst, chunk, toSheetOrders, describeOrdersResult, describeReviewsResult, pageCount, isCapped, isSupportedHost, MAX_PAGES, attachDelivery } from "/scripts/core/utils/SheetSyncLogic.js";
 import { escapeHTML } from "/scripts/core/utils/StringHelper.js";
 
 const BATCH = 50;
@@ -41,6 +41,14 @@ const send = (message) =>
 			resolve({ ok: false, error: String(e?.message || e) });
 		}
 	});
+
+const pendingDeliveries = async () => {
+	try {
+		return (await chrome.storage.local.get("vt.checkout.pending"))["vt.checkout.pending"] || {};
+	} catch (e) {
+		return {};
+	}
+};
 
 const marketplace = () => location.hostname; // e.g. www.amazon.com
 
@@ -73,7 +81,7 @@ class SheetSync {
 	}
 
 	async #orders(doc, announce) {
-		const parsed = oldestFirst(parseOrdersPage(doc));
+		const parsed = attachDelivery(oldestFirst(parseOrdersPage(doc)), await pendingDeliveries());
 		if (parsed.length === 0) return null;
 		const res = await send({ type: "googleAddOrders", orders: toSheetOrders(parsed, marketplace()) });
 		const msg = describeOrdersResult(res);
@@ -128,7 +136,7 @@ class SheetSync {
 				(kind === "orders" ? orders : reviews).push(...(kind === "orders" ? parseOrdersPage(doc) : parseReviewsPage(doc)));
 			}
 			this.#busy = true;
-			const batches = kind === "orders" ? chunk(toSheetOrders(oldestFirst(orders), marketplace()), BATCH) : chunk(reviews, BATCH);
+			const batches = kind === "orders" ? chunk(toSheetOrders(attachDelivery(oldestFirst(orders), await pendingDeliveries()), marketplace()), BATCH) : chunk(reviews, BATCH);
 			let i = 0;
 			for (const part of batches) {
 				btn.textContent = `Sending ${++i} of ${batches.length}…`;

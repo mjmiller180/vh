@@ -203,6 +203,16 @@
 				"*://*.amazon.sg/reviews/edit-review/*"
 			],
 			"run_at": "document_end"
+		},
+		{
+			"js": [
+				"scripts/checkoutLoader.js"
+			],
+			"matches": [
+				"*://www.amazon.com/checkout/p/*",
+				"*://www.amazon.com/gp/buy/thankyou/*"
+			],
+			"run_at": "document_end"
 		}
 	],
 	"oauth2": {

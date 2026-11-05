@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_0209 -->
+<!-- Last compiled at 2026-11-05_1050 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -69,6 +69,12 @@ order page and may be filled when that page is visited. Anything the extension c
     date, Fair market value (= ETV) and the order number (link to Order details) - so no other Amazon page is needed.
     New orders are added oldest-first; an order number already on the sheet is never added again. "Send all orders" walks
     every page of the list (one request every 2 s, Amazon's own pages).
+  * Delivery date: the checkout page ("Arriving Nov 9, 2026", item ASIN) and the "Order placed, thanks!" page ("Estimated
+    delivery") are read and remembered (30 days). The order number is NOT on those pages (the id in their address is the
+    *purchase* id, which differs from the *order* id - the thank-you page's own hidden fields show an earlier purchase id
+    106-... next to order id 111-...), so nothing is written to the sheet from them; when the Orders page later adds the row,
+    the remembered date (same ASIN, order date within 2 days of the day it was placed) goes into DELIVERY DATE. Checkouts
+    that were never completed are ignored.
   * Reviews: the Vine **Reviews** pages (Awaiting / Reviewed) update REVIEW SATUS (LIVE / NOT SUBMITTED / REJECTED /
     PENDING APPROVAL), REVIEW SCORE, REVIEW LINK, and STATUS -> COMPLETED when a review goes live. The row is found by the
     ASIN in the TITLE cell's link (and the order date when an ASIN appears twice). Values you set by hand (TAKEN DOWN,

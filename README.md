@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_0209 -->
+<!-- Last compiled at 2026-11-05_1050 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -41,6 +41,9 @@ convenience you run at your own risk and keep the delays generous.
 
 - **Orders → sheet.** Open Vine → Orders: new orders are added to the DASHBOARD tab of your sheet (date, order number,
   picture, ORDERED, title, ETV). The button above the list ("Send all orders to the sheet") does every page.
+- **Delivery date.** At checkout and on the "Order placed" page, VineTools remembers the estimated delivery date; when the
+  order shows up on the Orders page the new row gets it in DELIVERY DATE. (Neither page shows the order number, so the
+  rows themselves still come from the Orders page.)
 - **Reviews → sheet.** Open Vine → Reviews (Awaiting / Reviewed): status, quality score and review link are filled in on the
   matching rows. Anything you set by hand (TAKEN DOWN ...) is left alone.
 - **Review form.** On Amazon's "write a review" page: formatting toolbar (bold, italic ... with Unicode letters, bullets,

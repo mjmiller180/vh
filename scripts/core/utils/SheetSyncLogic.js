@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0209
+// Last compiled at 2026-11-05_1050
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -30,6 +30,32 @@ export function chunk(list, size) {
 	return out;
 }
 
+const dayNumber = (iso) => {
+	const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+	return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000 : null;
+};
+
+/**
+ * Attach the estimated delivery date remembered from the checkout / thank-you pages to the orders it belongs to:
+ * same ASIN, and an order date within 2 days of the day the order was placed. Orders are returned as new objects.
+ * @param pending {[purchaseId]: {placedOn, groups: [{arriving, items: [{asin}]}]}}
+ */
+export function attachDelivery(orders, pending) {
+	const entries = Object.values(pending || {}).filter((e) => e && e.placedOn && Array.isArray(e.groups));
+	return orders.map((o) => {
+		const od = dayNumber(o.orderDate);
+		if (od === null || o.deliveryDate) return o;
+		for (const e of entries) {
+			const pd = dayNumber(e.placedOn);
+			if (pd === null || Math.abs(pd - od) > 2) continue;
+			for (const g of e.groups) {
+				if (g.arriving && (g.items || []).some((i) => i.asin === o.asin)) return { ...o, deliveryDate: g.arriving };
+			}
+		}
+		return o;
+	});
+}
+
 /** Orders as the service worker wants them (only the fields the sheet uses). */
 export function toSheetOrders(parsed, domain) {
 	return parsed.map((o) => ({
@@ -39,6 +65,7 @@ export function toSheetOrders(parsed, domain) {
 		title: o.title,
 		imageUrl: o.imageUrl || undefined,
 		etv: typeof o.etv === "number" ? o.etv : undefined,
+		deliveryDate: o.deliveryDate || undefined,
 		domain: domain || undefined,
 	}));
 }

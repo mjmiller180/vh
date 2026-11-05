@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0209
+// Last compiled at 2026-11-05_1050
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -106,6 +106,13 @@ export function buildOrderCells(order, colMap, { withFormats = false } = {}) {
 	if (present(order.imageUrl) && IMAGE_RE.test(order.imageUrl)) put("image", formulaImage(order.imageUrl)); //anything else: no image
 	put("status", text(order.status || "ORDERED"));
 	if (present(order.title)) put("title", ASIN_RE.test(order.asin || "") ? linked(order.title, `https://${host}/dp/${order.asin}`) : text(order.title));
+	if (present(order.deliveryDate) && /^\d{4}-\d{2}-\d{2}$/.test(order.deliveryDate)) {
+		try {
+			const c = num(dateToSerial(order.deliveryDate));
+			if (withFormats) c.userEnteredFormat = dateFormat;
+			put("deliveryDate", c); // an impossible date (Feb 30) is simply not written; it must not fail the whole batch
+		} catch (e) {}
+	}
 	if (typeof order.etv === "number" && Number.isFinite(order.etv)) {
 		// the owner's sheet links the ETV cell to the order's invoice page. Rich-text links are only valid on text cells,
 		// so the number is kept as a number with =HYPERLINK(url, value).
