@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 import { SettingsMgr } from "/scripts/core/services/SettingsMgrCompat.js";
 
 class TitleDebugLogger {
@@ -353,7 +357,7 @@ if (typeof window !== "undefined") {
 		console.log("🔍 TitleDebugLogger initialized. To access it from the console:");
 		console.log("1. Open Chrome DevTools (F12)");
 		console.log(
-			'2. In the Console tab, change the context dropdown from "top" to the VineHelper extension context'
+			'2. In the Console tab, change the context dropdown from "top" to the VineTools extension context'
 		);
 		console.log("3. Then use: TitleDebugLogger.getInstance() or TitleDebugLogger.help()");
 	}

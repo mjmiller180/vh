@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /*global chrome*/
 
 import { Logger } from "/scripts/core/utils/Logger.js";
@@ -143,11 +147,11 @@ class HiddenListMgr {
 				if (chrome.runtime.lastError) {
 					const error = chrome.runtime.lastError;
 					if (error.message === "QUOTA_BYTES quota exceeded") {
-						alert(`Vine Helper local storage quota exceeded! Hidden items will be trimmed to make space.`);
+						alert(`VineTools local storage quota exceeded! Hidden items will be trimmed to make space.`);
 						this.garbageCollection();
 					} else {
 						alert(
-							`Vine Helper encountered an error while trying to save your hidden items. Please report the following details: ${e.name}, ${e.message}`
+							`VineTools encountered an error while trying to save your hidden items. Please report the following details: ${e.name}, ${e.message}`
 						);
 						return;
 					}

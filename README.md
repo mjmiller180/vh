@@ -1,7 +1,12 @@
-# Vine Helper (local-only build)
+<!-- Last compiled at 2026-11-04_2317 -->
+<!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
+<!-- https://toolsmyths.com -->
+<!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
 
-A stripped-down build of Vine Helper 3.8.7 for Amazon Vine. **It never contacts Vine Helper's servers or any
-other third party.** The only traffic it adds on top of Amazon's own is a POST to *your* Discord webhook, if you
+# VineTools
+
+A browser extension for Amazon Vine. **It never contacts any server of its own or any
+third party.** The only traffic it adds on top of Amazon's own is a POST to *your* Discord webhook, if you
 switch that on.
 
 ## Install
@@ -17,7 +22,7 @@ menu, skip-Prime-ad at checkout, and every option that used to be Patreon-gated 
 (ETV modifier, hide recommendations / side cart / categories / opt-out button, verbose pagination, modal
 navigation, custom CSS, force Tango...). Nothing is gated any more.
 
-Removed because they needed Vine Helper's server: community ETV and order statistics, "first discovered" and
+Not included, because they depended on a central server: community ETV and order statistics, "first discovered" and
 the bookmark marker, variants, price and image carousel, the notification monitor and its WebSocket, reviews
 tools, Item Explorer / statistics, news, device fingerprint / UUID / account, Patreon, Brenda ("Send to Brenda"),
 checkout recording, sounds, confetti.
@@ -44,7 +49,7 @@ Automatic triggers run while you browse Vine pages; there is no background monit
 ## Sync with a Google Drive folder (Settings → Sync)
 
 Choose a folder inside **Google Drive for desktop** (e.g. `G:\My Drive\Amz Vine\Sync`). The extension keeps one
-file there, `vine-helper-sync.json`, with your settings, hidden items and pinned items; Drive uploads it, and every
+file there, `vinetools-sync.json`, with your settings, hidden items and pinned items; Drive uploads it, and every
 computer pointing at the same folder merges with it:
 
 * hidden / pinned lists: the most recent action per item wins (un-hide and un-pin propagate);
@@ -85,5 +90,5 @@ approved files, or the manifest asks for more hosts / permissions. `NETWORK_AUDI
 
 ## Licence and credits
 
-`LICENSE` covers the project code; everything derived from or bundled with other people's work (Vine Helper itself,
+`LICENSE` covers the project code; everything derived from or bundled with other people's work (the extension this one grew out of,
 vine-styling, icons, ...) and its licence is listed in `NOTICE`.

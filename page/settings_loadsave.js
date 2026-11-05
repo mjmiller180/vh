@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 import { SettingsMgr } from "/scripts/core/services/SettingsMgrCompat.js";
 const Settings = new SettingsMgr();
 
@@ -181,7 +185,7 @@ async function initiateSettings(firstRun = false) {
 	document.getElementById("factoryReset")?.addEventListener("click", async function () {
 		if (
 			await confirmPrompt(
-				"Reset all Vine Helper settings & local storage to default?\n\nThis deletes your settings, hidden items and pinned items on this computer.\n\nIf folder sync is set up, the next sync will bring your settings and lists BACK from the shared file (this computer is treated as a fresh install). To really start over, press 'Stop syncing' on the Sync tab first."
+				"Reset all VineTools settings & local storage to default?\n\nThis deletes your settings, hidden items and pinned items on this computer.\n\nIf folder sync is set up, the next sync will bring your settings and lists BACK from the shared file (this computer is treated as a fresh install). To really start over, press 'Stop syncing' on the Sync tab first."
 			)
 		) {
 			await chrome.storage.local.clear();

@@ -1,13 +1,17 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /*global chrome*/
 /**
- * Vine Helper service worker (stripped build).
+ * VineTools service worker.
  *
  * What is left in here:
  *  - context menu: copy ASIN / add selected word to the highlight or hide keywords
  *  - settings refresh relay between tabs
  *  - "discordSend": POST a message to the user's own Discord webhook
  *  - "folderSync": sync settings + hidden/pinned lists with the folder chosen in the settings
- * Everything that used to talk to Vine Helper's servers (websocket, API, notifications) is gone.
+ * There is no websocket, API or notification code: nothing here talks to any third-party server.
  */
 
 import { ChromeStorageAdapter } from "/scripts/infrastructure/StorageAdapter.js";

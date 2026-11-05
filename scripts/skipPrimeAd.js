@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /*global chrome*/
 // Replaces the old checkout monitor. Its only local feature is kept: when the "skip Prime ad"
 // setting is on, decline the Prime upsell shown during Vine checkout. Nothing is recorded or sent.

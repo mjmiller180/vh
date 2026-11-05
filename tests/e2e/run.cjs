@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 // End-to-end tests: real Chromium, the real unpacked extension, a fixture Vine page, a mock Discord.
 const assert = require("node:assert/strict");
 const { launch, openVine, hosts } = require("./lib.cjs");
@@ -228,9 +232,9 @@ async function test(name, fn) {
 	await sp.goto(`chrome-extension://${extId}/page/settings.html`);
 	await sp.waitForSelector("#tabs-index", { timeout: 10000 });
 
-	await test("settings page renders 9 tabs incl. Sync and Discord, with no errors", async () => {
+	await test("settings page renders 8 tabs incl. Sync and Discord, with no errors", async () => {
 		const tabs = await sp.locator("#tabs-index li").allTextContents();
-		assert.deepEqual(tabs.map((t) => t.trim()), ["General", "Notifications", "System", "Styles", "Discord", "Keywords", "Keyboard", "Sync", "?"]);
+		assert.deepEqual(tabs.map((t) => t.trim()), ["General", "Notifications", "System", "Styles", "Discord", "Keywords", "Keyboard", "Sync"]);
 		assert.equal(await sp.locator("#syncChooseFolder").count(), 1);
 		assert.equal(await sp.locator("input[name='discord.webhook.manual.active']").count(), 1);
 		assert.deepEqual(spErrors, []);
@@ -266,7 +270,7 @@ async function test(name, fn) {
 		const file = await sp.evaluate(async () => {
 			const root = await navigator.storage.getDirectory();
 			const dir = await root.getDirectoryHandle("shared-drive-folder");
-			const fh = await dir.getFileHandle("vine-helper-sync.json");
+			const fh = await dir.getFileHandle("vinetools-sync.json");
 			return JSON.parse(await (await fh.getFile()).text());
 		});
 		assert.equal(file.format, 1);
@@ -279,7 +283,7 @@ async function test(name, fn) {
 		await sp.evaluate(async () => {
 			const root = await navigator.storage.getDirectory();
 			const dir = await root.getDirectoryHandle("shared-drive-folder");
-			const fh = await dir.getFileHandle("vine-helper-sync.json");
+			const fh = await dir.getFileHandle("vinetools-sync.json");
 			const cur = JSON.parse(await (await fh.getFile()).text());
 			cur.hiddenItems.FROM_OTHER_PC = Date.now() - 500;
 			cur.settingsModifiedAt = Date.now() + 5000;
@@ -317,14 +321,14 @@ async function test(name, fn) {
 		sp.evaluate(async () => {
 			const root = await navigator.storage.getDirectory();
 			const dir = await root.getDirectoryHandle("shared-drive-folder");
-			const fh = await dir.getFileHandle("vine-helper-sync.json");
+			const fh = await dir.getFileHandle("vinetools-sync.json");
 			return JSON.parse(await (await fh.getFile()).text());
 		});
 	const writeSyncFile = (obj) =>
 		sp.evaluate(async (obj) => {
 			const root = await navigator.storage.getDirectory();
 			const dir = await root.getDirectoryHandle("shared-drive-folder");
-			const fh = await dir.getFileHandle("vine-helper-sync.json", { create: true });
+			const fh = await dir.getFileHandle("vinetools-sync.json", { create: true });
 			const w = await fh.createWritable();
 			await w.write(JSON.stringify(obj));
 			await w.close();

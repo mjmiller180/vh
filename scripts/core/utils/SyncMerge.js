@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /**
  * Pure merge logic for the folder sync (no chrome.* / DOM access, so it can be unit tested in Node).
  *
@@ -267,7 +271,7 @@ export function toFile(state, now = Date.now()) {
 /** Validate/normalise a parsed file. Throws on anything that is not a recognisable sync file. */
 export function parseFile(obj) {
 	if (!obj || typeof obj !== "object" || obj.format !== 1) {
-		throw new Error("Not a Vine Helper sync file (unknown format)");
+		throw new Error("Not a VineTools sync file (unknown format)");
 	}
 	return {
 		settings: obj.settings && typeof obj.settings === "object" ? obj.settings : undefined,

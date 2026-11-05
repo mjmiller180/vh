@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 // Shared helpers for the end-to-end tests.
 // Loads the unpacked extension in Chromium, serves a fixture Vine page for
 // https://www.amazon.com/vine/*, blocks every other outbound request and records them all.

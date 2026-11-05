@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /**
  * Posts a webhook message to the user's Discord. Runs in the service worker.
  * The URL is validated here (not only in the page) because this is the trust boundary:

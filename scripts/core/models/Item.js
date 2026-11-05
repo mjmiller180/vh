@@ -1,8 +1,12 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 import { Internationalization } from "../services/Internationalization.js";
 
 /**
  * This class represents a Vine item.
- * It is used as a data packet to send between various internal components of the VineHelper.
+ * It is used as a data packet to send between various internal components of VineTools.
  * The goal is to enforce a standardized item throughout internal communications.
  *
  * Note: Is is not always filled completely depending on the context and the required information.

@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 // Runs the extension against a MOCK of api.vinehelper.ovh so that every call it would make
 // actually fires; prints each action with the identity fields it carries.
 const { launch, openVine, hosts } = require("./lib.cjs");

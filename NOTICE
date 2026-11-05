@@ -22,7 +22,8 @@ and remains under its own.
               upstream Vine Helper incorporated and credits to robartsd as a contribution
               (displayAccountDataEvaluationMetrics() in scripts/bootloader.js). It is
               distributed here as part of Vine Helper, under the Vine Helper licence below.
-              The VineTools repository itself does not publish a licence file.
+              robartsd's repository (named "VineTools", unrelated to this product) does not
+              publish a licence file.
 
 MIT License
 
@@ -87,14 +88,6 @@ SOFTWARE.
    Licence:   Flaticon / Freepik free licence, which requires the attribution above.
 
 ---
-
-4. Acknowledgements
-
-   Vine Helper credits the following people for their contributions to the upstream
-   project: BlindGuardian117, crysallis, FrankyW (https://www.reddit.com/user/FrankyWNL/),
-   Mike (https://github.com/mwillbanks/), Robartsd (https://github.com/robartsd/),
-   SaFireTux, ShaneD (https://github.com/shanedelmore/), Thorvarium
-   (https://github.com/Thorvarium/), wattie.
 
 The above copyright notice and this notice shall be included in all
 copies or substantial portions of the Software.

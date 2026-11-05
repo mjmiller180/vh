@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /**
  * Settings Manager with Dependency Injection
  *
@@ -43,7 +47,7 @@ export class SettingsMgrDI {
 		}
 	}
 
-	// Historical: features used to be gated behind a Patreon tier checked against Vine Helper's server.
+	// Historical: features used to be gated behind a paid tier checked against a remote server.
 	// Every feature that remains in this build works locally, so nothing is gated any more.
 	isPremiumUser() {
 		return true;
@@ -223,7 +227,7 @@ export class SettingsMgrDI {
 			}
 		}
 
-		// Local-only build: drop what only existed to talk to Vine Helper's / Brenda's servers. Keeping the old
+		// Drop what only existed to talk to remote servers. Keeping the old
 		// uuid / fingerprint / customer-id hash around is pointless (and would be copied to other devices).
 		const legacyPaths = [
 			"general.uuid",
@@ -255,7 +259,7 @@ export class SettingsMgrDI {
 	#getDefaultSettings() {
 		this.#defaultSettings = {
 			unavailableTab: {
-				active: false, //Needed Vine Helper's server (order statistics): nothing to show any more
+				active: false, //Needed a remote server (order statistics): nothing to show any more
 			},
 
 			general: {

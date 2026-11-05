@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /** Convert the format "2024-10-03 17:00:45" to
  * a new Date object constructed with "2024-10-04T17:00:45Z"
  * */

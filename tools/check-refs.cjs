@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 // Static check: every file the extension refers to exists.
 //  - ES module imports (static + dynamic), absolute ("/scripts/..") and relative
 //  - Template.loadFile("...") / chrome.runtime.getURL("...") string paths

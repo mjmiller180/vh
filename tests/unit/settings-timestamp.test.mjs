@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 // Review finding C1/I1/I2: settingsModifiedAt must only move on real user edits, so a freshly installed
 // (or merely opened) device never looks "newer" than the shared file; secrets stay device-local.
 import test from "node:test";

@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createFolderSync, SYNC_FILE_NAME } from "../../scripts/background/FolderSyncCore.js";

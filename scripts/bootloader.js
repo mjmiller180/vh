@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /*global chrome*/
 
 import { Logger } from "/scripts/core/utils/Logger.js";
@@ -68,7 +72,7 @@ import { unescapeHTML } from "/scripts/core/utils/StringHelper.js";
 
 var tooltip = new Tooltip();
 
-const ultraviner = env.data.ultraviner; //If Ultravine is detected, Vine Helper will deactivate itself to avoid conflicts.
+const ultraviner = env.data.ultraviner; //If Ultravine is detected, VineTools will deactivate itself to avoid conflicts.
 
 //Constants
 env.data.NOT_DISCARDED_ORDER_SUCCESS = -4;
@@ -79,7 +83,7 @@ env.data.DISCARDED_ORDER_FAILED = 4;
 var toolbarsDrawn = false;
 var productUpdated = false;
 
-const DEBUGGER_TITLE = "Vine Helper - Debugger";
+const DEBUGGER_TITLE = "VineTools - Debugger";
 
 var promotionId = null; //Amazon checkout process
 var checkoutAsin = null; //Amazon checkout process
@@ -98,7 +102,7 @@ function showGridContainer() {
 	const gridContainer = document.querySelector("#vvp-items-grid-container");
 	if (!gridContainer) return;
 
-	// Signal that VineHelper is ready to show content
+	// Signal that VineTools is ready to show content
 	window.vhReadyToShow = true;
 
 	// Add attribute to body to allow CSS to show the containers
@@ -219,7 +223,7 @@ async function init() {
 		note.lifespan = 20;
 		note.content =
 			syncResult.reason === "permission"
-				? "Chrome needs your permission to use the sync folder again. Open Vine Helper's settings, go to the Sync tab and press <strong>Sync now</strong>."
+				? "Chrome needs your permission to use the sync folder again. Open VineTools' settings, go to the Sync tab and press <strong>Sync now</strong>."
 				: "The last sync failed: " + escapeHTML(String(syncResult.error || "unknown error"));
 		Notifications.pushNotification(note);
 	}
@@ -283,13 +287,13 @@ function displayAccountData() {
 	//Add a container to the status table
 	const statusBox = document.getElementById("vvp-current-status-box");
 	if (!statusBox) {
-		console.warn("[VineHelper] vvp-current-status-box element not found on account page");
+		console.warn("[VineTools] vvp-current-status-box element not found on account page");
 		return;
 	}
 
 	statusBox.style.height = "auto";
 	if (!statusBox.children || statusBox.children.length === 0) {
-		console.warn("[VineHelper] vvp-current-status-box has no children");
+		console.warn("[VineTools] vvp-current-status-box has no children");
 		return;
 	}
 
@@ -311,7 +315,7 @@ function displayAccountData() {
 
 	// Create header
 	const header = document.createElement("h4");
-	header.textContent = "Vine Helper extra stats:";
+	header.textContent = "VineTools extra stats:";
 	div.appendChild(header);
 
 	// Create customer ID section
@@ -438,9 +442,7 @@ function displayAccountHideOptOutButton() {
 }
 
 /**
- * Adapted from "Vine Evaluation Metrics" v1.4.1 by robartsd
- * https://github.com/robartsd/VineTools/blob/main/evaluationMetrics.user.js
- * Incorporated into Vine Helper (MIT) as a contribution by robartsd; see NOTICE.
+ * Account page evaluation metrics (third-party notices: see NOTICE).
  */
 function displayAccountDataEvaluationMetrics() {
 	if (!Settings.get("general.projectedAccountStatistics")) {
@@ -1124,7 +1126,7 @@ window.addEventListener("message", async function (event) {
 		let note = new ScreenNotification();
 		note.title = "Infinite spinner fixed!";
 		note.lifespan = 10;
-		note.content = "Vine Helper fixed an item bugged an infinite spinner: " + event.data.text;
+		note.content = "VineTools fixed an item bugged an infinite spinner: " + event.data.text;
 		await Notifications.pushNotification(note);
 	}
 

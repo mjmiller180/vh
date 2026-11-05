@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /*global chrome*/
 
 import { Logger } from "/scripts/core/utils/Logger.js";
@@ -20,7 +24,7 @@ let regex = /^.+?amazon\..+\/vine\/.*ultraviner.*?$/;
 if (!regex.test(window.location.href)) {
 	loadStyleSheets(); //First call to launch the extension.
 } else {
-	console.log("VineHelper detected UltraViner. Disabling VineHelper on this page.");
+	console.log("VineTools detected UltraViner. Disabling VineTools on this page.");
 }
 
 //Loading the settings from the local storage
@@ -62,7 +66,7 @@ async function loadStyleSheets() {
 		);
 	}
 
-	//Load Thorvarium stylesheets
+	//Load theme stylesheets
 	if (Settings.get("thorvarium.mobileios")) loadStyleSheet("scripts/vendor/vine-styling/mobile/ios-with-bugfix.css");
 
 	if (Settings.get("thorvarium.mobileandroid")) loadStyleSheet("scripts/vendor/vine-styling/mobile/mobile.css");
@@ -98,7 +102,7 @@ async function loadStyleSheets() {
 	if (Settings.get("thorvarium.RFYAFAAITabs"))
 		loadStyleSheet("scripts/vendor/vine-styling/desktop/rfy-afa-ai-tabs.css");
 
-	logger.add("PREBOOT: Thorvarium stylesheets injected");
+	logger.add("PREBOOT: theme stylesheets injected");
 
 	if (Settings.isPremiumUser(2) && Settings.get("general.customCSS")) {
 		loadStyleSheetContent(Settings.get("general.customCSS"));
@@ -114,7 +118,7 @@ async function loadStyleSheets() {
 		loadStyleSheet("scripts/vendor/vine-styling/desktop/" + emojiList + ".css");
 	}
 
-	logger.add("PREBOOT: Thorvarium country-specific stylesheets injected");
+	logger.add("PREBOOT: country-specific theme stylesheets injected");
 }
 
 //#################################################3

@@ -1,6 +1,17 @@
+<!-- Last compiled at 2026-11-04_2317 -->
+<!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
+<!-- https://toolsmyths.com -->
+<!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
+
 # Changelog
 
-## [Local-only build] - 2026-11
+## [VineTools 4.5] - 2026-11
+
+### Renamed
+- The extension is now **VineTools**, a separate extension. User-visible names, the sync file (`vinetools-sync.json`) and the
+  docs were renamed; internal identifiers (CSS classes, storage keys, file names) are unchanged so saved data keeps working.
+- Attributions that no licence requires were removed (About tab, source comments); the required notices are in `NOTICE`.
+- Every source file carries the project copyright header (`npm run stamp`, checked by `npm run check`).
 
 ### Removed
 - All communication with api.vinehelper.ovh (HTTPS + WebSocket), api.llamastories.com (Brenda) and PayPal.
@@ -23,7 +34,7 @@
 
 ## Earlier notes (analysis phase)
 
-All notable changes to the Vine Helper 3.8.7 extension will be documented in this file.
+Notes from the analysis phase, kept for history.
 
 ## [Initial State] - 2026-01-24
 

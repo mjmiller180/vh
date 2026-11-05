@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 // Guard: this build must not talk to anything except Amazon (and the user's own Discord webhook).
 // Fails (exit 1) when:
 //  - a source file contains a URL to a host outside the allow-list
@@ -57,6 +61,8 @@ for (const f of walk(ROOT)) {
 	let scan = src;
 	if (isHtml) scan = src.replace(/<a\b[^>]*>/gi, (m) => m.replace(/https?:\/\//g, "link://")); // click-only links
 	if (ext === ".js") scan = scan.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, ""); // comments
+	if (isHtml) scan = scan.replace(/<!--[\s\S]*?-->/g, ""); // comments (the copyright header carries a URL)
+	if (ext === ".css") scan = scan.replace(/\/\*[\s\S]*?\*\//g, "");
 	for (const m of scan.matchAll(/(https?|wss?):\/\/([A-Za-z0-9*._${}-]+)/g)) {
 		if (!hostOk(m[2])) problems.push(`${r}: URL to non-allowed host "${m[2]}"`);
 	}

@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 // Prints every outbound request the extension makes on a Vine page. Use it to confirm
 // nothing besides Amazon (and the user's own webhook) is contacted.
 const { launch, openVine, hosts } = require("./lib.cjs");
