@@ -44,24 +44,41 @@ const SENT_KEY = "discordSent";
 const DEDUPE_DAYS = 14;
 const QUEUE_ABBR = { potluck: "RFY", last_chance: "AFA", encore: "AI", all_items: "ALL" };
 
-let sentPromise = null; // resolves to {key: ts}. The PROMISE is cached so that tiles processed
-// concurrently all share one object (caching the value lost entries when several tiles raced).
-let sentCache = null;
-let sentSaveTimer = null;
-
-function loadSent() {
-	if (sentPromise === null) {
-		sentPromise = chrome.storage.local.get(SENT_KEY).then((data) => {
-			sentCache = pruneSent(data[SENT_KEY], Date.now(), DEDUPE_DAYS * 24 * 3600 * 1000);
-			return sentCache;
-		});
-	}
-	return sentPromise;
+// "Already sent" memory: {key: ts} in chrome.storage.local, shared by every tab.
+// Every read-modify-write happens under a Web Lock, so two tabs (or two tiles) can never both claim the same
+// item, and a failed send can be rolled back in storage (not just in memory).
+function withSentLock(fn) {
+	if (typeof navigator !== "undefined" && navigator.locks) return navigator.locks.request("vh-discord-sent", fn);
+	return fn();
 }
 
-function saveSentSoon() {
-	clearTimeout(sentSaveTimer);
-	sentSaveTimer = setTimeout(() => chrome.storage.local.set({ [SENT_KEY]: sentCache }), 500);
+/** Atomically mark `keys` as sent. Returns the subset that was NOT already marked (the ones we now own). */
+function claimSent(keys) {
+	return withSentLock(async () => {
+		const data = await chrome.storage.local.get(SENT_KEY);
+		const sent = pruneSent(data[SENT_KEY], Date.now(), DEDUPE_DAYS * 24 * 3600 * 1000);
+		const claimed = keys.filter((k) => !sent[k]);
+		if (claimed.length === 0) return [];
+		for (const k of claimed) sent[k] = Date.now();
+		await chrome.storage.local.set({ [SENT_KEY]: sent });
+		return claimed;
+	});
+}
+
+/** Undo a claim (the message could not be delivered) so the next page load tries again. */
+function releaseSent(keys) {
+	return withSentLock(async () => {
+		const data = await chrome.storage.local.get(SENT_KEY);
+		const sent = data[SENT_KEY] || {};
+		let changed = false;
+		for (const k of keys) {
+			if (sent[k] !== undefined) {
+				delete sent[k];
+				changed = true;
+			}
+		}
+		if (changed) await chrome.storage.local.set({ [SENT_KEY]: sent });
+	});
 }
 
 function toast(title, content, lifespan = 8) {
@@ -173,13 +190,11 @@ class DiscordWebhook {
 
 			if (await tile.isHidden()) return; // hidden through the hidden list
 
-			const sent = await loadSent();
-			const pending = wanted.filter(([type]) => !sent[dedupeKey(type, asin)]);
+			// Claim first (atomic, persisted): avoids double sends across tiles, tabs and quick navigations.
+			const keys = wanted.map(([type]) => dedupeKey(type, asin));
+			const claimed = new Set(await claimSent(keys));
+			const pending = wanted.filter(([type]) => claimed.has(dedupeKey(type, asin)));
 			if (pending.length === 0) return;
-
-			// Remember all of them first (avoids double sends while requests are in flight).
-			for (const [type] of pending) sent[dedupeKey(type, asin)] = Date.now();
-			saveSentSoon();
 
 			// An item that triggers several rules for the same webhook URL is sent once,
 			// using the highest-priority rule (keyword > zero ETV > RFY > AFA).
@@ -187,14 +202,17 @@ class DiscordWebhook {
 			pending.sort((a, b) => priority.indexOf(a[0]) - priority.indexOf(b[0]));
 			const seenUrls = new Set();
 			const item = itemFromTile(tile);
-			if (!item) return;
+			if (!item) {
+				await releaseSent([...claimed]);
+				return;
+			}
 			for (const [type, extra] of pending) {
 				const url = urlFor(type);
 				if (seenUrls.has(url)) continue;
 				seenUrls.add(url);
 				const res = await send(type, tile, item, extra);
 				if (!res.ok) {
-					for (const [t] of pending) delete sent[dedupeKey(t, asin)]; // allow a retry on the next page load
+					await releaseSent([...claimed]); // allow a retry on the next page load
 					logger.add(`DISCORD: ${type} webhook failed for ${asin}: ${res.error}`);
 					break;
 				}

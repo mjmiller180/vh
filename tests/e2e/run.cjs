@@ -17,16 +17,26 @@ async function test(name, fn) {
 
 (async () => {
 	const discordPosts = [];
+	let discordStatus = 204; // set to 500 to simulate Discord failing
 	const { ctx, log, extId, sw } = await launch({
 		extraRoutes: async (route, url) => {
 			if (url.startsWith("https://discord.com/api/webhooks/")) {
-				discordPosts.push({ url, body: route.request().postData(), method: route.request().method() });
-				await route.fulfill({ status: 204, body: "" });
+				discordPosts.push({ url, body: route.request().postData(), method: route.request().method(), status: discordStatus });
+				await route.fulfill({ status: discordStatus, body: "" });
 				return true;
 			}
 			return false;
 		},
 	});
+	const waitFor = async (fn, ms = 15000, step = 200) => {
+		const t0 = Date.now();
+		for (;;) {
+			const v = await fn();
+			if (v) return v;
+			if (Date.now() - t0 > ms) throw new Error("timed out waiting for condition: " + fn.toString().slice(0, 120));
+			await new Promise((r) => setTimeout(r, step));
+		}
+	};
 	assert.ok(sw && extId, "service worker did not start");
 	const setSettings = (patch) =>
 		sw.evaluate(async (patch) => {
@@ -162,6 +172,41 @@ async function test(name, fn) {
 	});
 
 	// ------------------------------------------------------------------------------------------
+	console.log("\nReview findings: Discord de-duplication across tabs and failures");
+	await test("two tabs loading at the same time send each item exactly once", async () => {
+		await sw.evaluate(() => chrome.storage.local.remove("discordSent"));
+		await setSettings({ "discord.webhook.zeroETV.active": false, "discord.webhook.manual.active": false, "discord.webhook.KWsMatch.active": false, "discord.webhook.RFY.active": true, "discord.webhook.RFY.content": '{"content": "RFY $TITLE"}' });
+		const before = discordPosts.length;
+		const [a, b] = await Promise.all([openVine(ctx, log), openVine(ctx, log)]);
+		await waitFor(() => discordPosts.length - before >= 4);
+		await a.waitForTimeout(4000);
+		const msgs = discordPosts.slice(before).map((p) => JSON.parse(p.body).content).sort();
+		assert.equal(msgs.length, 4, "messages: " + JSON.stringify(msgs));
+		assert.equal(new Set(msgs).size, 4);
+		await a.close(); await b.close();
+	});
+
+	await test("a failed send is retried on the next page load (and not marked as sent)", async () => {
+		await sw.evaluate(() => chrome.storage.local.remove("discordSent"));
+		const before = discordPosts.length;
+		discordStatus = 500;
+		await page.reload();
+		await waitFor(() => discordPosts.length - before >= 4); // all four attempts (the sender spaces them 0.7s apart)
+		await page.waitForTimeout(1500); // ...and their roll-backs
+		const sentAfterFailure = (await storageGet(["discordSent"])).discordSent || {};
+		assert.deepEqual(Object.keys(sentAfterFailure), [], "failures must be rolled back in storage: " + JSON.stringify(sentAfterFailure));
+		discordStatus = 204;
+		const mid = discordPosts.length;
+		await page.reload();
+		await waitFor(() => discordPosts.length - mid >= 4);
+	});
+
+	await test("default messages cannot ping @everyone", async () => {
+		const last = JSON.parse(discordPosts[discordPosts.length - 1].body);
+		assert.deepEqual(last.allowed_mentions, { parse: [] });
+	});
+
+	// ------------------------------------------------------------------------------------------
 	console.log("\nBlur keywords (re-implemented for the normal page)");
 	await test("a blur keyword blurs the matching item only", async () => {
 		await setSettings({ "general.blurKeywords": ["dinosaur"] });
@@ -259,11 +304,112 @@ async function test(name, fn) {
 		assert.ok(st.lastSync > 0);
 	});
 
-	await test("the Vine page pulls from the folder on load (before building its lists)", async () => {
+	await test("the Vine page pulls the folder into storage on load", async () => {
 		await page.reload();
 		await page.waitForSelector("#vh-status[data-status='productsUpdated']", { state: "attached" });
 		const s = await storageGet(["hiddenItems"]);
 		assert.ok(s.hiddenItems.FROM_OTHER_PC);
+	});
+
+	// ------------------------------------------------------------------------------------------
+	console.log("\nReview findings: sync data safety");
+	const readSyncFile = () =>
+		sp.evaluate(async () => {
+			const root = await navigator.storage.getDirectory();
+			const dir = await root.getDirectoryHandle("shared-drive-folder");
+			const fh = await dir.getFileHandle("vine-helper-sync.json");
+			return JSON.parse(await (await fh.getFile()).text());
+		});
+	const writeSyncFile = (obj) =>
+		sp.evaluate(async (obj) => {
+			const root = await navigator.storage.getDirectory();
+			const dir = await root.getDirectoryHandle("shared-drive-folder");
+			const fh = await dir.getFileHandle("vine-helper-sync.json", { create: true });
+			const w = await fh.createWritable();
+			await w.write(JSON.stringify(obj));
+			await w.close();
+		}, obj);
+	const syncNowMsg = () => sp.evaluate(() => new Promise((r) => chrome.runtime.sendMessage({ type: "folderSync", reason: "manual" }, r)));
+	const hiddenAsins = () => page.evaluate(() => [...document.querySelectorAll("#tab-hidden .vvp-item-tile input[data-asin]")].map((i) => i.dataset.asin).sort());
+
+	await test("C3: a hide pulled from the folder shows up on the FIRST page load (lists reloaded after the pull)", async () => {
+		const f = await readSyncFile();
+		f.hiddenItems = { ...f.hiddenItems, B0TEST0002: Date.now() - 1000 };
+		await writeSyncFile(f);
+		await page.reload();
+		await page.waitForSelector("#vh-status[data-status='productsUpdated']", { state: "attached" });
+		await waitFor(async () => (await hiddenAsins()).includes("B0TEST0002"), 8000);
+	});
+
+	await test("C2: bulk 'Show all' sticks - the next sync does not re-hide the items", async () => {
+		await page.locator(".vh-showall").first().evaluate((el) => el.click());
+		await waitFor(async () => (await hiddenAsins()).length === 0, 8000);
+		await page.waitForTimeout(800);
+		const st = await storageGet(["hiddenItems", "syncTombstones"]);
+		assert.deepEqual(Object.keys(st.hiddenItems || {}).filter((k) => k.startsWith("B0TEST")), []);
+		assert.ok(st.syncTombstones?.hidden?.B0TEST0002 > 0, "no removal record for the bulk un-hide: " + JSON.stringify(st.syncTombstones));
+		await syncNowMsg();
+		await syncNowMsg();
+		const after = await storageGet(["hiddenItems"]);
+		assert.equal(after.hiddenItems?.B0TEST0002, undefined, "sync resurrected an un-hidden item");
+		assert.equal((await readSyncFile()).hiddenItems.B0TEST0002, undefined);
+	});
+
+	await test("C2/I5: 'Delete all hidden items' is also propagated (file emptied, not restored)", async () => {
+		await sw.evaluate(() => chrome.storage.local.set({ hiddenItems: { DEL_1: Date.now() - 10, DEL_2: Date.now() - 20 } }));
+		await syncNowMsg();
+		assert.ok((await readSyncFile()).hiddenItems.DEL_1);
+		await sp.reload();
+		await sp.waitForSelector("#tabs-index");
+		await sp.locator("#tabs-index li", { hasText: "System" }).click();
+		await sp.locator("#hiddenItemReset").click();
+		await sp.locator("button", { hasText: /^OK$/ }).click();
+		await waitFor(async () => Object.keys((await storageGet(["hiddenItems"])).hiddenItems || {}).length === 0, 5000);
+		await syncNowMsg();
+		await syncNowMsg();
+		const f = await readSyncFile();
+		assert.equal(f.hiddenItems.DEL_1, undefined, "shared file kept the deleted items");
+		assert.equal((await storageGet(["hiddenItems"])).hiddenItems?.DEL_1, undefined, "sync restored the deleted items");
+	});
+
+	await test("C1: a fresh install adopts the shared file's settings instead of overwriting them with defaults", async () => {
+		// simulate a second, brand-new computer: wipe local storage (keeps the folder handle in IndexedDB)
+		const remoteStamp = Date.now() - 3600_000;
+		const remoteSettings = JSON.parse(JSON.stringify((await readSyncFile()).settings));
+		remoteSettings.general = { ...remoteSettings.general, hideKeywords: [{ contains: "REMOTE_KW", without: "", etv_min: "", etv_max: "" }], toolbarBackgroundColor: "#abcdef" };
+		await writeSyncFile({ ...(await readSyncFile()), settings: remoteSettings, settingsModifiedAt: remoteStamp });
+		await sw.evaluate(() => chrome.storage.local.clear());
+		const fresh = await openVine(ctx, log); // first run: creates defaults, versionInfoPopup etc., then syncs on load
+		await fresh.waitForSelector("#vh-status[data-status='productsUpdated']", { state: "attached" });
+		await waitFor(async () => (await storageGet(["settings"])).settings?.general?.toolbarBackgroundColor === "#abcdef", 8000);
+		let st = await storageGet(["settings", "settingsModifiedAt"]);
+		assert.equal(st.settingsModifiedAt, remoteStamp, "timestamp must be the file's, not a first-run bump");
+		assert.equal(st.settings.general.hideKeywords[0].contains, "REMOTE_KW");
+		// opening the settings page and touching nothing must not bump it either
+		const sp2 = await ctx.newPage();
+		await sp2.goto(`chrome-extension://${extId}/page/settings.html`);
+		await sp2.waitForSelector("#tabs-index");
+		await sp2.waitForTimeout(1500);
+		st = await storageGet(["settings", "settingsModifiedAt"]);
+		assert.equal(st.settingsModifiedAt, remoteStamp, "opening the settings page bumped the timestamp");
+		await sp2.close();
+		await syncNowMsg();
+		const file = await readSyncFile();
+		assert.equal(file.settings.general.toolbarBackgroundColor, "#abcdef", "the shared file was overwritten with defaults");
+		assert.equal(file.settingsModifiedAt, remoteStamp);
+		await fresh.close();
+	});
+
+	await test("I1: the shared file never contains the tab encryption keys or legacy identity", async () => {
+		await sw.evaluate(async () => {
+			const { settings } = await chrome.storage.local.get("settings");
+			settings.general.uuid = "legacy-uuid"; settings.general.fingerprint = { id: 1 };
+			settings.crypto = { privateKey: { k: "secret" } };
+			await chrome.storage.local.set({ settings, settingsModifiedAt: Date.now() });
+		});
+		await syncNowMsg();
+		const raw = JSON.stringify(await readSyncFile());
+		for (const bad of ["legacy-uuid", "secret", "\"crypto\"", "fingerprint"]) assert.ok(!raw.includes(bad), "shared file contains " + bad);
 	});
 
 	await ctx.close();

@@ -46,7 +46,6 @@
 			"resources": [
 				"resource/image/*",
 				"resource/css/*",
-				"page/*",
 				"scripts/*"
 			],
 			"matches": [

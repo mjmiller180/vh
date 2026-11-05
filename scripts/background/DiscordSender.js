@@ -3,7 +3,7 @@
  * The URL is validated here (not only in the page) because this is the trust boundary:
  * anything that can message the service worker could otherwise ask it to POST anywhere.
  */
-import { validateWebhookUrl } from "../core/utils/WebhookUtil.js";
+import { validateWebhookUrl, withSafeMentions } from "../core/utils/WebhookUtil.js";
 
 const MIN_SPACING_MS = 700; // Discord allows about 5 requests / 2 seconds per webhook
 const MAX_RETRIES = 3;
@@ -16,7 +16,7 @@ async function post(url, body) {
 	for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
 		let res;
 		try {
-			res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+			res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body, redirect: "error" });
 		} catch (e) {
 			return { ok: false, error: "network error: " + e.message };
 		}
@@ -43,7 +43,7 @@ export function sendWebhook(url, body) {
 		return Promise.resolve({ ok: false, error: "Message body missing or too large" });
 	}
 	try {
-		JSON.parse(body);
+		body = withSafeMentions(body); //also validates that it is JSON
 	} catch (e) {
 		return Promise.resolve({ ok: false, error: "Message body is not valid JSON" });
 	}

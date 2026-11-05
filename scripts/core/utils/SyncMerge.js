@@ -19,8 +19,30 @@
 export const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 export const HIDDEN_TTL_MS = 90 * 24 * 60 * 60 * 1000; // mirrors HiddenListMgr garbage collection
 
-// Settings that describe this device/browser and must never be overwritten by another device.
-export const LOCAL_ONLY_SETTINGS = ["metrics", "general.country", "sync"];
+// Settings that describe this device/browser and must never be shared or overwritten by another device:
+//  - per-device state (usage counter, country, template-cache marker, GC marker, checkout in progress)
+//  - secrets (the tab-to-tab encryption keys) and leftovers of the server era (uuid, fingerprint, ...)
+// Writing one of these never counts as "the user changed their settings" (see SettingsMgrDI).
+export const LOCAL_ONLY_SETTINGS = [
+	"metrics",
+	"sync",
+	"crypto",
+	"checkout",
+	"general.country",
+	"general.versionInfoPopup",
+	"general.deviceName",
+	"general.uuid",
+	"general.uuidError",
+	"general.fingerprint",
+	"general.cid",
+	"general.patreon",
+	"hiddenTab.lastGC",
+];
+
+/** True when `path` (e.g. "crypto.privateKey") is, or lies inside, a device-local setting. */
+export function isLocalOnlySetting(path) {
+	return LOCAL_ONLY_SETTINGS.some((p) => path === p || path.startsWith(p + "."));
+}
 
 const clone = (o) => JSON.parse(JSON.stringify(o ?? null));
 
@@ -62,6 +84,55 @@ export function restoreLocalOnly(incoming, local) {
 	return out;
 }
 
+/**
+ * Best-effort conversion of a stored time value to epoch ms. Numbers, numeric strings and date strings
+ * (older versions stored Date objects, which serialise to ISO strings) are understood; anything else is 0
+ * ("age unknown"). Never NaN: a NaN would make every comparison false and silently drop the user's item.
+ */
+export function toTimestamp(v) {
+	if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+	if (typeof v === "string" && v.trim() !== "") {
+		const n = Number(v);
+		if (Number.isFinite(n)) return n;
+		const d = Date.parse(v);
+		if (Number.isFinite(d)) return d;
+	}
+	return 0;
+}
+
+/**
+ * Read a stored hidden/pinned list in any format it has ever had and return {asin: value}.
+ *  - object {asin: value}                       (current)
+ *  - JSON string of an object or of pairs       (older versions)
+ *  - [[asin, value], ...]                       (Map entries)
+ *  - [{asin, date}] / [{asin, title, ...}]      (oldest format)
+ * Unrecognisable input gives {} (the caller never loses data it could not have understood anyway).
+ * @param {"hidden"|"pinned"} kind
+ */
+export function normaliseListMap(v, kind) {
+	if (!v) return {};
+	if (typeof v === "string") {
+		try {
+			v = JSON.parse(v);
+		} catch (e) {
+			return {};
+		}
+	}
+	if (Array.isArray(v)) {
+		const out = {};
+		for (const e of v) {
+			if (Array.isArray(e) && typeof e[0] === "string") {
+				out[e[0]] = e[1];
+			} else if (e && typeof e === "object" && typeof e.asin === "string") {
+				const { asin, ...rest } = e;
+				out[asin] = kind === "hidden" ? (rest.date ?? rest.ts ?? 0) : rest;
+			}
+		}
+		return out;
+	}
+	return typeof v === "object" ? v : {};
+}
+
 function mergeList(localItems, remoteItems, localRem, remoteRem, getTs, now, ttl) {
 	const items = {};
 	const removed = {};
@@ -88,11 +159,11 @@ function mergeList(localItems, remoteItems, localRem, remoteRem, getTs, now, ttl
 			bestTs = rTs;
 		}
 
-		const remTs = Math.max(localRem?.[asin] ?? -Infinity, remoteRem?.[asin] ?? -Infinity);
+		const remTs = Math.max(localRem?.[asin] !== undefined ? toTimestamp(localRem[asin]) : -Infinity, remoteRem?.[asin] !== undefined ? toTimestamp(remoteRem[asin]) : -Infinity);
 
 		if (best !== undefined && bestTs > remTs) {
 			// Items past the TTL are dropped (same rule as the hidden list garbage collection).
-			if (ttl && now - bestTs > ttl) continue;
+			if (ttl && bestTs > 0 && now - bestTs > ttl) continue; //(age unknown = keep)
 			items[asin] = best;
 		} else if (remTs !== -Infinity && now - remTs <= TOMBSTONE_TTL_MS) {
 			removed[asin] = remTs;
@@ -116,7 +187,7 @@ export function mergeState(local, remote, now = Date.now()) {
 		remote.hiddenItems,
 		local.tombstones?.hidden,
 		remote.tombstones?.hidden,
-		(ts) => Number(ts),
+		(ts) => toTimestamp(ts),
 		now,
 		HIDDEN_TTL_MS
 	);
@@ -125,7 +196,7 @@ export function mergeState(local, remote, now = Date.now()) {
 		remote.pinnedItems,
 		local.tombstones?.pinned,
 		remote.tombstones?.pinned,
-		(obj) => Number(obj?.date_added ?? 0),
+		(obj) => toTimestamp(obj?.date_added),
 		now,
 		0
 	);

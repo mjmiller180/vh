@@ -6,20 +6,43 @@ const i13n = new Internationalization();
 
 import { validateWebhookUrl } from "/scripts/core/utils/WebhookUtil.js";
 import { pickFolder, requestFolderPermission } from "/scripts/background/FolderSync.js";
+import { recordListChange, requestSync } from "/scripts/core/services/SyncState.js";
+import { normaliseListMap, restoreLocalOnly } from "/scripts/core/utils/SyncMerge.js";
+
+/**
+ * Replace a stored hidden/pinned list from the settings page (import / delete-all) the way the folder sync
+ * expects: what disappeared gets a removal record, what appeared loses any older one. Without this the
+ * next sync would quietly restore the old list from the shared file.
+ */
+async function replaceStoredList(kind, storageKey, incoming) {
+	const prev = Object.keys(normaliseListMap((await chrome.storage.local.get(storageKey))[storageKey], kind));
+	const next = normaliseListMap(incoming, kind);
+	const nextKeys = Object.keys(next);
+	const nextSet = new Set(nextKeys);
+	await recordListChange(
+		kind,
+		prev.filter((a) => !nextSet.has(a)),
+		nextKeys
+	);
+	await chrome.storage.local.set({ [storageKey]: next });
+	requestSync(0);
+}
 
 import { compileKeywordObjects } from "/scripts/core/utils/KeywordCompiler.js";
 
 import { isSafari } from "/scripts/core/utils/BrowserDetection.js";
 
-//If "refreshSettings" is received, reload the settings
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+//If "refreshSettings" is received, reload the settings and redraw.
+//NOT an async function and never answers: an async listener returns a Promise, which Chromium treats as an
+//immediate reply of `undefined`, stealing the answer meant for the service worker (e.g. the folder sync's
+//result) whenever a settings tab or the toolbar popup happens to be open.
+chrome.runtime.onMessage.addListener((request) => {
 	if (request.type == "refreshSettings") {
-		await Settings.refresh();
-		if (sendResponse) {
-			sendResponse({ success: true });
-		}
-		await initiateSettings(false); //Redraw the settings page
+		Settings.refresh()
+			.then(() => initiateSettings(false)) //Redraw the settings page
+			.catch((e) => console.error("[Settings] refresh failed", e));
 	}
+	return false;
 });
 function drawDiscord() {
 	//Show or hide the discord options
@@ -76,24 +99,7 @@ async function initiateSettings(firstRun = false) {
 				elements.forEach((element) => {
 					// Skip the checkbox itself in the legend
 					if (element !== checkbox) {
-						// Check if element or its parent has a premium-feature class
-						let premiumParent = element.closest(
-							".premium-feature-1, .premium-feature-2, .premium-feature-3"
-						);
-						let shouldDisable = !isChecked;
-
-						if (premiumParent) {
-							// Extract tier number from the class (e.g., "premium-feature-2" -> 2)
-							const tierMatch = premiumParent.className.match(/premium-feature-([123])/);
-							if (tierMatch) {
-								const tier = parseInt(tierMatch[1], 10);
-								// If user doesn't have access to this tier, keep it disabled
-								if (!Settings.isPremiumUser(tier)) {
-									shouldDisable = true;
-								}
-							}
-						}
-
+						const shouldDisable = !isChecked;
 						element.disabled = shouldDisable;
 					}
 				});
@@ -175,7 +181,7 @@ async function initiateSettings(firstRun = false) {
 	document.getElementById("factoryReset")?.addEventListener("click", async function () {
 		if (
 			await confirmPrompt(
-				"Reset all Vine Helper settings & local storage to default?\n\nThis deletes your settings, hidden items and pinned items on this computer. If folder sync is on, the next sync would bring them back from the shared file."
+				"Reset all Vine Helper settings & local storage to default?\n\nThis deletes your settings, hidden items and pinned items on this computer.\n\nIf folder sync is set up, the next sync will bring your settings and lists BACK from the shared file (this computer is treated as a fresh install). To really start over, press 'Stop syncing' on the Sync tab first."
 			)
 		) {
 			await chrome.storage.local.clear();
@@ -185,9 +191,13 @@ async function initiateSettings(firstRun = false) {
 		}
 	});
 	document.getElementById("hiddenItemReset")?.addEventListener("click", async function () {
-		if (await confirmPrompt("Delete all locally stored hidden items from Vine Helper?")) {
-			chrome.storage.local.set({ hiddenItems: {} });
-			alert("Hidden items in local storage emptied.");
+		if (
+			await confirmPrompt(
+				"Delete ALL hidden items?\n\nIf folder sync is set up, they are removed from the shared file and from your other computers too."
+			)
+		) {
+			await replaceStoredList("hidden", "hiddenItems", {});
+			alert("Hidden items emptied.");
 		}
 	});
 
@@ -344,7 +354,13 @@ async function initiateSettings(firstRun = false) {
 					if (!json.settings) {
 						throw new Error("Format Invalid");
 					}
-					await chrome.storage.local.set({ settings: json.settings });
+					const current = (await chrome.storage.local.get("settings")).settings;
+					await chrome.storage.local.set({
+						settings: restoreLocalOnly(json.settings, current), //keep this device's keys/country/counters
+						settingsModifiedAt: Date.now(), //an import is a real edit: it must win the next sync
+					});
+					chrome.runtime.sendMessage({ type: "refreshSettings" }, () => void chrome.runtime.lastError);
+					requestSync(0);
 					return true; //Hide the popup
 				} catch (err) {
 					alert("JSON data incomplete or invalid.");
@@ -381,7 +397,7 @@ async function initiateSettings(firstRun = false) {
 					if (!json.hiddenItems) {
 						throw new Error("Format Invalid");
 					}
-					await chrome.storage.local.set({ hiddenItems: json.hiddenItems });
+					await replaceStoredList("hidden", "hiddenItems", json.hiddenItems);
 					return true; //Hide the popup
 				} catch (err) {
 					alert("JSON data incomplete or invalid.");
@@ -415,7 +431,7 @@ async function initiateSettings(firstRun = false) {
 					if (!json.pinnedItems) {
 						throw new Error("Format Invalid");
 					}
-					await chrome.storage.local.set({ pinnedItems: json.pinnedItems });
+					await replaceStoredList("pinned", "pinnedItems", json.pinnedItems);
 					return true; //Hide the popup
 				} catch (err) {
 					alert("JSON data incomplete or invalid.");
@@ -1118,6 +1134,17 @@ function initSyncTab() {
 		if (res.reason === "not-configured") return "Choose a folder first.";
 		if (res.reason === "permission") return "Chrome needs your permission to use the folder again.";
 		return "Sync failed: " + (res.error || res.reason);
+	}
+
+	if (typeof window.popupView !== "undefined") {
+		// The toolbar popup closes as soon as a native dialog (folder picker / permission prompt) takes focus,
+		// so those actions only work in the full settings page.
+		$("syncChooseFolder").textContent = "Open full settings to choose / sync...";
+		$("syncChooseFolder").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("page/settings.html") });
+		$("syncNowButton").style.display = "none";
+		$("syncForgetFolder").style.display = "none";
+		refresh();
+		return;
 	}
 
 	$("syncChooseFolder").onclick = async () => {

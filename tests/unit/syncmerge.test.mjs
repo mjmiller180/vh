@@ -91,3 +91,43 @@ test("old tombstones are pruned", () => {
 	const m = mergeState(a, S(), NOW);
 	assert.deepEqual(m.state.tombstones.hidden, {});
 });
+
+// ---- review finding I4: odd timestamps / legacy shapes must never make the merge drop a user's items
+import { normaliseListMap, toTimestamp } from "../../scripts/core/utils/SyncMerge.js";
+
+test("toTimestamp: numbers, numeric strings, ISO dates; unknown -> 0 (never NaN)", () => {
+	assert.equal(toTimestamp(123), 123);
+	assert.equal(toTimestamp("456"), 456);
+	assert.equal(toTimestamp("2026-01-02T00:00:00Z"), Date.parse("2026-01-02T00:00:00Z"));
+	for (const bad of [null, undefined, {}, [], "garbage", NaN, Infinity]) assert.equal(toTimestamp(bad), 0, String(bad));
+});
+
+test("hidden items with ISO-string / junk timestamps survive a merge instead of being dropped", () => {
+	const local = S({ hiddenItems: { A: new Date(NOW - D).toISOString(), B: {}, C: null, D: NOW - 2 * D } });
+	const m = mergeState(local, S(), NOW);
+	assert.deepEqual(Object.keys(m.state.hiddenItems).sort(), ["A", "B", "C", "D"]);
+	// the original values are kept untouched (we never rewrite the user's data format)
+	assert.equal(m.state.hiddenItems.A, local.hiddenItems.A);
+});
+
+test("a pinned item with a string date_added survives; an un-pin newer than it still wins", () => {
+	const local = S({ pinnedItems: { P1: { date_added: new Date(NOW - 3 * D).toISOString(), title: "x" }, P2: { title: "no date" } } });
+	const m = mergeState(local, S({ tombstones: { hidden: {}, pinned: { P1: NOW - D } } }), NOW);
+	assert.deepEqual(Object.keys(m.state.pinnedItems), ["P2"]);
+});
+
+test("items of unknown age are kept (not expired by the 90 day rule) unless explicitly removed", () => {
+	const m = mergeState(S({ hiddenItems: { X: "???" } }), S(), NOW);
+	assert.deepEqual(Object.keys(m.state.hiddenItems), ["X"]);
+	const m2 = mergeState(S({ hiddenItems: { X: "???" } }), S({ tombstones: { hidden: { X: NOW - D }, pinned: {} } }), NOW);
+	assert.deepEqual(m2.state.hiddenItems, {});
+});
+
+test("normaliseListMap understands object, JSON string, [[asin,value]] pairs and legacy [{asin,...}] arrays", () => {
+	assert.deepEqual(normaliseListMap({ A: 1 }, "hidden"), { A: 1 });
+	assert.deepEqual(normaliseListMap(JSON.stringify({ A: 1 }), "hidden"), { A: 1 });
+	assert.deepEqual(normaliseListMap([["A", 5], ["B", 6]], "hidden"), { A: 5, B: 6 });
+	assert.deepEqual(normaliseListMap([{ asin: "A", date: "2024-01-01" }], "hidden"), { A: "2024-01-01" });
+	assert.deepEqual(normaliseListMap([{ asin: "P", title: "t", thumbnail: "u" }], "pinned"), { P: { title: "t", thumbnail: "u" } });
+	for (const junk of [null, undefined, "not json", 42, true]) assert.deepEqual(normaliseListMap(junk, "hidden"), {});
+});

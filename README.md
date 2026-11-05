@@ -52,8 +52,23 @@ computer pointing at the same folder merges with it:
 * a sync runs when a Vine page opens, shortly after you hide / pin / change a setting, and on **Sync now**;
 * a sync file that can't be parsed is never overwritten.
 
-Chrome may ask you to allow folder access again after a restart; if the Sync tab says "needs permission", press
-**Sync now** once (that click is what lets Chrome show its prompt).
+Things worth knowing:
+
+* **The file is plain JSON in your Drive and includes your Discord webhook URLs**, so treat the folder like a
+  password store. The tab-to-tab encryption keys and per-computer values (country, usage counter, leftovers of the
+  old server accounts) are never written to it.
+* **A brand-new computer adopts the file's settings**; it never overwrites them with defaults. Only real edits you
+  make on a computer count as "newest" (opening the settings page does not).
+* **"Last edit wins" depends on each computer's clock being roughly right.** A clock that is far ahead will win
+  settings conflicts.
+* **Choose the folder from the full settings page** (not the toolbar popup: it closes when Chrome's folder dialog
+  opens). Chrome may ask you to allow access again after a restart; a "Folder sync needs attention" message then
+  appears on Vine pages. Open Settings -> Sync and press **Sync now** once.
+* "Delete all hidden items", importing a list, and **Show all** are treated as real un-hides, so they propagate to
+  your other computers instead of being quietly undone by the next sync.
+* **Factory reset** makes the computer look like a fresh install, so the next sync brings your settings and lists
+  back from the folder. Press "Stop syncing" first if you really want to start over.
+* A sync file that cannot be read is never overwritten.
 
 ## Checks
 
@@ -67,3 +82,8 @@ npm test           # all of the above
 `tools/check-no-external.cjs` fails if any file mentions another host, uses a network call outside the three
 approved files, or the manifest asks for more hosts / permissions. `NETWORK_AUDIT.md` documents what the original
 3.8.7 sent and to whom. Old notes are in `docs/old-notes/`.
+
+## Licence and credits
+
+`LICENSE` covers the project code; everything derived from or bundled with other people's work (Vine Helper itself,
+vine-styling, icons, ...) and its licence is listed in `NOTICE`.

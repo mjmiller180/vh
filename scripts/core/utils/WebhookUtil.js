@@ -4,7 +4,7 @@
 
 // Only Discord webhooks are allowed. This is also what the manifest CSP / host permissions allow,
 // so the extension has no way to talk to any other non-Amazon host.
-const DISCORD_HOSTS = ["discord.com", "discordapp.com"];
+const DISCORD_HOSTS = ["discord.com", "discordapp.com", "ptb.discord.com", "canary.discord.com"];
 
 export const DEFAULT_TEMPLATE = `{
 "content": "New item in $QUEUE_NAME!",
@@ -37,7 +37,7 @@ export function validateWebhookUrl(url) {
 	if (u.protocol !== "https:") return { ok: false, reason: "must be https" };
 	if (u.username || u.password) return { ok: false, reason: "no credentials allowed in the URL" };
 	const host = u.hostname.toLowerCase();
-	const hostOk = DISCORD_HOSTS.some((h) => host === h || host.endsWith("." + h));
+	const hostOk = DISCORD_HOSTS.includes(host); //exact names only: no other subdomains
 	if (!hostOk) return { ok: false, reason: "only discord.com webhooks are supported" };
 	if (!/^\/api(\/v\d+)?\/webhooks\/\d+\/[\w-]+\/?$/.test(u.pathname)) {
 		return { ok: false, reason: "not a Discord webhook URL (/api/webhooks/<id>/<token>)" };
@@ -81,4 +81,19 @@ export function pruneSent(sent, now, maxAgeMs) {
 		if (now - ts <= maxAgeMs) out[k] = ts;
 	}
 	return out;
+}
+
+/**
+ * Product titles come from sellers: a title containing @everyone would ping the whole channel. Unless the
+ * user's template says otherwise, tell Discord not to parse any mentions.
+ * @param {string} body valid JSON
+ * @returns {string} JSON
+ */
+export function withSafeMentions(body) {
+	const obj = JSON.parse(body);
+	if (obj && typeof obj === "object" && !Array.isArray(obj) && !("allowed_mentions" in obj)) {
+		obj.allowed_mentions = { parse: [] };
+		return JSON.stringify(obj);
+	}
+	return body;
 }

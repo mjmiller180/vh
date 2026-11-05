@@ -45,7 +45,9 @@ async function sendMessageToAllTabs(data) {
 //#####################################################
 
 const folderSync = createBrowserFolderSync(({ settings }) => {
-	// Tell the open Vine tabs that storage changed underneath them.
+	// Storage changed underneath us: refresh this worker's copy too (otherwise a later "add keyword"
+	// from the context menu would write the stale settings back) and tell the open Vine tabs.
+	if (Settings && Settings.refresh) Settings.refresh().catch(() => {});
 	sendMessageToAllTabs({ type: "refreshSettings" });
 });
 

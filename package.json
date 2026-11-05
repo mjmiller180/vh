@@ -4,7 +4,7 @@
 	"description": "Local-only build of Vine Helper 3.8.7: no servers, own Discord webhook, Drive-folder sync.",
 	"scripts": {
 		"check": "node tools/check-refs.cjs && node tools/check-no-external.cjs",
-		"test:unit": "node --test tests/unit/syncmerge.test.mjs tests/unit/webhook.test.mjs tests/unit/foldersync.test.mjs",
+		"test:unit": "node --test tests/unit/syncmerge.test.mjs tests/unit/webhook.test.mjs tests/unit/foldersync.test.mjs tests/unit/settings-timestamp.test.mjs",
 		"test:e2e": "node tests/e2e/run.cjs",
 		"test": "npm run check && npm run test:unit && npm run test:e2e"
 	}

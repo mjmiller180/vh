@@ -122,3 +122,47 @@ test("concurrent syncNow calls are serialised", async () => {
 	const rs = await Promise.all([A.sync.syncNow(), A.sync.syncNow(), A.sync.syncNow()]);
 	assert.ok(rs.every((r) => r.ok));
 });
+
+// ---- review finding I3: a local change made while the sync is reading the file must not be overwritten
+test("a hide made while the sync is reading the shared file is not lost (sync re-merges)", async () => {
+	const dir = new FakeDir(); const clock = { t: T0 };
+	const A = device(dir, base({ hiddenItems: { H1: T0 - 5000 } }), clock);
+	await A.sync.syncNow(); // file now exists
+	// B pushes something so that A has real work to do
+	const B = device(dir, base({ hiddenItems: { FROM_B: T0 - 1000 } }), clock);
+	await B.sync.syncNow();
+	// While A reads the file, the user hides another item in a tab
+	const realGetHandle = dir.getFileHandle.bind(dir);
+	let injected = false;
+	dir.getFileHandle = async (n, o) => {
+		const fh = await realGetHandle(n, o);
+		if (!injected && n === SYNC_FILE_NAME) {
+			injected = true;
+			A.storage.m.hiddenItems = { ...A.storage.m.hiddenItems, HIDDEN_DURING_SYNC: T0 - 10 };
+		}
+		return fh;
+	};
+	clock.t = T0 + 1000;
+	const r = await A.sync.syncNow();
+	assert.equal(r.ok, true, JSON.stringify(r));
+	assert.ok(A.storage.m.hiddenItems.HIDDEN_DURING_SYNC, "local hide was overwritten");
+	assert.ok(A.storage.m.hiddenItems.FROM_B, "remote item was not pulled");
+	assert.ok(JSON.parse(dir.files.get(SYNC_FILE_NAME)).hiddenItems.HIDDEN_DURING_SYNC, "hide was not pushed");
+});
+
+test("sync only rewrites the local keys that actually changed", async () => {
+	const dir = new FakeDir(); const clock = { t: T0 };
+	const A = device(dir, base({ hiddenItems: { H1: T0 - 5000 }, pinnedItems: { P: { date_added: T0 - 9, title: "p" } } }), clock);
+	await A.sync.syncNow();
+	const B = device(dir, base({ hiddenItems: { FROM_B: T0 - 1000 } }), clock);
+	await B.sync.syncNow();
+	const writes = [];
+	const realSet = A.storage.set;
+	A.storage.set = async (o) => { writes.push(Object.keys(o)); return realSet(o); };
+	clock.t += 5000;
+	await A.sync.syncNow();
+	const written = writes.flat();
+	assert.ok(written.includes("hiddenItems"));
+	assert.ok(!written.includes("pinnedItems"), "untouched list must not be rewritten: " + JSON.stringify(written));
+	assert.ok(!written.includes("settings"));
+});

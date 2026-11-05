@@ -209,8 +209,20 @@ async function init() {
 	}
 	//Pull the latest hidden/pinned lists + settings from the shared folder, if one is configured.
 	//(The service worker answers immediately when no folder is set up.)
-	await syncNow("load");
+	const syncResult = await syncNow("load");
 	await Settings.refresh();
+	//The list managers loaded their data when this page started, i.e. BEFORE the pull above: reload them.
+	await Promise.all([HiddenList.loadFromLocalStorage(), PinnedList.loadFromLocalStorage()]);
+	if (syncResult && (syncResult.reason === "permission" || syncResult.reason === "error")) {
+		const note = new ScreenNotification();
+		note.title = "Folder sync needs attention";
+		note.lifespan = 20;
+		note.content =
+			syncResult.reason === "permission"
+				? "Chrome needs your permission to use the sync folder again. Open Vine Helper's settings, go to the Sync tab and press <strong>Sync now</strong>."
+				: "The last sync failed: " + escapeHTML(String(syncResult.error || "unknown error"));
+		Notifications.pushNotification(note);
+	}
 	await initCreateTabs(); //Create the 4 grids/tabs
 	logger.add("BOOT: Waiting for environment to load");
 	await env.waitForLoad(); // Ensure environment is loaded before creating toolbars
@@ -1029,7 +1041,7 @@ window.addEventListener("message", async function (event) {
 	}
 
 	// We only accept messages from ourselves
-	if (event.source != window || event.data.type == undefined) {
+	if (event.source != window || event.data?.type == undefined) {
 		return false;
 	}
 
@@ -1137,7 +1149,7 @@ window.addEventListener("message", async function (event) {
 
 	//If we got back a message after we found an ETV.
 	if (event.data.type == "etv") {
-		//Send the ETV info to the server
+		//Show the revealed ETV on the tile
 		let tileASIN = event.data.data.parent_asin;
 		if (tileASIN === null) {
 			tileASIN = event.data.data.asin;
@@ -1250,15 +1262,16 @@ async function generateCheckoutForm(asin, promotionId, offerListingId) {
 //Message from within the context of the extension
 //Messages sent via: chrome.tabs.sendMessage(tab.id, data);
 //In this case, all messages are coming from the service_worker or notification-monitor files.
-chrome.runtime.onMessage.addListener(async (data, sender, sendResponse) => {
-	processMessage(data, sender, sendResponse);
+chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
+	processMessage(data, sender, sendResponse); //(not async: a returned Promise would be sent as the reply)
+	return false;
 });
 window.addEventListener("message", (event) => {
 	processMessage(event.data);
 });
 
 async function processMessage(data, sender = null, sendResponse = null) {
-	if (data.type == undefined && data.action == undefined) {
+	if (!data || (data.type == undefined && data.action == undefined)) {
 		return false;
 	}
 

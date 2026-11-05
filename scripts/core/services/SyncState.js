@@ -15,19 +15,37 @@ async function readTombstones() {
 	return { hidden: t.hidden || {}, pinned: t.pinned || {} };
 }
 
-/** Remember that `asin` was removed from the `kind` ("hidden" | "pinned") list just now. */
-export async function recordRemoval(kind, asin) {
-	const t = await readTombstones();
-	t[kind][asin] = Date.now();
-	await chrome.storage.local.set({ [REMOVAL_KEY]: t });
+// The tombstone object is read-modify-written; the Web Locks API serialises that across tabs
+// (same origin) so two tabs removing items at once cannot lose each other's record.
+function withLock(fn) {
+	if (typeof navigator !== "undefined" && navigator.locks) return navigator.locks.request("vh-sync-tombstones", fn);
+	return fn();
 }
 
-/** The item was (re-)added: any older removal record is obsolete. */
-export async function clearRemoval(kind, asin) {
-	const t = await readTombstones();
-	if (t[kind][asin] === undefined) return;
-	delete t[kind][asin];
-	await chrome.storage.local.set({ [REMOVAL_KEY]: t });
+/**
+ * Record what the user just did to a list so that other devices can learn about it:
+ * `removed` ASINs get a removal record (un-hide / un-pin), `added` ASINs lose any older removal record.
+ * Only EXPLICIT user actions are passed in here (never garbage collection or quota trimming).
+ * @param {"hidden"|"pinned"} kind
+ */
+export async function recordListChange(kind, removed = [], added = []) {
+	if (removed.length === 0 && added.length === 0) return;
+	await withLock(async () => {
+		const t = await readTombstones();
+		const now = Date.now();
+		let changed = false;
+		for (const asin of removed) {
+			t[kind][asin] = now;
+			changed = true;
+		}
+		for (const asin of added) {
+			if (t[kind][asin] !== undefined) {
+				delete t[kind][asin];
+				changed = true;
+			}
+		}
+		if (changed) await chrome.storage.local.set({ [REMOVAL_KEY]: t });
+	});
 }
 
 /** Ask the service worker to sync with the shared folder soon (no-op if no folder is configured). */

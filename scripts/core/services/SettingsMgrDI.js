@@ -11,6 +11,7 @@
 // Use relative import for better testability
 import { Logger } from "../utils/Logger.js";
 import { requestSync } from "./SyncState.js";
+import { isLocalOnlySetting } from "../utils/SyncMerge.js";
 
 export class SettingsMgrDI {
 	#storageAdapter;
@@ -78,9 +79,20 @@ export class SettingsMgrDI {
 
 	async set(settingPath, value, broadcastChanges = true) {
 		// Don't go through the hassle of updating the value if it did not change
-		if (this.get(settingPath, false) == value) {
+		const stored = this.get(settingPath, false);
+		if (stored == value) {
 			return false;
 		}
+
+		// Only a real user edit moves settingsModifiedAt (the folder sync uses it to decide whose settings
+		// are newer). Device-local values and just writing a default value down do not count.
+		const defaultValue = this.#getFromObject(this.#defaultSettings, settingPath);
+		// ("absent" already means false/empty, so writing false/null/"" to a key that does not exist is the same thing)
+		const isDefaultMaterialisation =
+			stored === undefined &&
+			(JSON.stringify(defaultValue) === JSON.stringify(value) ||
+				(defaultValue === undefined && (value === false || value === null || value === "")));
+		const isUserEdit = !isLocalOnlySetting(settingPath) && !isDefaultMaterialisation;
 
 		const pathArray = settingPath.split(".");
 		const lastKey = pathArray.pop();
@@ -98,17 +110,25 @@ export class SettingsMgrDI {
 		current[lastKey] = value;
 
 		//console.log(`[${performance.now().toFixed(3)}] SettingsMgr: Setting ${settingPath} to ${value}`);
-		await this.#save(broadcastChanges);
+		await this.#save(broadcastChanges, isUserEdit ? Date.now() : undefined);
 
 		return true;
 	}
 
-	async #save(broadcastChanges = true) {
+	/**
+	 * @param {boolean} broadcastChanges
+	 * @param {number|undefined} stamp  value for settingsModifiedAt, written in the SAME storage write as the
+	 *   settings (so a sync can never see new settings with an old timestamp). undefined = leave it alone.
+	 */
+	async #save(broadcastChanges = true, stamp = undefined) {
 		try {
-			await this.#storageAdapter.set("settings", this.#settings);
-			//Lets the folder sync know which side has the newest settings
-			await this.#storageAdapter.set("settingsModifiedAt", Date.now());
-			//console.log(`[${performance.now().toFixed(3)}] SettingsMgr: Settings saved to storage`);
+			const items = { settings: this.#settings };
+			if (stamp !== undefined) items.settingsModifiedAt = stamp;
+			if (typeof this.#storageAdapter.setMultiple === "function") {
+				await this.#storageAdapter.setMultiple(items);
+			} else {
+				for (const [k, v] of Object.entries(items)) await this.#storageAdapter.set(k, v);
+			}
 		} catch (e) {
 			// Enhanced error handling for Safari and other browsers
 			const isQuotaError =
@@ -123,7 +143,7 @@ export class SettingsMgrDI {
 
 				try {
 					await this.#storageAdapter.set("hiddenItems", []);
-					await this.#save();
+					await this.#save(true, stamp);
 				} catch (retryError) {
 					this.#logger.add(`SettingsMgr: Storage quota cleanup failed: ${retryError.message}`);
 					return false;
@@ -136,7 +156,7 @@ export class SettingsMgrDI {
 			}
 		}
 
-		requestSync(); //Folder sync (no-op unless a folder was chosen in the settings)
+		if (stamp !== undefined) requestSync(); //Folder sync (no-op unless a folder was chosen in the settings)
 
 		//Send a message to the service worker to notify all tabs to refresh the settings
 
@@ -179,7 +199,7 @@ export class SettingsMgrDI {
 				console.log("SettingsMgr: Failed to clear storage:", error);
 			}
 			this.#settings = { ...this.#defaultSettings };
-			await this.#save();
+			await this.#save(true, 0); //Pristine: any other device's real settings are newer than this
 		} else {
 			this.#settings = { ...settings };
 		}
@@ -203,10 +223,32 @@ export class SettingsMgrDI {
 			}
 		}
 
-		if (hasCompiledKeywords) {
-			this.#logger.add("SettingsMgr: Removed legacy compiled keywords from storage");
-			console.log("SettingsMgr: Removed legacy compiled keywords from storage");
-			await this.#save();
+		// Local-only build: drop what only existed to talk to Vine Helper's / Brenda's servers. Keeping the old
+		// uuid / fingerprint / customer-id hash around is pointless (and would be copied to other devices).
+		const legacyPaths = [
+			"general.uuid",
+			"general.uuidError",
+			"general.fingerprint",
+			"general.cid",
+			"general.patreon",
+			"general.deviceName",
+			"discord.guid",
+		];
+		let purgedLegacy = false;
+		for (const path of legacyPaths) {
+			const keys = path.split(".");
+			const last = keys.pop();
+			let cur = this.#settings;
+			for (const k of keys) cur = cur?.[k];
+			if (cur && Object.prototype.hasOwnProperty.call(cur, last)) {
+				delete cur[last];
+				purgedLegacy = true;
+			}
+		}
+
+		if (hasCompiledKeywords || purgedLegacy) {
+			this.#logger.add("SettingsMgr: Removed legacy keys from storage");
+			await this.#save(true, undefined); //Housekeeping: not a user edit, timestamp untouched
 		}
 	}
 

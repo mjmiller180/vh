@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validateWebhookUrl, renderTemplate, DEFAULT_TEMPLATE, pruneSent } from "../../scripts/core/utils/WebhookUtil.js";
+import { validateWebhookUrl, renderTemplate, DEFAULT_TEMPLATE, pruneSent, withSafeMentions } from "../../scripts/core/utils/WebhookUtil.js";
 
 const GOOD = "https://discord.com/api/webhooks/123456789012345678/abcDEF_ghi-123";
 
@@ -16,6 +16,8 @@ test("rejects everything else (this is the exfiltration guard)", () => {
 		"http://discord.com/api/webhooks/1/abc",
 		"https://evil.example.com/api/webhooks/1/abc",
 		"https://discord.com.evil.example/api/webhooks/1/abc",
+		"https://anything.discord.com/api/webhooks/1/abc",
+		"https://cdn.discordapp.com/api/webhooks/1/abc",
 		"https://evildiscord.com/api/webhooks/1/abc",
 		"https://discord.com/other/path",
 		"https://user:pw@discord.com/api/webhooks/1/abc",
@@ -52,4 +54,13 @@ test("unknown placeholders are left alone, longer names win", () => {
 
 test("pruneSent", () => {
 	assert.deepEqual(pruneSent({ a: 1000, b: 9000 }, 10000, 2000), { b: 9000 });
+});
+
+test("mentions are disabled unless the template sets allowed_mentions itself", () => {
+	const safe = JSON.parse(withSafeMentions('{"content":"@everyone look"}'));
+	assert.deepEqual(safe.allowed_mentions, { parse: [] });
+	const custom = '{"content":"hi","allowed_mentions":{"parse":["users"]}}';
+	assert.equal(withSafeMentions(custom), custom);
+	assert.equal(withSafeMentions("[1,2]"), "[1,2]");
+	assert.throws(() => withSafeMentions("{not json"));
 });

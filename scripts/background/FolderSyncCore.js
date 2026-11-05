@@ -7,24 +7,10 @@
  *
  * Nothing leaves the computer except through the user's own Drive client writing that file.
  */
-import { mergeState, toFile, parseFile } from "../core/utils/SyncMerge.js";
+import { mergeState, toFile, parseFile, normaliseListMap } from "../core/utils/SyncMerge.js";
 
 export const SYNC_FILE_NAME = "vine-helper-sync.json";
 const STATE_KEYS = ["settings", "settingsModifiedAt", "hiddenItems", "pinnedItems", "syncTombstones"];
-
-// hiddenItems / pinnedItems used to be stored as JSON strings in older versions.
-function normaliseMap(v) {
-	if (!v) return {};
-	if (typeof v === "string") {
-		try {
-			v = JSON.parse(v);
-		} catch (e) {
-			return {};
-		}
-	}
-	if (Array.isArray(v)) return Object.fromEntries(v);
-	return typeof v === "object" ? v : {};
-}
 
 export function createFolderSync({ handleStore, storage, notifyTabs = () => {}, fileName = SYNC_FILE_NAME, now = Date.now }) {
 	let chain = Promise.resolve();
@@ -34,23 +20,25 @@ export function createFolderSync({ handleStore, storage, notifyTabs = () => {}, 
 		return {
 			settings: d.settings,
 			settingsModifiedAt: d.settingsModifiedAt || 0,
-			hiddenItems: normaliseMap(d.hiddenItems),
-			pinnedItems: normaliseMap(d.pinnedItems),
+			hiddenItems: normaliseListMap(d.hiddenItems, "hidden"),
+			pinnedItems: normaliseListMap(d.pinnedItems, "pinned"),
 			tombstones: { hidden: d.syncTombstones?.hidden || {}, pinned: d.syncTombstones?.pinned || {} },
 		};
 	}
 
-	async function writeLocal(state, settingsChanged) {
-		const out = {
-			hiddenItems: state.hiddenItems,
-			pinnedItems: state.pinnedItems,
-			syncTombstones: state.tombstones,
-		};
+	const sameJSON = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+	// Write back only what changed, so an unrelated key the user edits meanwhile is never overwritten.
+	async function writeLocal(state, local, settingsChanged) {
+		const out = {};
+		if (!sameJSON(state.hiddenItems, local.hiddenItems)) out.hiddenItems = state.hiddenItems;
+		if (!sameJSON(state.pinnedItems, local.pinnedItems)) out.pinnedItems = state.pinnedItems;
+		if (!sameJSON(state.tombstones, local.tombstones)) out.syncTombstones = state.tombstones;
 		if (settingsChanged) {
 			out.settings = state.settings;
 			out.settingsModifiedAt = state.settingsModifiedAt;
 		}
-		await storage.set(out);
+		if (Object.keys(out).length) await storage.set(out);
 	}
 
 	async function readRemote(dir) {
@@ -101,10 +89,19 @@ export function createFolderSync({ handleStore, storage, notifyTabs = () => {}, 
 			return { ok: false, reason: "permission", needsPermission: true };
 		}
 		try {
-			const local = await readLocal();
-			const remote = await readRemote(handle);
-			const res = mergeState(local, remote.state, now());
-			if (res.changedLocal) await writeLocal(res.state, res.settingsFromRemote);
+			// The user may hide/pin/edit while the (slow, possibly Drive-backed) file is being read. If local data
+			// moved under us, merge again with fresh data instead of overwriting the newer change.
+			let local, remote, res;
+			let settled = false;
+			for (let attempt = 0; attempt < 3 && !settled; attempt++) {
+				local = await readLocal();
+				remote = await readRemote(handle);
+				res = mergeState(local, remote.state, now());
+				settled = sameJSON(local, await readLocal());
+			}
+			if (!settled) return { ok: false, reason: "busy", error: "Local data kept changing; will retry on the next sync." };
+
+			if (res.changedLocal) await writeLocal(res.state, local, res.settingsFromRemote);
 			if (res.changedRemote || !remote.exists) await writeRemote(handle, res.state);
 			await setMeta({
 				lastSync: now(),

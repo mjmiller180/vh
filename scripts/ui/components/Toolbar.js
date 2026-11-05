@@ -476,6 +476,10 @@ class Toolbar {
 			const blurWord = blurMatch ? (typeof blurMatch === "object" ? blurMatch.contains : blurMatch) : "";
 			this.#tile.getDOM().dataset.blurkw = blurWord || "";
 			this.#tile.applyBlur(blurWord || null);
+		} else if (this.#tile.getDOM().dataset.blurkw) {
+			//The blur list was emptied: lift the blur this tile still carries
+			this.#tile.getDOM().dataset.blurkw = "";
+			this.#tile.applyBlur(null);
 		}
 
 		if (etv1 === null && etv2 === null) {

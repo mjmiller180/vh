@@ -6,7 +6,7 @@ var logger = new Logger();
 import { SettingsMgr } from "/scripts/core/services/SettingsMgrCompat.js";
 const Settings = new SettingsMgr();
 
-import { recordRemoval, clearRemoval, requestSync } from "/scripts/core/services/SyncState.js";
+import { recordListChange, requestSync } from "/scripts/core/services/SyncState.js";
 
 import { CryptoKeys } from "/scripts/core/utils/CryptoKeys.js";
 const cryptoKeys = new CryptoKeys();
@@ -19,6 +19,8 @@ class PinnedListMgr {
 	static #instance = null;
 
 	listLoaded;
+	#removedSinceSave = new Set(); //Explicit un-pins not yet recorded for the folder sync
+	#addedSinceSave = new Set();
 
 	constructor() {
 		if (PinnedListMgr.#instance) {
@@ -126,10 +128,12 @@ class PinnedListMgr {
 
 		this.mapPin.delete(asin);
 
-		if (save) {
-			await recordRemoval("pinned", asin); //Lets other devices know about the un-pin (folder sync)
-			this.saveList();
+		if (broadcast) {
+			this.#removedSinceSave.add(asin);
+			this.#addedSinceSave.delete(asin);
 		}
+
+		if (save) this.saveList();
 
 		//Broadcast the change to other tabs
 		if (broadcast) {
@@ -162,10 +166,12 @@ class PinnedListMgr {
 			is_pre_release: is_pre_release,
 		});
 
-		if (save) {
-			await clearRemoval("pinned", asin);
-			this.saveList();
+		if (broadcast) {
+			this.#addedSinceSave.add(asin);
+			this.#removedSinceSave.delete(asin);
 		}
+
+		if (save) this.saveList();
 
 		//Broadcast the change to other tabs
 		if (broadcast) {
@@ -186,6 +192,12 @@ class PinnedListMgr {
 
 	async saveList() {
 		let storableVal = Object.fromEntries(this.mapPin);
+
+		const removed = [...this.#removedSinceSave];
+		const added = [...this.#addedSinceSave];
+		this.#removedSinceSave.clear();
+		this.#addedSinceSave.clear();
+		await recordListChange("pinned", removed, added);
 
 		if (isSafari()) {
 			//Send instructions to the service worker to save the list to local storage

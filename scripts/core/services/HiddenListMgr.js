@@ -9,7 +9,7 @@ const Settings = new SettingsMgr();
 import { ScreenNotifier, ScreenNotification } from "/scripts/ui/components/ScreenNotifier.js";
 var Notifications = new ScreenNotifier();
 
-import { recordRemoval, clearRemoval, requestSync } from "/scripts/core/services/SyncState.js";
+import { recordListChange, requestSync } from "/scripts/core/services/SyncState.js";
 
 import { CryptoKeys } from "/scripts/core/utils/CryptoKeys.js";
 var cryptoKeys = new CryptoKeys();
@@ -19,6 +19,8 @@ import { isSafari } from "/scripts/core/utils/BrowserDetection.js";
 class HiddenListMgr {
 	static #instance = null;
 	listLoaded;
+	#removedSinceSave = new Set(); //Explicit un-hides not yet recorded for the folder sync
+	#addedSinceSave = new Set();
 
 	constructor() {
 		if (HiddenListMgr.#instance) {
@@ -89,10 +91,14 @@ class HiddenListMgr {
 
 		this.mapHidden.delete(asin);
 
-		if (save) {
-			await recordRemoval("hidden", asin); //Lets other devices know about the un-hide (folder sync)
-			this.saveList();
+		//`broadcast` is true for the user's own actions and false when replaying another tab's action
+		//(that tab records it itself). Bulk paths pass save=false and call saveList() once at the end.
+		if (broadcast) {
+			this.#removedSinceSave.add(asin);
+			this.#addedSinceSave.delete(asin);
 		}
+
+		if (save) this.saveList();
 
 		//Broadcast the change to other tabs
 		if (broadcast) {
@@ -105,10 +111,12 @@ class HiddenListMgr {
 
 		if (!(await this.isHidden(asin))) this.mapHidden.set(asin, Date.now());
 
-		if (save) {
-			await clearRemoval("hidden", asin);
-			this.saveList();
+		if (broadcast) {
+			this.#addedSinceSave.add(asin);
+			this.#removedSinceSave.delete(asin);
 		}
+
+		if (save) this.saveList();
 
 		//Broadcast the change to other tabs
 		if (broadcast) {
@@ -118,6 +126,13 @@ class HiddenListMgr {
 
 	async saveList() {
 		let storableVal = Object.fromEntries(this.mapHidden);
+
+		//Tell the folder sync about explicit hides / un-hides (but not about garbage collection)
+		const removed = [...this.#removedSinceSave];
+		const added = [...this.#addedSinceSave];
+		this.#removedSinceSave.clear();
+		this.#addedSinceSave.clear();
+		await recordListChange("hidden", removed, added);
 
 		if (isSafari()) {
 			//Send instructions to the service worker to save the list to local storage
