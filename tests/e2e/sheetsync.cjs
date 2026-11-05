@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1050
+// Last compiled at 2026-11-05_1435
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -224,7 +224,7 @@ async function test(name, fn) {
 		await waitFor(() => sheet.grid[2][9] === "LIVE", 20000);
 		assert.equal(sheet.grid[2][10], "EXCELLENT");
 		assert.equal(sheet.grid[2][3], "COMPLETED");
-		assert.match(sheet.grid[2][14], /^https:\/\/www\.amazon\.com\/gp\/customer-reviews\/R[A-Z0-9]+$/);
+		assert.match(sheet.grid[2][14], /^https:\/\/www\.amazon\.com\/review\/R[A-Z0-9]+\/ref=cm_cr_othr_d_rdp_perm\?ie=UTF8$/);
 		assert.equal(sheet.grid[2][1], "111-9999999-0000001");
 		await page.close();
 	});
