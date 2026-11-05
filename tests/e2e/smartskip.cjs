@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1508
+// Last compiled at 2026-11-05_1558
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -99,6 +99,8 @@ async function test(name, fn) {
 		assert.match(page.url(), /page=3/);
 		const st = await state(page);
 		assert.deepEqual([st.status, st.seen, st.skips, st.found], ["found", 3, 2, 2]);
+		assert.match(await boxText(page), /Pin or hide the new items, then press Space/, "the box itself says what to do");
+		assert.equal(await page.locator("text=new item(s) on this page").count(), 0, "no second (white) popup next to the status box");
 		const urlAtStop = page.url();
 		await page.waitForTimeout(3500);
 		assert.equal(page.url(), urlAtStop, "must not keep paging after finding items");
@@ -115,10 +117,13 @@ async function test(name, fn) {
 		assert.equal(st.seen, 4);
 	});
 
-	await test("Escape stops the session and clears it", async () => {
+	await test("Escape stops the session and clears it; the status box then shows how it ended (no separate toast)", async () => {
 		await page.keyboard.press("Escape");
 		await waitFor(async () => (await state(page)) === null);
-		assert.equal(await page.evaluate(() => document.getElementById("vs-smartskip")?.style.display), "none");
+		await waitFor(async () => (await boxText(page)).includes("Pages seen:"));
+		const text = await boxText(page);
+		assert.ok(!/SCANNING|ARMED|FOUND NEW ITEMS/.test(text), "the session is over: " + text);
+		assert.equal(await page.locator("text=Pages seen:").count(), 1, "the totals are shown once, not in a second popup");
 	});
 
 	await test("Space pauses while a page is waiting to turn, and resuming carries on", async () => {

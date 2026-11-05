@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_1508 -->
+<!-- Last compiled at 2026-11-05_1558 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -20,6 +20,7 @@
   (read only, needs the extra Drive permission).
 
 ### Fixed
+- SmartSkip showed its status box and a second (white) popup for the same event. There is only the status box now: it says what to do when items are found, and shows the totals for 30 seconds when a session ends.
 - Independent review of the sheet/review/Drive code: reviews of a re-ordered ASIN could land on the older order's row; rows set
   by hand got score/stars/date overwritten; ETV link used a rich-text link on a number cell (now `=HYPERLINK`); non-US
   pages produced wrong amounts/dates (sync is amazon.com only); same-day orders were added newest first; styling converted

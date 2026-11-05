@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1508
+// Last compiled at 2026-11-05_1558
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -29,8 +29,6 @@ const i13n = new Internationalization();
 
 import { Page } from "/scripts/ui/components/Page.js";
 import { PinnedListMgr } from "/scripts/core/services/PinnedListMgr.js";
-import { ScreenNotifier, ScreenNotification } from "/scripts/ui/components/ScreenNotifier.js";
-const Notifications = new ScreenNotifier();
 
 import {
 	clampRange,
@@ -53,6 +51,7 @@ class SmartSkip {
 	#originalTitle = null;
 	#box = null;
 	#installed = false;
+	#final = null; //how the last session ended, shown in the status box for a while: {title, lines, until}
 	#pageReady = false; //true once this page's tiles are processed (onPageReady has run)
 
 	constructor() {
@@ -198,7 +197,7 @@ class SmartSkip {
 
 		if (verdict === "found") {
 			st = this.#update(st, { status: "found", consecutive: 0, found: countPage ? st.found + unpinned : st.found });
-			this.#announce(unpinned);
+			this.#announce();
 			return;
 		}
 
@@ -231,13 +230,9 @@ class SmartSkip {
 		this.#timer = null;
 	}
 
-	#announce(count) {
+	#announce() {
+		// the status box says FOUND NEW ITEMS (and what to do); a background tab also gets a pulsing title
 		this.#startTitlePulse("NEW ITEM FOUND!");
-		const note = new ScreenNotification();
-		note.title = "SmartSkip";
-		note.lifespan = 15;
-		note.content = `${count} new item(s) on this page. Pin or hide them, then press Space to keep scanning.`;
-		Notifications.pushNotification(note).catch((e) => console.error("[SmartSkip] could not show a message:", e));
 	}
 
 	#terminate(title) {
@@ -245,14 +240,11 @@ class SmartSkip {
 		this.#clearTimer();
 		this.#resetTitle();
 		this.#clear();
+		// the session is over: the same status box shows how it ended and the totals for 30 seconds
+		this.#final = st
+			? { title, until: Date.now() + 30000, lines: [`Pages seen: ${st.seen}`, `Skipped: ${st.skips}`, `Items found: ${st.found}`, `Time: ${formatDuration(Date.now() - st.startedAt)}`] }
+			: null;
 		this.#draw();
-		if (st) {
-			const note = new ScreenNotification();
-			note.title = title;
-			note.lifespan = 30;
-			note.content = `Pages seen: ${st.seen}<br>Skipped: ${st.skips}<br>Items found: ${st.found}<br>Time: ${formatDuration(Date.now() - st.startedAt)}`;
-			Notifications.pushNotification(note).catch((e) => console.error("[SmartSkip] could not show a message:", e));
-		}
 		logger.add("SMARTSKIP: " + title);
 	}
 
@@ -276,7 +268,10 @@ class SmartSkip {
 	//## status box (all text via textContent: nothing from storage is ever parsed as HTML)
 	#draw() {
 		const st = this.#load();
-		if (!st) {
+		if (st) this.#final = null; // a new session replaces the old result
+		const showFinal = !st && this.#final && Date.now() < this.#final.until;
+		if (!st && !showFinal) {
+			this.#final = null;
 			if (this.#box) this.#box.style.display = "none";
 			return;
 		}
@@ -286,6 +281,21 @@ class SmartSkip {
 			this.#box.style.cssText =
 				"position:fixed;bottom:10px;right:10px;background:rgba(0,0,0,0.9);color:white;padding:12px;border-radius:8px;z-index:9999;font-family:monospace;font-size:12px;line-height:1.4;box-shadow:0 4px 10px rgba(0,0,0,0.5);border:1px solid #444;min-width:180px;pointer-events:none;";
 			document.body.appendChild(this.#box);
+		}
+		const text0 = (text, style) => {
+			const d = document.createElement("div");
+			d.textContent = text;
+			if (style) d.style.cssText = style;
+			return d;
+		};
+		if (showFinal) {
+			this.#box.replaceChildren(
+				text0(`SmartSkip [${isTabActive() ? "ACTIVE" : "BG"}]`, "color:cyan;font-weight:bold;border-bottom:1px solid #444;margin-bottom:5px;padding-bottom:3px;"),
+				text0(this.#final.title, "color:#ffff00;margin-bottom:5px;font-weight:bold;"),
+				...this.#final.lines.map((l) => text0(l, "font-size:10px;color:#aaa;"))
+			);
+			this.#box.style.display = "block";
+			return;
 		}
 		const label = {
 			running: this.#timer ? `SCANNING (${st.consecutive})` : "ARMED (continues on the next page)",
@@ -305,7 +315,9 @@ class SmartSkip {
 			line(`SmartSkip [${isTabActive() ? "ACTIVE" : "BG"}]`, "color:cyan;font-weight:bold;border-bottom:1px solid #444;margin-bottom:5px;padding-bottom:3px;"),
 			line(label, `color:${color};margin-bottom:5px;font-weight:bold;`),
 			line(`Seen: ${st.seen} | Skips: ${st.skips}`, "font-size:10px;color:#aaa;"),
-			line(`Runtime: ${formatDuration(Date.now() - st.startedAt)} | Found: ${st.found}`, "font-size:10px;color:#aaa;")
+			line(`Runtime: ${formatDuration(Date.now() - st.startedAt)} | Found: ${st.found}`, "font-size:10px;color:#aaa;"),
+			...(st.status === "found" ? [line("Pin or hide the new items, then press Space to keep scanning.", "margin-top:6px;color:#00ff00;max-width:220px;")] : []),
+			...(st.status === "paused" ? [line("Space = resume, Esc = stop", "margin-top:6px;color:#ffff00;")] : [])
 		);
 		this.#box.style.display = "block";
 	}
