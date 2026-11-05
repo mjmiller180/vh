@@ -14,7 +14,7 @@
 		</p>
 
 		<div id="discordOptions">
-			<div class="setting-container">
+			<div class="setting-container" style="flex-direction: column; align-items: stretch">
 				<label for="discord.webhook.default.url">
 					Default webhook URL (used by every trigger below that has no URL of its own):
 				</label>
@@ -22,6 +22,7 @@
 					type="password"
 					name="discord.webhook.default.url"
 					id="discordWebhookDefaultUrl"
+					style="width: 100%"
 					size="80"
 					placeholder="https://discord.com/api/webhooks/..."
 					autocomplete="off"

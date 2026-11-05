@@ -1,4 +1,21 @@
-# Network audit – who this extension talks to
+# Network audit
+
+## Status of this build (after stripping)
+
+Verified with `npm test`: a Vine page load makes **zero** requests other than Amazon's own, and the settings
+page makes none. The only other destination possible is the user's own `discord.com` webhook (service worker,
+`scripts/background/DiscordSender.js`, URL re-validated there). `tools/check-no-external.cjs` fails the build if
+this ever stops being true, and it reports 49 violations when run on the original 3.8.7.
+
+Everything below documents the **original 3.8.7** (what was removed).
+
+Extra finding while testing the original: `scripts/ui/templates/popup_changelog.html` loaded a PayPal donate
+button and a 1x1 PayPal tracking pixel whenever the "new version" popup was shown, and the notification
+monitor's debug code referenced `via.placeholder.com`. Both are gone.
+
+---
+
+## Original 3.8.7: who this extension talks to
 
 Audited from the code in this repo (VH Chrome 3-8-7, manifest version 4.5) by static
 reading. Nothing here was observed on the wire yet; "when it fires" is from the code.

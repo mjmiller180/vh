@@ -1,4 +1,27 @@
-# Changelog - Vine Helper 3.8.7 Modifications
+# Changelog
+
+## [Local-only build] - 2026-11
+
+### Removed
+- All communication with api.vinehelper.ovh (HTTPS + WebSocket), api.llamastories.com (Brenda) and PayPal.
+- UUID / device fingerprint / hashed customer id / request signing, news, reviews tools, Item Explorer,
+  notification monitor, checkout recorder, variants, price + carousel, bookmark / first-seen, Patreon gating,
+  sounds, confetti, chart.js, socket.io, splide, Premium + Debug settings tabs.
+- `alarms` and `notifications` permissions; the CSP now allows only `self` + discord.com for connections.
+
+### Added
+- Discord webhooks to your own server (keyword / AFA / RFY / zero ETV / manual), each switchable.
+- Folder sync (settings + hidden/pinned lists) through a Google Drive for desktop folder.
+- Blur keywords on the normal Vine page (previously only worked in the monitor).
+- `tests/` (unit + end-to-end), `tools/` (reference + no-external guards), README.
+
+### Changed
+- Every feature that remains works without a Patreon tier (`isPremiumUser()` is always true).
+- Service worker rewritten: context menu, Discord POST, folder sync.
+
+---
+
+## Earlier notes (analysis phase)
 
 All notable changes to the Vine Helper 3.8.7 extension will be documented in this file.
 
