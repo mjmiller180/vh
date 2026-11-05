@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0035
+// Last compiled at 2026-11-05_0123
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -43,7 +43,7 @@ async function launch({ extraRoutes, pageRenderer } = {}) {
 			const handled = await extraRoutes(route, url);
 			if (handled) return;
 		}
-		if (/^https:\/\/www\.amazon\.com\/vine\//.test(url) && route.request().resourceType() === "document") {
+		if (/^https:\/\/www\.amazon\.com\/vine\//.test(url) && ["document", "fetch", "xhr"].includes(route.request().resourceType())) {
 			return route.fulfill({ status: 200, contentType: "text/html", body: pageRenderer ? pageRenderer(url) : FIXTURE });
 		}
 		log.blocked.push(url);

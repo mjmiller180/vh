@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0049
+// Last compiled at 2026-11-05_0123
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -106,6 +106,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 	if (message.type === "googleAddOrders") {
 		runGoogle(() => googleSheets.addOrders(message.orders, { dryRun: !!message.dryRun, config: message.config })).then(sendResponse);
+		return true;
+	}
+
+	if (message.type === "googleUpdateReviews") {
+		runGoogle(() => googleSheets.updateReviews(message.reviews, { dryRun: !!message.dryRun, config: message.config })).then(sendResponse);
 		return true;
 	}
 

@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0049
+// Last compiled at 2026-11-05_0123
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -107,11 +107,41 @@ export function buildOrderCells(order, colMap, { withFormats = false } = {}) {
 	put("status", text(order.status || "ORDERED"));
 	if (present(order.title)) put("title", ASIN_RE.test(order.asin || "") ? linked(order.title, `https://${host}/dp/${order.asin}`) : text(order.title));
 	if (typeof order.etv === "number" && Number.isFinite(order.etv)) {
-		const c = num(order.etv);
+		// the owner's sheet links the ETV cell to the order's invoice page
+		const c = { ...num(order.etv), textFormatRuns: [{ startIndex: 0, format: { link: { uri: `https://${host}/gp/css/summary/print.html?orderID=${order.orderNumber}` } } }] };
 		if (withFormats) c.userEnteredFormat = moneyFormat;
 		put("etv", c);
 	}
 	return out.sort((a, b) => a.column - b.column);
+}
+
+// The DASHBOARD's REVIEW columns are strict dropdown lists: only these exact values may be written.
+export const REVIEW_STATUS_VALUES = ["LIVE", "REJECTED", "PENDING APPROVAL", "NOT SUBMITTED", "DECLINE TO REVIEW", "UNABLE TO REVIEW", "TAKEN DOWN"];
+export const REVIEW_SCORE_VALUES = ["EXCELLENT", "GOOD", "FAIR", "POOR", "PENDING"];
+/** States the owner sets by hand: an automatic update never replaces them. */
+export const MANUAL_REVIEW_STATES = ["DECLINE TO REVIEW", "UNABLE TO REVIEW", "TAKEN DOWN"];
+
+/** Amazon's "Review status" text on the Vine reviews pages -> the sheet's REVIEW STATUS value (null: unknown, write nothing). */
+export function mapReviewStatus(text) {
+	const t = String(text ?? "").trim().toLowerCase();
+	if (!t) return null;
+	if (t === "not yet reviewed") return "NOT SUBMITTED";
+	if (t === "approved") return "LIVE";
+	if (t === "rejected" || t === "not approved") return "REJECTED";
+	if (t === "pending" || t.startsWith("pending") || t === "submitted" || t === "in review" || t === "under review") return "PENDING APPROVAL";
+	return null;
+}
+
+/** Amazon's "Review quality score" text -> the sheet's REVIEW SCORE value (null: unknown/blank). */
+export function mapReviewScore(text) {
+	const t = String(text ?? "").trim().toUpperCase();
+	return REVIEW_SCORE_VALUES.includes(t) ? t : null;
+}
+
+/** 1..5 -> the star strings the STAR RATING dropdown uses ("⭐" x n); null for anything else. */
+export function starsText(n) {
+	const k = typeof n === "string" && /^\d$/.test(n) ? Number(n) : n;
+	return Number.isInteger(k) && k >= 1 && k <= 5 ? "⭐".repeat(k) : null;
 }
 
 /** Cells for an UPDATE of existing columns (review fields etc.): only the keys that are given. */
@@ -123,7 +153,10 @@ export function buildFieldCells(fields, colMap) {
 	for (const key of ["status", "deliveryStatus", "pics", "reviewStatus", "reviewScore", "notes"]) {
 		if (present(fields[key])) put(key, typeof fields[key] === "number" ? num(fields[key]) : text(fields[key]));
 	}
-	if (present(fields.starRating)) put("starRating", typeof fields.starRating === "number" ? num(fields.starRating) : text(fields.starRating));
+	if (present(fields.starRating)) {
+		const stars = starsText(fields.starRating) ?? (/^(⭐){1,5}$/u.test(String(fields.starRating)) ? String(fields.starRating) : null);
+		if (stars) put("starRating", text(stars));
+	}
 	if (present(fields.etv) && typeof fields.etv === "number") put("etv", num(fields.etv));
 	for (const key of ["deliveryDate", "reviewDate"]) if (present(fields[key])) put(key, num(dateToSerial(fields[key])));
 	if (present(fields.reviewLink)) put("reviewLink", AMAZON_URL_RE.test(fields.reviewLink) ? linked(fields.reviewLink, fields.reviewLink) : text(fields.reviewLink));

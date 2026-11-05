@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0035
+// Last compiled at 2026-11-05_0123
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -55,6 +55,8 @@ var DialogMgr = new ModalMgr();
 import { Pagination } from "/scripts/ui/controllers/Pagination.js";
 import { SmartSkip } from "/scripts/core/services/SmartSkip.js";
 const smartSkip = new SmartSkip();
+import { SheetSync } from "/scripts/core/services/SheetSync.js";
+const sheetSync = new SheetSync();
 var pagination = new Pagination();
 import { PinnedListMgr } from "/scripts/core/services/PinnedListMgr.js";
 var PinnedList = new PinnedListMgr();
@@ -166,6 +168,8 @@ async function init() {
 	logger.add("BOOT: Waiting on preboot to complete...");
 	await Settings.waitForLoad();
 	logger.add("BOOT: Config available. Begining init() function");
+	//Orders / Reviews pages -> Google Sheet (does nothing unless it is switched on; independent of the item grid)
+	sheetSync.onPageReady().catch((e) => console.error("[SheetSync]", e));
 
 	if (Settings.get("thorvarium.darktheme")) {
 		document.getElementsByTagName("body")[0].classList.add("darktheme");

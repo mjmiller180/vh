@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Last compiled at 2026-11-05_0049
+// Last compiled at 2026-11-05_0123
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -31,6 +31,7 @@ const PRIMITIVE_ALLOW = {
 	"scripts/background/DiscordSender.js": { fetch: "POSTs to the user's Discord webhook (URL validated)" },
 	"scripts/core/utils/Template.js": { fetch: "loads the extension's own template files (chrome.runtime.getURL)" },
 	"scripts/background/google/SheetsClient.js": { fetch: "calls the Google Sheets API with the user's own token (fetchFn is injected; the host is fixed in BASE)" },
+	"scripts/core/services/SheetSync.js": { fetch: "reads the other pages of the user's own Vine orders/reviews lists on amazon (same site) for 'send all pages'" },
 	"scripts/inj.js": { fetch: "wraps Amazon's own fetch (origFetch) to read Amazon's responses" },
 };
 const PRIMITIVES = [

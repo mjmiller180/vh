@@ -132,7 +132,7 @@ test("buildFieldCells: only the fields given (review columns), nothing else", ()
 	const byCol = Object.fromEntries(cells.map((c) => [c.column, c.cell]));
 	assert.deepEqual(Object.keys(byCol).map(Number).sort((a, b) => a - b), [8, 9, 11, 13, 14]);
 	assert.equal(byCol[9].userEnteredValue.stringValue, "SUBMITTED");
-	assert.equal(byCol[11].userEnteredValue.numberValue, 4);
+	assert.equal(byCol[11].userEnteredValue.stringValue, "⭐⭐⭐⭐", "STAR RATING is a text dropdown");
 	assert.equal(byCol[13].userEnteredValue.numberValue, dateToSerial("2026-02-01"));
 	assert.equal(byCol[14].textFormatRuns[0].format.link.uri, "https://www.amazon.com/review/R1");
 });

@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0049
+// Last compiled at 2026-11-05_0123
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -14,7 +14,7 @@
  *    (manual columns, formulas) is ever cleared
  *  - an order number that is already on the sheet is never added twice
  */
-import { mapColumns, buildOrderCells, buildFieldCells, normaliseHeader, NO_ORDER_NUMBER_COLUMN } from "../../core/utils/DashboardRow.js";
+import { mapColumns, buildOrderCells, buildFieldCells, normaliseHeader, NO_ORDER_NUMBER_COLUMN, mapReviewStatus, mapReviewScore, dateToSerial, MANUAL_REVIEW_STATES } from "../../core/utils/DashboardRow.js";
 
 const BASE = "https://sheets.googleapis.com";
 const CELL_FIELDS = "userEnteredValue,textFormatRuns";
@@ -94,6 +94,8 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 		}
 		return {
 			spreadsheetId,
+			sheetName,
+			values,
 			sheetId: sheet.sheetId,
 			rowCount: sheet.gridProperties?.rowCount ?? values.length,
 			columnCount: sheet.gridProperties?.columnCount ?? 0,
@@ -102,6 +104,32 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 			orders,
 			lastDataRow,
 		};
+	}
+
+	const colLetter = (i) => {
+		let n = i + 1;
+		let out = "";
+		while (n > 0) {
+			out = String.fromCharCode(65 + ((n - 1) % 26)) + out;
+			n = Math.floor((n - 1) / 26);
+		}
+		return out;
+	};
+
+	/** 0-based row index -> ASIN, read from the link on each TITLE cell (https://www.amazon.<tld>/dp/<ASIN>). */
+	async function loadTitleAsins(dash) {
+		if (dash.colMap.title === undefined) return new Map();
+		const col = colLetter(dash.colMap.title);
+		const range = `${quoteSheet(dash.sheetName)}!${col}1:${col}`;
+		const res = await request("GET", `/v4/spreadsheets/${encodeURIComponent(dash.spreadsheetId)}?ranges=${encodeURIComponent(range)}&fields=${encodeURIComponent("sheets.data(startRow,rowData.values.hyperlink)")}`);
+		const data = res.sheets?.[0]?.data?.[0] || {};
+		const start = data.startRow || 0;
+		const out = new Map();
+		(data.rowData || []).forEach((r, i) => {
+			const m = String(r?.values?.[0]?.hyperlink || "").match(/\/dp\/([A-Z0-9]{10})(?:[/?#]|$)/i);
+			if (m) out.set(start + i, m[1].toUpperCase());
+		});
+		return out;
 	}
 
 	const cellRequest = (sheetId, rowIndex, { column, cell }) => ({
@@ -168,8 +196,84 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 		return { updated: cells.length, requests };
 	}
 
+	const rowSerial = (dash, row) => {
+		const v = String((dash.values[row] || [])[dash.colMap.orderDate] ?? "").trim();
+		try {
+			return v ? dateToSerial(/^\d{1,2}\/\d{1,2}\/\d{2}$/.test(v) ? v.replace(/\/(\d{2})$/, "/20$1") : v) : null;
+		} catch (e) {
+			return null;
+		}
+	};
+	const DONE_BEFORE_REVIEW = ["", "ORDERED", "SHIPPED", "DELIVERED", "WAITING FOR VINE"];
+
+	/**
+	 * Copy what Amazon's Vine "reviews" pages say into the REVIEW columns of the matching DASHBOARD rows.
+	 * A row is found by the ASIN in its title link (and the order date when the ASIN is on the sheet more than once).
+	 * Values the owner set by hand (TAKEN DOWN, ...) and values that are already right are never written.
+	 * @param {{asin:string, orderDate?:string, status?:string, score?:string, reviewLink?:string}[]} reviews
+	 */
+	async function updateReviewsNow(spreadsheetId, sheetName, reviews, { dryRun = false } = {}) {
+		const dash = await loadDashboard(spreadsheetId, sheetName);
+		const asins = await loadTitleAsins(dash);
+		const cur = (row, key) => String((dash.values[row] || [])[dash.colMap[key]] ?? "").trim();
+		const rowsByAsin = new Map();
+		for (const [row, asin] of asins) {
+			if (row > dash.headerRow) rowsByAsin.set(asin, [...(rowsByAsin.get(asin) || []), row]);
+		}
+		const requests = [];
+		const seenRows = new Set();
+		let updated = 0, unchanged = 0, unmatched = 0, ambiguous = 0;
+		for (const r of reviews) {
+			let rows = rowsByAsin.get(String(r.asin || "").toUpperCase()) || [];
+			if (rows.length > 1 && r.orderDate) {
+				let want = null;
+				try {
+					want = dateToSerial(r.orderDate);
+				} catch (e) {}
+				if (want !== null) rows = rows.filter((x) => rowSerial(dash, x) === want);
+			}
+			if (rows.length === 0) {
+				unmatched++;
+				continue;
+			}
+			if (rows.length > 1) {
+				ambiguous++;
+				continue;
+			}
+			const row = rows[0];
+			if (seenRows.has(row)) continue;
+			seenRows.add(row);
+
+			const fields = {};
+			const status = mapReviewStatus(r.status);
+			const now = cur(row, "reviewStatus");
+			if (status && !MANUAL_REVIEW_STATES.includes(now)) {
+				if (status === "NOT SUBMITTED" ? now === "" : status !== now) fields.reviewStatus = status;
+			}
+			const score = mapReviewScore(r.score);
+			if (score && score !== cur(row, "reviewScore")) fields.reviewScore = score;
+			if (status === "LIVE" && !MANUAL_REVIEW_STATES.includes(now) && DONE_BEFORE_REVIEW.includes(cur(row, "status"))) fields.status = "COMPLETED";
+			if (r.reviewLink && r.reviewLink !== cur(row, "reviewLink")) fields.reviewLink = r.reviewLink;
+
+			const cells = buildFieldCells(fields, dash.colMap);
+			if (cells.length === 0) {
+				unchanged++;
+				continue;
+			}
+			updated++;
+			for (const c of cells) requests.push(cellRequest(dash.sheetId, row, c));
+		}
+		if (requests.length === 0) return { updated, unchanged, unmatched, ambiguous, requests };
+		if (dryRun) return { dryRun: true, updated, unchanged, unmatched, ambiguous, requests };
+		await batch(spreadsheetId, requests);
+		return { updated, unchanged, unmatched, ambiguous, requests };
+	}
+
 	return {
 		loadDashboard,
+
+		/** See updateReviewsNow. */
+		updateReviews: (spreadsheetId, sheetName, reviews, opts) => serialise(() => updateReviewsNow(spreadsheetId, sheetName, reviews, opts)),
 
 		/**
 		 * Append new orders to the DASHBOARD.

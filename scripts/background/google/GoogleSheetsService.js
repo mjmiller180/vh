@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0049
+// Last compiled at 2026-11-05_0123
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -81,6 +81,33 @@ export function createGoogleSheetsService({ getConfig, auth, makeClient, tokenTi
 		},
 
 		/** @param {object[]} orders  @param {{dryRun?: boolean}} opts  dryRun returns what WOULD be written */
+		/** Review status / score / link from the Vine reviews pages -> the matching DASHBOARD rows. */
+		async updateReviews(reviews, { dryRun = false, config: override } = {}) {
+			const cfg = config(dryRun ? override : undefined);
+			if (!cfg.valid) return { ok: false, reason: "not-configured" };
+			if (!dryRun && !cfg.enabled) return { ok: false, reason: "disabled" };
+			if (!Array.isArray(reviews) || reviews.length === 0) return { ok: false, error: "No reviews to update" };
+			if (reviews.length > 200) return { ok: false, error: "Too many reviews in one request (max 200)" };
+			const clean = [];
+			for (const r of reviews) {
+				if (!r || !/^[A-Z0-9]{10}$/i.test(String(r.asin || ""))) continue;
+				clean.push({
+					asin: String(r.asin).toUpperCase(),
+					orderDate: typeof r.orderDate === "string" ? r.orderDate : undefined,
+					status: typeof r.status === "string" ? r.status.slice(0, 60) : "",
+					score: typeof r.score === "string" ? r.score.slice(0, 30) : "",
+					reviewLink: typeof r.reviewLink === "string" && /^https:\/\/www\.amazon\.[a-z.]{2,7}\/[^\s]*$/i.test(r.reviewLink) ? r.reviewLink : "",
+				});
+			}
+			if (clean.length === 0) return { ok: false, error: "No valid reviews to update" };
+			try {
+				const res = await client().updateReviews(cfg.id, cfg.tab, clean, { dryRun });
+				return { ok: true, ...res };
+			} catch (e) {
+				return fail(e);
+			}
+		},
+
 		async addOrders(orders, { dryRun = false, config: override } = {}) {
 			const cfg = config(dryRun ? override : undefined); //a real write only ever uses the saved settings
 			if (!cfg.valid) return { ok: false, reason: "not-configured" };
