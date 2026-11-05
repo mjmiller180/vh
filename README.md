@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_0035 -->
+<!-- Last compiled at 2026-11-05_0049 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -32,7 +32,7 @@ checkout recording, sounds, confetti.
 Press **k** on a Vine page and VineTools pages through the queue on a timer, stopping at the first page that has an item
 you have **not pinned** (items already hidden are ignored). **Space** pauses / resumes (resuming re-checks the page you
 are on, so pin or hide what it found and press Space to carry on), **Escape** stops and shows the totals, the previous-page
-key applies the brake, and the next-page / hide-all keys hand control back to you (scanning resumes on the next page).
+key applies the brake (and also goes back one page), and the next-page / hide-all keys hand control back to you (scanning resumes on the next page).
 The queue, keys, delays (never below 2 seconds), and a page limit are configurable. The session lives in the tab only and
 nothing is sent anywhere. Automated paging is outside what Amazon's Vine terms expect from normal use, so treat it as a
 convenience you run at your own risk and keep the delays generous.

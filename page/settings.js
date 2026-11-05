@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-05_0049
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -61,6 +61,7 @@ function loadStyleSheetContent(content, path = "injected") {
 	const promTab6 = await Tpl.loadFile("/page/settings_keywords.tpl.html", true);
 	const promTab7 = await Tpl.loadFile("/page/settings_keybindings.tpl.html", true);
 	const promTab8 = await Tpl.loadFile("/page/settings_sync.tpl.html", true);
+	const promTab9 = await Tpl.loadFile("/page/settings_google.tpl.html", true);
 
 	// Clear any existing template variables before setting new ones
 	Tpl.clearVariables();
@@ -75,6 +76,7 @@ function loadStyleSheetContent(content, path = "injected") {
 	Tpl.setVar("TAB6", Tpl.render(promTab6));
 	Tpl.setVar("TAB7", Tpl.render(promTab7));
 	Tpl.setVar("TAB8", Tpl.render(promTab8));
+	Tpl.setVar("TAB9", Tpl.render(promTab9));
 
 	await Settings.waitForLoad();
 

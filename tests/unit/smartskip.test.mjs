@@ -1,11 +1,11 @@
-// Last compiled at 2026-11-05_0000
+// Last compiled at 2026-11-05_0049
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
 // SmartSkip decision logic (pure functions).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MIN_DELAY_MS, clampRange, pickDelay, formatDuration, decidePage, newSession, parseState, keyMatches, startUrl } from "../../scripts/core/utils/SmartSkipLogic.js";
+import { MIN_DELAY_MS, DEFAULT_MAX_PAGES, HARD_MAX_PAGES, normaliseMaxPages, clampRange, pickDelay, formatDuration, decidePage, newSession, parseState, keyMatches, startUrl } from "../../scripts/core/utils/SmartSkipLogic.js";
 
 test("delays: parsed from strings, never below the safety floor, max never below min", () => {
 	assert.deepEqual(clampRange("2500", "4000", { min: 2500, max: 4000 }), { min: 2500, max: 4000 });
@@ -32,12 +32,20 @@ test("formatDuration", () => {
 	assert.equal(formatDuration(125_000), "2m 5s");
 });
 
-test("decidePage: unpinned items stop the scan; all-pinned / empty pages are skipped; the page limit wins", () => {
+test("decidePage: unpinned items stop the scan; all-pinned / empty pages are skipped; the page limit stops after exactly N pages", () => {
 	assert.equal(decidePage({ unpinnedCount: 1, seen: 1, maxPages: 300 }), "found");
 	assert.equal(decidePage({ unpinnedCount: 0, seen: 1, maxPages: 300 }), "skip");
-	assert.equal(decidePage({ unpinnedCount: 0, seen: 301, maxPages: 300 }), "limit");
-	assert.equal(decidePage({ unpinnedCount: 5, seen: 301, maxPages: 300 }), "limit");
-	assert.equal(decidePage({ unpinnedCount: 0, seen: 5, maxPages: "garbage" }), "skip");
+	assert.equal(decidePage({ unpinnedCount: 0, seen: 299, maxPages: 300 }), "skip");
+	assert.equal(decidePage({ unpinnedCount: 0, seen: 300, maxPages: 300 }), "limit", "the 300th page is the last one scanned");
+	assert.equal(decidePage({ unpinnedCount: 5, seen: 300, maxPages: 300 }), "found", "new items on the last allowed page are still reported");
+	assert.equal(decidePage({ unpinnedCount: 0, seen: 2, maxPages: 2 }), "limit");
+});
+
+test("the page limit can never be switched off by a blank or junk setting", () => {
+	for (const bad of ["", "   ", "abc", null, undefined, NaN, -5, 0, "0"]) assert.equal(normaliseMaxPages(bad), DEFAULT_MAX_PAGES, String(bad));
+	assert.equal(normaliseMaxPages("25"), 25);
+	assert.equal(normaliseMaxPages(99999), HARD_MAX_PAGES);
+	assert.equal(decidePage({ unpinnedCount: 0, seen: DEFAULT_MAX_PAGES, maxPages: "garbage" }), "limit");
 });
 
 test("state: sanitised on read, so tampered or corrupt sessionStorage cannot inject anything", () => {

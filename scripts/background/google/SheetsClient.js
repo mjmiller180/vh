@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-05_0049
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /**
  * Minimal Google Sheets client for the DASHBOARD. Everything that touches the network is injected
  * (fetchFn, getToken, clearToken, sleep) so the logic is unit tested against an in-memory fake of the API.
@@ -14,6 +18,16 @@ import { mapColumns, buildOrderCells, buildFieldCells, normaliseHeader, NO_ORDER
 
 const BASE = "https://sheets.googleapis.com";
 const CELL_FIELDS = "userEnteredValue,textFormatRuns";
+const CELL_FIELDS_WITH_FORMAT = "userEnteredValue,textFormatRuns,userEnteredFormat.numberFormat";
+
+// All writes in this worker run one at a time. Two overlapping calls would both pick the same "first empty
+// row"; serialising them makes the second one read the sheet AFTER the first one has written.
+let writeChain = Promise.resolve();
+function serialise(fn) {
+	const run = writeChain.then(fn, fn);
+	writeChain = run.catch(() => {});
+	return run;
+}
 
 export class SheetsError extends Error {
 	constructor(status, message) {
@@ -41,8 +55,11 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 				await clearToken(token); // the cached token is stale: drop it and ask for a fresh one
 				continue;
 			}
-			if ((res.status === 429 || res.status >= 500) && attempt < 3) {
-				await sleep(500 * 2 ** attempt);
+			// 429 means "not applied, try later". A 5xx on a WRITE may have been applied (resending would, for example,
+			// add the blank rows twice), so only reads are retried on 5xx.
+			const retryable = res.status === 429 || (res.status >= 500 && method === "GET");
+			if (retryable && attempt < 3) {
+				await sleep(1000 * 2 ** attempt);
 				continue;
 			}
 			let message = `HTTP ${res.status}`;
@@ -67,21 +84,89 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 
 		const orders = new Map(); // order number -> 0-based row index
 		let lastDataRow = headerRow;
+		// A row is "used" if any key column has something in it (a half-filled row is not free to overwrite).
+		const keyColumns = ["orderDate", "orderNumber", "title", "etv"].map((k) => colMap[k]).filter((c) => c !== undefined);
 		for (let i = headerRow + 1; i < values.length; i++) {
 			const row = values[i] || [];
 			const num = String(row[colMap.orderNumber] ?? "").trim();
-			const title = colMap.title !== undefined ? String(row[colMap.title] ?? "").trim() : "";
 			if (num) orders.set(num, i);
-			if (num || title) lastDataRow = i;
+			if (keyColumns.some((c) => String(row[c] ?? "").trim() !== "")) lastDataRow = i;
 		}
-		return { spreadsheetId, sheetId: sheet.sheetId, rowCount: sheet.gridProperties?.rowCount ?? values.length, headerRow, colMap, orders, lastDataRow };
+		return {
+			spreadsheetId,
+			sheetId: sheet.sheetId,
+			rowCount: sheet.gridProperties?.rowCount ?? values.length,
+			columnCount: sheet.gridProperties?.columnCount ?? 0,
+			headerRow,
+			colMap,
+			orders,
+			lastDataRow,
+		};
 	}
 
 	const cellRequest = (sheetId, rowIndex, { column, cell }) => ({
-		updateCells: { rows: [{ values: [cell] }], fields: CELL_FIELDS, start: { sheetId, rowIndex, columnIndex: column } },
+		updateCells: {
+			rows: [{ values: [cell] }],
+			fields: cell.userEnteredFormat ? CELL_FIELDS_WITH_FORMAT : CELL_FIELDS,
+			start: { sheetId, rowIndex, columnIndex: column },
+		},
 	});
 
 	const batch = (spreadsheetId, requests) => request("POST", `/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}:batchUpdate`, { requests });
+
+	async function addOrdersNow(spreadsheetId, sheetName, orders, { dryRun = false } = {}) {
+		const dash = await loadDashboard(spreadsheetId, sheetName);
+		const seen = new Set(dash.orders.keys());
+		const fresh = [];
+		let skipped = 0;
+		const sourceRow = dash.lastDataRow > dash.headerRow ? dash.lastDataRow : null;
+		for (const order of orders) {
+			if (seen.has(order.orderNumber)) {
+				skipped++;
+				continue;
+			}
+			// validates the order (throws on bad data); with no row above to copy from, set the number formats too
+			const cells = buildOrderCells(order, dash.colMap, { withFormats: sourceRow === null });
+			seen.add(order.orderNumber);
+			fresh.push(cells);
+		}
+		if (fresh.length === 0) return { added: 0, skipped, requests: [] };
+
+		const startRow = dash.lastDataRow + 1;
+		const requests = [];
+		const needRows = startRow + fresh.length;
+		if (needRows > dash.rowCount) requests.push({ appendDimension: { sheetId: dash.sheetId, dimension: "ROWS", length: needRows - dash.rowCount } });
+
+		// copy format + dropdowns across the WHOLE row (also the owner's columns to the right of the ones we write)
+		const width = Math.max(Math.max(...Object.values(dash.colMap)) + 1, dash.columnCount || 0);
+		const range = (row) => ({ sheetId: dash.sheetId, startRowIndex: row, endRowIndex: row + 1, startColumnIndex: 0, endColumnIndex: width });
+
+		fresh.forEach((cells, k) => {
+			const row = startRow + k;
+			if (sourceRow !== null) {
+				for (const pasteType of ["PASTE_FORMAT", "PASTE_DATA_VALIDATION"]) {
+					requests.push({ copyPaste: { source: range(sourceRow), destination: range(row), pasteType, pasteOrientation: "NORMAL" } });
+				}
+			}
+			for (const c of cells) requests.push(cellRequest(dash.sheetId, row, c));
+		});
+
+		if (dryRun) return { dryRun: true, added: fresh.length, skipped, requests };
+		await batch(spreadsheetId, requests);
+		return { added: fresh.length, skipped, requests };
+	}
+
+	async function updateOrderNow(spreadsheetId, sheetName, orderNumber, fields, { dryRun = false } = {}) {
+		const dash = await loadDashboard(spreadsheetId, sheetName);
+		const row = dash.orders.get(orderNumber);
+		if (row === undefined) throw new Error(`Order ${orderNumber} not found on the sheet`);
+		const cells = buildFieldCells(fields, dash.colMap);
+		if (cells.length === 0) return { updated: 0, requests: [] };
+		const requests = cells.map((c) => cellRequest(dash.sheetId, row, c));
+		if (dryRun) return { dryRun: true, updated: cells.length, requests };
+		await batch(spreadsheetId, requests);
+		return { updated: cells.length, requests };
+	}
 
 	return {
 		loadDashboard,
@@ -90,57 +175,10 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 		 * Append new orders to the DASHBOARD.
 		 * @returns {{added: number, skipped: number, requests?: object[], dryRun?: boolean}}
 		 */
-		async addOrders(spreadsheetId, sheetName, orders, { dryRun = false } = {}) {
-			const dash = await loadDashboard(spreadsheetId, sheetName);
-			const seen = new Set(dash.orders.keys());
-			const fresh = [];
-			let skipped = 0;
-			for (const order of orders) {
-				if (seen.has(order.orderNumber)) {
-					skipped++;
-					continue;
-				}
-				const cells = buildOrderCells(order, dash.colMap); // validates the order (throws on bad data)
-				seen.add(order.orderNumber);
-				fresh.push(cells);
-			}
-			if (fresh.length === 0) return { added: 0, skipped, requests: [] };
-
-			const startRow = dash.lastDataRow + 1;
-			const requests = [];
-			const needRows = startRow + fresh.length;
-			if (needRows > dash.rowCount) requests.push({ appendDimension: { sheetId: dash.sheetId, dimension: "ROWS", length: needRows - dash.rowCount } });
-
-			const sourceRow = dash.lastDataRow > dash.headerRow ? dash.lastDataRow : null;
-			const width = Math.max(...Object.values(dash.colMap)) + 1;
-			const range = (row) => ({ sheetId: dash.sheetId, startRowIndex: row, endRowIndex: row + 1, startColumnIndex: 0, endColumnIndex: width });
-
-			fresh.forEach((cells, k) => {
-				const row = startRow + k;
-				if (sourceRow !== null) {
-					for (const pasteType of ["PASTE_FORMAT", "PASTE_DATA_VALIDATION"]) {
-						requests.push({ copyPaste: { source: range(sourceRow), destination: range(row), pasteType, pasteOrientation: "NORMAL" } });
-					}
-				}
-				for (const c of cells) requests.push(cellRequest(dash.sheetId, row, c));
-			});
-
-			if (dryRun) return { dryRun: true, added: fresh.length, skipped, requests };
-			await batch(spreadsheetId, requests);
-			return { added: fresh.length, skipped, requests };
-		},
+		addOrders: (spreadsheetId, sheetName, orders, opts) => serialise(() => addOrdersNow(spreadsheetId, sheetName, orders, opts)),
 
 		/** Update chosen columns (review status, star rating, review date/link, pics ...) of an existing order. */
-		async updateOrder(spreadsheetId, sheetName, orderNumber, fields, { dryRun = false } = {}) {
-			const dash = await loadDashboard(spreadsheetId, sheetName);
-			const row = dash.orders.get(orderNumber);
-			if (row === undefined) throw new Error(`Order ${orderNumber} not found on the sheet`);
-			const cells = buildFieldCells(fields, dash.colMap);
-			if (cells.length === 0) return { updated: 0, requests: [] };
-			const requests = cells.map((c) => cellRequest(dash.sheetId, row, c));
-			if (dryRun) return { dryRun: true, updated: cells.length, requests };
-			await batch(spreadsheetId, requests);
-			return { updated: cells.length, requests };
-		},
+		updateOrder: (spreadsheetId, sheetName, orderNumber, fields, opts) =>
+			serialise(() => updateOrderNow(spreadsheetId, sheetName, orderNumber, fields, opts)),
 	};
 }

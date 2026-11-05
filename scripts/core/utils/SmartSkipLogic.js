@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-05_0049
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /**
  * SmartSkip decision logic (pure: no DOM, no chrome.*, unit tested in Node).
  * SmartSkip pages through a Vine queue on a timer and stops at the first page that has an item you have not
@@ -37,14 +41,26 @@ export function formatDuration(ms) {
 	return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
+export const DEFAULT_MAX_PAGES = 300;
+export const HARD_MAX_PAGES = 1000;
+
+/** Page limit from a free-text setting: a blank / non-numeric / <1 value means the default, never "no limit". */
+export function normaliseMaxPages(v) {
+	const n = toNum(v);
+	if (!Number.isFinite(n) || n < 1) return DEFAULT_MAX_PAGES;
+	return Math.min(HARD_MAX_PAGES, Math.floor(n));
+}
+
 /**
- * What to do with the page that was just scanned.
+ * What to do with the page that was just scanned (`seen` includes this page).
+ *  found: an unpinned item is here (reported even on the last allowed page)
+ *  limit: nothing new and this was the last page we are allowed to scan ("stop after N pages" = N pages)
+ *  skip:  nothing new, keep going
  * @returns {"found" | "skip" | "limit"}
  */
 export function decidePage({ unpinnedCount, seen, maxPages }) {
-	const limit = toNum(maxPages);
-	if (!Number.isNaN(limit) && seen > limit) return "limit";
-	return unpinnedCount > 0 ? "found" : "skip";
+	if (unpinnedCount > 0) return "found";
+	return seen >= normaliseMaxPages(maxPages) ? "limit" : "skip";
 }
 
 export function newSession(now = Date.now()) {

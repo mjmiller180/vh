@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-05_0049
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /**
  * SmartSkip: press the start key (default "k") on a Vine page and it pages through the queue on a timer, stopping
  * at the first page that has an item you have not pinned and that was not already hidden.
@@ -49,6 +53,7 @@ class SmartSkip {
 	#originalTitle = null;
 	#box = null;
 	#installed = false;
+	#pageReady = false; //true once this page's tiles are processed (onPageReady has run)
 
 	constructor() {
 		if (SmartSkip.#instance) return SmartSkip.#instance;
@@ -104,27 +109,33 @@ class SmartSkip {
 	/** Called when the page's tiles are processed and the pinned/hidden state is final. */
 	async onPageReady() {
 		if (!this.#enabled()) return;
+		this.#pageReady = true;
 		this.#draw();
 		const state = this.#load();
 		if (state && state.status === "running") await this.#evaluate(state, true);
 	}
 
 	#onKeyDown(e) {
-		if (!this.#enabled() || !Settings.get("keyBindings.active")) return;
+		if (!this.#enabled()) return;
 		if (e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) return;
 		const el = document.activeElement;
 		if (el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.nodeName) || el.isContentEditable)) return;
 
 		const state = this.#load();
+		// The stop key always works while a session exists, even if keyboard shortcuts were switched off meanwhile,
+		// so a running session can never be left without a way to stop it.
+		if (state && keyMatches(e.key, this.#key("smartSkipStop"))) return this.#terminate("SmartSkip stopped");
+		if (!Settings.get("keyBindings.active")) return;
+
 		if (!state) {
-			if (keyMatches(e.key, this.#key("smartSkipStart"))) this.#start();
+			if (!e.repeat && keyMatches(e.key, this.#key("smartSkipStart"))) this.#start();
 			return;
 		}
 		if (keyMatches(e.key, this.#key("smartSkipPause"))) {
+			// Space must still activate a focused button / link (toolbar, Amazon modal), and holding it must not flap.
+			if (el && el.closest && el.closest("button, a, [role='button']")) return;
 			e.preventDefault(); //only while a session exists, so the space bar scrolls normally otherwise
-			this.#togglePause(state);
-		} else if (keyMatches(e.key, this.#key("smartSkipStop"))) {
-			this.#terminate("SmartSkip stopped");
+			if (!e.repeat) this.#togglePause(state);
 		} else if (keyMatches(e.key, this.#key("previousPage"))) {
 			this.#clearTimer();
 			this.#resetTitle();
@@ -145,15 +156,16 @@ class SmartSkip {
 	}
 
 	#togglePause(state) {
-		if (state.status === "running" && this.#timer) {
+		if (state.status === "running") {
+			// pause whether or not a page-turn is pending (also while this page is still being processed)
 			this.#clearTimer();
 			this.#update(state, { status: "paused" });
-		} else {
-			// paused / braked / found / armed: resume by re-checking the page you are on
-			this.#resetTitle();
-			const next = this.#update(state, { status: "running" });
-			this.#evaluate(next, false);
+			return;
 		}
+		// paused / braked / found: resume. Before this page is ready, only mark it running: onPageReady will evaluate it.
+		this.#resetTitle();
+		const next = this.#update(state, { status: "running" });
+		if (this.#pageReady) this.#evaluate(next, false);
 	}
 
 	#update(state, patch) {

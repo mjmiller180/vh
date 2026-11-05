@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0000
+// Last compiled at 2026-11-05_0049
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -149,7 +149,7 @@ async function test(name, fn) {
 		await ready(page);
 		await page.keyboard.press("k");
 		await waitFor(async () => (await state(page)) === null, 30000);
-		assert.match(page.url(), /page=3/);
+		assert.match(page.url(), /page=2/, "maxPages=2 means exactly 2 pages are scanned");
 		await page.waitForSelector("text=page limit reached");
 	});
 
@@ -162,7 +162,7 @@ async function test(name, fn) {
 		const t0 = Date.now();
 		await waitFor(async () => /page=2/.test(page.url()), 10000);
 		const waited = Date.now() - t0;
-		assert.ok(waited >= 1000, "paged after only " + waited + "ms"); // (page 1 was evaluated ~before t0)
+		assert.ok(waited >= 1700, "paged after only " + waited + "ms (floor is 2000ms, polling adds up to 250ms of slack)");
 		await page.keyboard.press("Escape");
 	});
 

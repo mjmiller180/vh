@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0035
+// Last compiled at 2026-11-05_0049
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -471,6 +471,15 @@ export class SettingsMgrDI {
 				previousPage: "p",
 				RFYPage: "r",
 				showAll: "s",
+			},
+
+			// Google Sheet that receives the orders (see scripts/background/google/)
+			google: {
+				sheet: {
+					enabled: false,
+					id: "", //spreadsheet URL or ID
+					tab: "DASHBOARD",
+				},
 			},
 
 			// SmartSkip: automatic paging that stops at the first unpinned item (see SmartSkip.js)

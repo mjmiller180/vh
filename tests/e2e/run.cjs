@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-05_0049
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -232,9 +232,9 @@ async function test(name, fn) {
 	await sp.goto(`chrome-extension://${extId}/page/settings.html`);
 	await sp.waitForSelector("#tabs-index", { timeout: 10000 });
 
-	await test("settings page renders 8 tabs incl. Sync and Discord, with no errors", async () => {
+	await test("settings page renders 9 tabs incl. Sync and Discord, with no errors", async () => {
 		const tabs = await sp.locator("#tabs-index li").allTextContents();
-		assert.deepEqual(tabs.map((t) => t.trim()), ["General", "Notifications", "System", "Styles", "Discord", "Keywords", "Keyboard", "Sync"]);
+		assert.deepEqual(tabs.map((t) => t.trim()), ["General", "Notifications", "System", "Styles", "Discord", "Keywords", "Keyboard", "Sync", "Google"]);
 		assert.equal(await sp.locator("#syncChooseFolder").count(), 1);
 		assert.equal(await sp.locator("input[name='discord.webhook.manual.active']").count(), 1);
 		assert.deepEqual(spErrors, []);
@@ -247,6 +247,40 @@ async function test(name, fn) {
 		await sp.waitForTimeout(500);
 		const { settings } = await storageGet(["settings"]);
 		assert.equal(settings.discord.webhook.AFA.active, true);
+	});
+
+	await test("Discord + Google text fields are saved from the settings page and shown again on reload (inputs beside their label)", async () => {
+		const URL1 = "https://discord.com/api/webhooks/123456789012345678/UI_token_abc";
+		await sp.locator("#tabs-index li", { hasText: "Discord" }).click();
+		await sp.locator("input[name='discord.webhook.default.url']").fill(URL1);
+		await sp.locator("input[name='discord.webhook.RFY.url']").fill(URL1 + "x");
+		await sp.locator("#tabs-index li", { hasText: "Google" }).click();
+		await sp.locator("input[name='google.sheet.id']").fill("1o1zOgVLvMNbmqvcSjWJ9wgfpEkrwlNBndEgRzSVMBpI");
+		await sp.locator("input[name='google.sheet.tab']").fill("DASHBOARD");
+		await sp.locator("input[name='google.sheet.tab']").blur();
+		await waitFor(async () => (await storageGet(["settings"])).settings?.google?.sheet?.tab === "DASHBOARD", 5000);
+		const { settings } = await storageGet(["settings"]);
+		assert.equal(settings.discord.webhook.default.url, URL1);
+		assert.equal(settings.discord.webhook.RFY.url, URL1 + "x");
+		assert.equal(settings.google.sheet.id, "1o1zOgVLvMNbmqvcSjWJ9wgfpEkrwlNBndEgRzSVMBpI");
+		await sp.reload();
+		await sp.waitForSelector("#tabs-index");
+		assert.equal(await sp.locator("input[name='discord.webhook.default.url']").inputValue(), URL1);
+		assert.equal(await sp.locator("input[name='google.sheet.id']").inputValue(), "1o1zOgVLvMNbmqvcSjWJ9wgfpEkrwlNBndEgRzSVMBpI");
+		// restore the working value used by the later Discord tests
+		await setSettings({ "discord.webhook.default.url": "https://discord.com/api/webhooks/123456789012345678/TESTtoken_abc-123", "discord.webhook.RFY.url": "" });
+	});
+
+	await test("Google tab: without a client id the test says 'not signed in' and nothing is sent to Google", async () => {
+		await sp.locator("#tabs-index li", { hasText: "Google" }).click();
+		await sp.locator("input[name='google.sheet.id']").fill("https://docs.google.com/spreadsheets/d/1o1zOgVLvMNbmqvcSjWJ9wgfpEkrwlNBndEgRzSVMBpI/edit");
+		await sp.locator("input[name='google.sheet.tab']").fill("DASHBOARD");
+		await sp.locator("#googleTest").click();
+		await waitFor(async () => /Not signed in|Failed/.test((await sp.locator("#googleStatus").textContent()) || ""), 40000);
+		assert.match(await sp.locator("#googleStatus").textContent(), /Not signed in/);
+		await sp.locator("#googlePreview").click();
+		await waitFor(async () => /Not signed in|Failed/.test((await sp.locator("#googleStatus").textContent()) || ""), 40000);
+		assert.deepEqual(log.requests.filter((r) => /google/.test(r.url)).map((r) => r.url), [], "no request may reach Google without a token");
 	});
 
 	await test("settings page makes no third-party requests", async () => {

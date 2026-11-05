@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0035
+// Last compiled at 2026-11-05_0049
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -207,6 +207,12 @@ async function initiateSettings(firstRun = false) {
 
 	//##TAB - SYNC
 	initSyncTab();
+
+	//##TAB - GOOGLE
+	manageInputText("google.sheet.id");
+	manageInputText("google.sheet.tab");
+	manageCheckboxSetting("google.sheet.enabled");
+	initGoogleTab();
 
 	//##TAB - DISCORD - WEBHOOKS:
 	manageCheckboxSetting("discord.active");
@@ -927,7 +933,8 @@ function manageTextarea(key) {
 
 function manageInputText(key) {
 	const val = Settings.get(key);
-	const obj = document.querySelector(`label[for='${key}'] input`);
+	// Find the field by its name; fall back to the older "input inside <label for=key>" layout.
+	const obj = document.querySelector(`input[name='${CSS.escape(key)}']`) || document.querySelector(`label[for='${key}'] input`);
 	if (obj == null) {
 		console.log("Item input name='" + key + "' does not exist");
 		return;
@@ -1108,6 +1115,69 @@ function manageCheckboxSetting(key, def = null) {
 		const element = document.querySelector(`input[name='${keyE}']`);
 		element.click();
 	}.bind(keyE);
+}
+
+//##TAB - GOOGLE: sign in, test the connection, preview what would be written (all through the service worker)
+function initGoogleTab() {
+	const $ = (id) => document.getElementById(id);
+	if (!$("googleSignIn")) return;
+	const ask = (msg) => new Promise((resolve) => chrome.runtime.sendMessage(msg, (res) => resolve(res)));
+	const show = (status, result = "") => {
+		$("googleStatus").textContent = status;
+		$("googleResult").textContent = result;
+	};
+	const explain = (res) => {
+		if (!res) return "No answer from the extension's background page.";
+		if (res.reason === "signin") return "Not signed in to Google yet: press \"1. Sign in to Google\".";
+		if (res.reason === "not-configured") return "Enter the spreadsheet URL (or ID) and the tab name first.";
+		if (res.reason === "disabled") return "Automatic adding is switched off.";
+		return "Failed: " + (res.error || "unknown error") + (res.status ? ` (HTTP ${res.status})` : "");
+	};
+	// what is typed right now (it is only saved when the field loses focus): used by the read-only buttons
+	const typedConfig = () => ({
+		id: document.querySelector("input[name='google.sheet.id']")?.value || "",
+		tab: document.querySelector("input[name='google.sheet.tab']")?.value || "",
+	});
+	const settle = () => Promise.resolve();
+
+	if (typeof window.popupView !== "undefined") {
+		for (const id of ["googleSignIn", "googleTest", "googlePreview"]) $(id).disabled = true;
+		show("Open the full settings page (not the toolbar popup) to sign in and test: Google's window cannot open from the popup.");
+		return;
+	}
+
+	$("googleSignIn").onclick = async () => {
+		show("Opening Google's sign-in window...");
+		const res = await ask({ type: "googleSignIn" });
+		show(res?.ok ? "Signed in." : explain(res));
+	};
+
+	$("googleTest").onclick = async () => {
+		show("Reading the sheet (nothing is written)...");
+		await settle();
+		const res = await ask({ type: "googleTest", config: typedConfig() });
+		if (!res?.ok) return show(explain(res));
+		show(
+			`Connected. ${res.orders} order(s) already on the sheet. Header row ${res.headerRow}, last data row ${res.lastDataRow}.`,
+			"Columns found: " + res.columns.join(", ")
+		);
+	};
+
+	$("googlePreview").onclick = async () => {
+		show("Building a sample row (nothing is written)...");
+		await settle();
+		const sample = {
+			orderNumber: "000-0000000-0000000",
+			orderDate: new Date().toISOString().slice(0, 10),
+			asin: "B000000000",
+			title: "VineTools preview order",
+			imageUrl: "https://m.media-amazon.com/images/I/31Vs7ybz1SL._SS210_.jpg",
+			etv: 12.34,
+		};
+		const res = await ask({ type: "googleAddOrders", orders: [sample], dryRun: true, config: typedConfig() });
+		if (!res?.ok) return show(explain(res));
+		show(`Preview only: ${res.added} row would be added, ${res.skipped} skipped. Nothing was written.`, JSON.stringify(res.requests, null, 1).slice(0, 6000));
+	};
 }
 
 function formatTime(ms) {

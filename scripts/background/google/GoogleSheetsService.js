@@ -1,0 +1,98 @@
+// Last compiled at 2026-11-05_0049
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
+/**
+ * The layer the service worker calls: reads the Google settings, signs in, tests the connection and adds orders.
+ * Everything chrome-specific is injected (auth, getConfig, makeClient) so it is unit tested in Node.
+ * Results are plain objects: {ok:true,...} or {ok:false, reason|error, status?} - never a thrown error, never a token.
+ */
+import { buildOrderValidation } from "./orderValidation.js";
+
+const ID_RE = /^[A-Za-z0-9_-]{20,}$/;
+
+/** A Google Sheets URL or a bare spreadsheet ID -> the ID, or null. */
+export function extractSpreadsheetId(input) {
+	if (typeof input !== "string") return null;
+	const v = input.trim();
+	if (ID_RE.test(v)) return v;
+	const m = v.match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/([A-Za-z0-9_-]{20,})(?:[/?#].*)?$/);
+	return m ? m[1] : null;
+}
+
+/** Reject if `promise` has not settled after `ms` (Chrome's token request can hang when sign-in is not possible). */
+function withTimeout(promise, ms, message) {
+	return new Promise((resolve, reject) => {
+		const timer = setTimeout(() => reject(new Error(message)), ms);
+		promise.then(
+			(v) => {
+				clearTimeout(timer);
+				resolve(v);
+			},
+			(e) => {
+				clearTimeout(timer);
+				reject(e);
+			}
+		);
+	});
+}
+
+export function createGoogleSheetsService({ getConfig, auth, makeClient, tokenTimeoutMs = 15000, signInTimeoutMs = 180000 }) {
+	// `override` (the values typed in the settings page) is only ever used by the read-only calls: test() and dry runs.
+	const config = (override) => {
+		const cfg = { ...(getConfig() || {}), ...(override && typeof override === "object" ? { id: override.id, tab: override.tab } : {}) };
+		const id = extractSpreadsheetId(cfg.id);
+		const tab = typeof cfg.tab === "string" ? cfg.tab.trim() : "";
+		return { enabled: !!cfg.enabled, id, tab, valid: !!id && tab.length > 0 };
+	};
+	const client = () =>
+		makeClient({
+			getToken: () => withTimeout(auth.getToken(false), tokenTimeoutMs, "Google did not answer: you are not signed in."),
+			clearToken: (t) => auth.clearToken(t),
+		});
+
+	const fail = (e) => {
+		const message = String(e?.message || e);
+		if (/not signed in|sign-in|OAuth2|interactive|did not approve/i.test(message)) return { ok: false, reason: "signin", error: message };
+		return { ok: false, error: message, ...(e?.status ? { status: e.status } : {}) };
+	};
+
+	return {
+		/** Must be called from a user click (Chrome shows Google's window). */
+		async signIn() {
+			try {
+				await withTimeout(auth.getToken(true), signInTimeoutMs, "Sign-in timed out. Please try again.");
+				return { ok: true };
+			} catch (e) {
+				return fail(e);
+			}
+		},
+
+		/** Reads the sheet only: finds the header row and counts the orders already there. Writes nothing. */
+		async test(override) {
+			const cfg = config(override);
+			if (!cfg.valid) return { ok: false, reason: "not-configured" };
+			try {
+				const dash = await client().loadDashboard(cfg.id, cfg.tab);
+				return { ok: true, orders: dash.orders.size, headerRow: dash.headerRow + 1, lastDataRow: dash.lastDataRow + 1, columns: Object.keys(dash.colMap) };
+			} catch (e) {
+				return fail(e);
+			}
+		},
+
+		/** @param {object[]} orders  @param {{dryRun?: boolean}} opts  dryRun returns what WOULD be written */
+		async addOrders(orders, { dryRun = false, config: override } = {}) {
+			const cfg = config(dryRun ? override : undefined); //a real write only ever uses the saved settings
+			if (!cfg.valid) return { ok: false, reason: "not-configured" };
+			if (!dryRun && !cfg.enabled) return { ok: false, reason: "disabled" };
+			const check = buildOrderValidation(orders);
+			if (!check.ok) return { ok: false, error: check.error };
+			try {
+				const res = await client().addOrders(cfg.id, cfg.tab, orders, { dryRun });
+				return { ok: true, ...res };
+			} catch (e) {
+				return fail(e);
+			}
+		},
+	};
+}

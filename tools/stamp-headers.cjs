@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Last compiled at 2026-11-05_0035
+// Last compiled at 2026-11-05_0049
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -78,8 +78,9 @@ function build(shebang, style, stamp, body, ext) {
 }
 
 function eligibleFiles() {
-	return git("ls-files", "-z")
-		.split("\0")
+	// tracked files AND new files not committed yet (otherwise a new file escapes the header and the check
+	// until the commit that adds it)
+	return [...new Set(git("ls-files", "--cached", "--others", "--exclude-standard", "-z").split("\0"))]
 		.filter(Boolean)
 		.filter((f) => STYLE[path.extname(f)] && !EXCLUDE.some((r) => r.test(f)))
 		.filter((f) => fs.existsSync(path.join(ROOT, f)));

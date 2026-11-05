@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-05_0049
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -18,6 +18,9 @@ import { ChromeStorageAdapter } from "/scripts/infrastructure/StorageAdapter.js"
 import { initializeServices, getSettingsManager } from "/scripts/infrastructure/SettingsFactoryEnhanced.js";
 import { sendWebhook } from "/scripts/background/DiscordSender.js";
 import { createBrowserFolderSync } from "/scripts/background/FolderSync.js";
+import { createGoogleAuth } from "/scripts/background/google/GoogleAuth.js";
+import { createSheetsClient } from "/scripts/background/google/SheetsClient.js";
+import { createGoogleSheetsService } from "/scripts/background/google/GoogleSheetsService.js";
 
 let Settings = null;
 let selectedWord = "";
@@ -56,6 +59,27 @@ const folderSync = createBrowserFolderSync(({ settings }) => {
 });
 
 //#####################################################
+//## GOOGLE SHEET (orders)
+//#####################################################
+
+const googleSheets = createGoogleSheetsService({
+	getConfig: () => ({
+		enabled: Settings?.get("google.sheet.enabled"),
+		id: Settings?.get("google.sheet.id"),
+		tab: Settings?.get("google.sheet.tab"),
+	}),
+	auth: createGoogleAuth(),
+	makeClient: (deps) => createSheetsClient(deps),
+});
+
+async function runGoogle(action) {
+	try {
+		if (Settings && Settings.refresh) await Settings.refresh(); //the settings page writes storage from another context
+	} catch (e) {}
+	return action();
+}
+
+//#####################################################
 //## MESSAGES
 //#####################################################
 
@@ -67,6 +91,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 	if (message.type === "folderSync") {
 		folderSync.syncNow(message.reason || "manual").then(sendResponse);
+		return true;
+	}
+
+	if (message.type === "googleSignIn") {
+		runGoogle(() => googleSheets.signIn()).then(sendResponse);
+		return true;
+	}
+
+	if (message.type === "googleTest") {
+		runGoogle(() => googleSheets.test(message.config)).then(sendResponse);
+		return true;
+	}
+
+	if (message.type === "googleAddOrders") {
+		runGoogle(() => googleSheets.addOrders(message.orders, { dryRun: !!message.dryRun, config: message.config })).then(sendResponse);
 		return true;
 	}
 

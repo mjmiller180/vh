@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0000
+// Last compiled at 2026-11-05_0049
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -95,14 +95,35 @@ test("buildOrderCells: the DASHBOARD columns from an order (links, IMAGE formula
 	assert.deepEqual(cells.map((c) => c.column).sort((a, b) => a - b), [0, 1, 2, 3, 4, 5], "must not touch the manual columns");
 });
 
-test("buildOrderCells: missing optional data is skipped; a quote in the image URL cannot break the formula; marketplace domain is honoured", () => {
+test("buildOrderCells: missing optional data is skipped; unsafe image URLs get no formula; marketplace domain is honoured", () => {
 	const m = mapColumns(HEADERS);
-	const cells = buildOrderCells({ orderNumber: ORDER.orderNumber, orderDate: ORDER.orderDate, asin: ORDER.asin, title: "T", imageUrl: 'https://x/y"z.jpg', domain: "www.amazon.co.uk" }, m);
+	const base = { orderNumber: ORDER.orderNumber, orderDate: ORDER.orderDate, asin: ORDER.asin, title: "T", domain: "www.amazon.co.uk" };
+	const cells = buildOrderCells({ ...base, imageUrl: "https://m.media-amazon.com/images/I/ok.jpg" }, m);
 	const byCol = Object.fromEntries(cells.map((c) => [c.column, c.cell]));
 	assert.equal(byCol[5], undefined, "no ETV known -> ETV left empty");
-	assert.equal(byCol[2].userEnteredValue.formulaValue, '=IMAGE("https://x/y""z.jpg")');
+	assert.equal(byCol[2].userEnteredValue.formulaValue, '=IMAGE("https://m.media-amazon.com/images/I/ok.jpg")');
 	assert.ok(byCol[1].textFormatRuns[0].format.link.uri.startsWith("https://www.amazon.co.uk/your-orders/"));
+	assert.equal(byCol[4].textFormatRuns[0].format.link.uri, "https://www.amazon.co.uk/dp/B0FZ9Y2B2T");
+	for (const bad of ['https://x/y"z.jpg', "http://m.media-amazon.com/a.jpg", "https://evil.example/a.jpg", "https://media-amazon.com.evil.example/a.jpg", 'https://m.media-amazon.com/a"b.jpg', "javascript:alert(1)"]) {
+		const c = buildOrderCells({ ...base, imageUrl: bad }, m);
+		assert.ok(!c.some((x) => x.column === 2), "no image cell for " + bad);
+	}
 	assert.throws(() => buildOrderCells({ ...ORDER, orderNumber: "bad" }, m), /order number/i);
+	assert.throws(() => buildOrderCells({ ...ORDER, domain: "evil.example" }, m), /domain/i);
+	// a malformed ASIN: title is written as plain text, not linked
+	const plain = buildOrderCells({ ...ORDER, asin: "../x" }, m).find((x) => x.column === 4).cell;
+	assert.equal(plain.textFormatRuns, undefined);
+	// no previous row to copy from: number formats are set
+	const f = buildOrderCells(ORDER, m, { withFormats: true });
+	assert.equal(f.find((x) => x.column === 0).cell.userEnteredFormat.numberFormat.type, "DATE");
+	assert.equal(f.find((x) => x.column === 5).cell.userEnteredFormat.numberFormat.type, "CURRENCY");
+});
+
+test("buildFieldCells: a review link that is not an Amazon URL is written as plain text", () => {
+	const m = mapColumns(HEADERS);
+	const c = buildFieldCells({ reviewLink: "https://evil.example/x" }, m)[0].cell;
+	assert.equal(c.textFormatRuns, undefined);
+	assert.equal(c.userEnteredValue.stringValue, "https://evil.example/x");
 });
 
 test("buildFieldCells: only the fields given (review columns), nothing else", () => {
@@ -200,4 +221,52 @@ test("a sheet without the expected header row is refused instead of written to b
 	const fake = fakeSheets({ rows: [["a", "b"], ["c", "d"]] });
 	await assert.rejects(() => makeClient(fake).addOrders("SID", "DASHBOARD", [ORDER]), /ORDER #/);
 	assert.equal(fake.calls.filter((c) => c.method === "POST").length, 0);
+});
+
+test("concurrent addOrders calls are serialised: the second sees the first one's row and uses the next free row", async () => {
+	const fake = fakeSheets({ rows: baseRows() });
+	const o2 = { ...ORDER, orderNumber: "112-2553095-9098631", asin: "B0G48KCKP7" };
+	const client = makeClient(fake);
+	const [a, b] = await Promise.all([client.addOrders("SID", "DASHBOARD", [ORDER]), client.addOrders("SID", "DASHBOARD", [o2])]);
+	assert.deepEqual([a.added, b.added], [1, 1]);
+	assert.equal(fake.state.grid[4][1], ORDER.orderNumber);
+	assert.equal(fake.state.grid[5][1], o2.orderNumber);
+	// the same order submitted twice at once is only written once
+	const f2 = fakeSheets({ rows: baseRows() });
+	const c2 = makeClient(f2);
+	const rs = await Promise.all([c2.addOrders("SID", "DASHBOARD", [ORDER]), c2.addOrders("SID", "DASHBOARD", [ORDER])]);
+	assert.deepEqual(rs.map((r) => r.added).sort(), [0, 1]);
+});
+
+test("HTTP: a 5xx on a WRITE is not retried (it may have been applied)", async () => {
+	const fake = fakeSheets({ rows: baseRows() });
+	// two reads (meta, values) succeed, then the POST fails
+	let n = 0;
+	const inner = fake.handler;
+	fake.handler = async (url, opts = {}) => (opts.method === "POST" && ++n ? { ok: false, status: 503, json: async () => ({ error: { message: "backend" } }), headers: { get: () => null } } : inner(url, opts));
+	await assert.rejects(() => makeClient(fake).addOrders("SID", "DASHBOARD", [ORDER]), (e) => e instanceof SheetsError && e.status === 503);
+	assert.equal(n, 1, "POST sent exactly once");
+});
+
+test("addOrders: format/validation copy spans the whole row width (sheet columns beyond the mapped ones)", async () => {
+	const fake = fakeSheets({ rows: baseRows() }); // fake sheet reports columnCount 31
+	const reqs = (await makeClient(fake).addOrders("SID", "DASHBOARD", [ORDER], { dryRun: true })).requests;
+	const paste = reqs.find((r) => r.copyPaste);
+	assert.equal(paste.copyPaste.destination.endColumnIndex, 31);
+	assert.equal(paste.copyPaste.destination.startColumnIndex, 0);
+});
+
+test("addOrders: a half-filled row below the data counts as used (not overwritten); an empty sheet gets number formats", async () => {
+	const rows = baseRows();
+	rows.push(["", "", "", "", "Half typed title"]); // title only
+	const fake = fakeSheets({ rows });
+	await makeClient(fake).addOrders("SID", "DASHBOARD", [ORDER]);
+	assert.equal(fake.state.grid[5][1], ORDER.orderNumber, "written below the half-filled row 4");
+	assert.equal(fake.state.grid[4][4], "Half typed title");
+
+	const empty = fakeSheets({ rows: [HEADERS] });
+	const res = await makeClient(empty).addOrders("SID", "DASHBOARD", [ORDER], { dryRun: true });
+	assert.ok(!res.requests.some((r) => r.copyPaste), "no source row -> no copy");
+	const withFmt = res.requests.filter((r) => r.updateCells && r.updateCells.fields.includes("numberFormat"));
+	assert.equal(withFmt.length, 2, "date and ETV cells carry their number format");
 });
