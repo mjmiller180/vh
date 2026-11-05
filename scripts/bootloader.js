@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-05_0035
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -53,6 +53,8 @@ var DialogMgr = new ModalMgr();
 
 
 import { Pagination } from "/scripts/ui/controllers/Pagination.js";
+import { SmartSkip } from "/scripts/core/services/SmartSkip.js";
+const smartSkip = new SmartSkip();
 var pagination = new Pagination();
 import { PinnedListMgr } from "/scripts/core/services/PinnedListMgr.js";
 var PinnedList = new PinnedListMgr();
@@ -227,6 +229,7 @@ async function init() {
 				: "The last sync failed: " + escapeHTML(String(syncResult.error || "unknown error"));
 		Notifications.pushNotification(note);
 	}
+	smartSkip.install(); //SmartSkip keyboard shortcuts
 	await initCreateTabs(); //Create the 4 grids/tabs
 	logger.add("BOOT: Waiting for environment to load");
 	await env.waitForLoad(); // Ensure environment is loaded before creating toolbars
@@ -1027,6 +1030,8 @@ async function finishProducts() {
 	hookMgr.hookExecute("productsUpdated", null);
 
 	showGridContainer(); //Show the grid after all processing is complete
+
+	smartSkip.onPageReady(); //Auto-paging (only does anything while a SmartSkip session is running in this tab)
 }
 
 //#########################

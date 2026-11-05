@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// Last compiled at 2026-11-05_0035
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 // Puts the project copyright header on every source file and keeps its "Last compiled at" time current.
 //
 //   node tools/stamp-headers.cjs           add/refresh headers (files whose content changed since HEAD get "now")

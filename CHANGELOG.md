@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-04_2317 -->
+<!-- Last compiled at 2026-11-05_0035 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -6,6 +6,14 @@
 # Changelog
 
 ## [VineTools 4.5] - 2026-11
+
+### Added
+- SmartSkip: automatic page scanner (start k, pause Space, stop Escape) that stops at the first unpinned item, built into
+  the extension (uses the pinned list and the Available grid directly, status box without innerHTML, toasts instead of alert).
+- DASHBOARD row builder + Sheets client (tested against an in-memory fake; not wired in yet).
+
+### Fixed
+- On-screen messages could be silently dropped when sent before the notification container existed; the notifier now waits for it.
 
 ### Renamed
 - The extension is now **VineTools**, a separate extension. User-visible names, the sync file (`vinetools-sync.json`) and the

@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-05_0035
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -16,7 +16,7 @@ const FIXTURE = fs.readFileSync(path.join(__dirname, "fixture-vine.html"), "utf8
 // Let Playwright report network traffic from extension service workers too.
 process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = "1";
 
-async function launch({ extraRoutes } = {}) {
+async function launch({ extraRoutes, pageRenderer } = {}) {
 	const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "vh-e2e-"));
 	const ctx = await chromium.launchPersistentContext(userDataDir, {
 		headless: false,
@@ -44,7 +44,7 @@ async function launch({ extraRoutes } = {}) {
 			if (handled) return;
 		}
 		if (/^https:\/\/www\.amazon\.com\/vine\//.test(url) && route.request().resourceType() === "document") {
-			return route.fulfill({ status: 200, contentType: "text/html", body: FIXTURE });
+			return route.fulfill({ status: 200, contentType: "text/html", body: pageRenderer ? pageRenderer(url) : FIXTURE });
 		}
 		log.blocked.push(url);
 		return route.abort("blockedbyclient");

@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-04_2317 -->
+<!-- Last compiled at 2026-11-05_0035 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -236,6 +236,63 @@
 			<label for="keyBindings.debug" class="right-align">
 				Show Debug Info
 				<input type="text" name="keyBindings.debug" id="keyBindingsDebug" size="1" maxlength="1" value="" />
+			</label>
+		</div>
+	</fieldset>
+	<fieldset>
+		<legend>
+			<label for="smartSkip.enabled">
+				<input type="checkbox" name="smartSkip.enabled" value="1" />
+				SmartSkip (automatic page scanner)
+			</label>
+		</legend>
+		<p>
+			Press the start key on a Vine page and VineTools pages through the queue on a timer, stopping at the first
+			page with an item you have <strong>not pinned</strong> (items already hidden are ignored). Space pauses or
+			resumes, Escape stops and shows the totals. Pinning or hiding the items and pressing Space continues.
+			Pages are never turned faster than every 2 seconds.
+		</p>
+		<div class="setting-container">
+			<label for="smartSkip.startQueue">
+				Queue to scan:
+				<select name="smartSkip.startQueue">
+					<option value="encore">AI (Additional items)</option>
+					<option value="potluck">RFY (Recommended for you)</option>
+					<option value="last_chance">AFA (Available for all)</option>
+					<option value="all_items">All items</option>
+				</select>
+			</label>
+		</div>
+		<div class="setting-container">
+			<label for="keyBindings.smartSkipStart" class="right-align">
+				Start key
+				<input type="text" name="keyBindings.smartSkipStart" size="6" maxlength="10" />
+			</label>
+			<label for="keyBindings.smartSkipPause" class="right-align">
+				Pause / resume key (type "Space" for the space bar)
+				<input type="text" name="keyBindings.smartSkipPause" size="6" maxlength="10" />
+			</label>
+			<label for="keyBindings.smartSkipStop" class="right-align">
+				Stop key
+				<input type="text" name="keyBindings.smartSkipStop" size="6" maxlength="10" />
+			</label>
+		</div>
+		<div class="setting-container">
+			<label for="smartSkip.maxPages">
+				Stop after this many pages:
+				<input type="text" name="smartSkip.maxPages" size="5" maxlength="5" />
+			</label>
+		</div>
+		<div class="setting-container">
+			<label>
+				Delay between pages, tab in front (ms, min / max):
+				<input type="text" name="smartSkip.delay.active.min" size="5" maxlength="5" />
+				<input type="text" name="smartSkip.delay.active.max" size="5" maxlength="5" />
+			</label>
+			<label>
+				tab in background (ms, min / max):
+				<input type="text" name="smartSkip.delay.background.min" size="5" maxlength="5" />
+				<input type="text" name="smartSkip.delay.background.max" size="5" maxlength="5" />
 			</label>
 		</div>
 	</fieldset>

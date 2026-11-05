@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-05_0035
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -17,6 +17,10 @@ const ROOT = path.resolve(__dirname, "..");
 const SKIP = new Set([".git", "node_modules", "tests", "tools"]);
 
 const HOST_ALLOW = [/(^|\.)amazon\.[a-z.]+$/, /(^|\.)media-amazon\.com$/, /^(discord|discordapp)\.com$/, /(^|\.)(discord|discordapp)\.com$/, /^www\.w3\.org$/];
+// Google API hosts are only acceptable inside the Google client code. (Being named in code is not enough to be
+// reachable: the manifest CSP must allow the host too, and this guard checks the manifest separately.)
+const GOOGLE_API_HOSTS = ["sheets.googleapis.com", "www.googleapis.com"];
+const GOOGLE_DIR = "scripts/background/google/";
 const hostOk = (h) => HOST_ALLOW.some((r) => r.test(h.toLowerCase())) || h.includes("*.amazon.") || h.includes("${") || h.includes("{{");
 
 // Files allowed to call a given primitive, with the reason.
@@ -64,7 +68,8 @@ for (const f of walk(ROOT)) {
 	if (isHtml) scan = scan.replace(/<!--[\s\S]*?-->/g, ""); // comments (the copyright header carries a URL)
 	if (ext === ".css") scan = scan.replace(/\/\*[\s\S]*?\*\//g, "");
 	for (const m of scan.matchAll(/(https?|wss?):\/\/([A-Za-z0-9*._${}-]+)/g)) {
-		if (!hostOk(m[2])) problems.push(`${r}: URL to non-allowed host "${m[2]}"`);
+		const googleOk = r.startsWith(GOOGLE_DIR) && GOOGLE_API_HOSTS.includes(m[2].toLowerCase());
+		if (!hostOk(m[2]) && !googleOk) problems.push(`${r}: URL to non-allowed host "${m[2]}"`);
 	}
 
 	// ---- 2. network primitives

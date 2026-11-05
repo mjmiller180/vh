@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-05_0035
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -287,6 +287,16 @@ async function initiateSettings(firstRun = false) {
 	manageInputText("keyBindings.hideAllNext");
 	manageInputText("keyBindings.debug");
 	manageInputText("keyBindings.firstPage");
+	manageInputText("keyBindings.smartSkipStart");
+	manageInputText("keyBindings.smartSkipPause");
+	manageInputText("keyBindings.smartSkipStop");
+	manageCheckboxSetting("smartSkip.enabled");
+	manageSelectBox("smartSkip.startQueue");
+	manageInputText("smartSkip.maxPages");
+	manageInputText("smartSkip.delay.active.min");
+	manageInputText("smartSkip.delay.active.max");
+	manageInputText("smartSkip.delay.background.min");
+	manageInputText("smartSkip.delay.background.max");
 
 	//##TAB - STYLES
 

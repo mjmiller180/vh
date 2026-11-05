@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-05_0035
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -465,9 +465,23 @@ export class SettingsMgrDI {
 				hideAll: "h",
 				nextPage: "n",
 				pauseFeed: "f",
+				smartSkipStart: "k",
+				smartSkipPause: "Space",
+				smartSkipStop: "Escape",
 				previousPage: "p",
 				RFYPage: "r",
 				showAll: "s",
+			},
+
+			// SmartSkip: automatic paging that stops at the first unpinned item (see SmartSkip.js)
+			smartSkip: {
+				enabled: true,
+				startQueue: "encore",
+				maxPages: 300,
+				delay: {
+					active: { min: 2500, max: 4000 },
+					background: { min: 3500, max: 3500 },
+				},
 			},
 
 			hiddenTab: {
