@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1435
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -147,7 +147,7 @@ async function test(name, fn) {
 	});
 
 	console.log("\nCheckout -> delivery date");
-	const pending = () => sw.evaluate(async () => (await chrome.storage.local.get("vt.checkout.pending"))["vt.checkout.pending"] || {});
+	const pending = () => sw.evaluate(async () => (await chrome.storage.local.get("vs.checkout.pending"))["vs.checkout.pending"] || {});
 	await test("checkout page: the item and its arrival date are remembered; an abandoned checkout is not used", async () => {
 		const a = await open("/checkout/p/p-106-1111111-2222222/spc");
 		const b = await open("/checkout/p/p-106-3333333-4444444/spc");
@@ -170,9 +170,9 @@ async function test(name, fn) {
 		assert.equal((await pending())["106-3333333-4444444"].placedOn, null);
 		// the fixture orders are dated 2026-11-04: pretend the order was placed that day, whatever today is
 		await sw.evaluate(async () => {
-			const o = (await chrome.storage.local.get("vt.checkout.pending"))["vt.checkout.pending"];
+			const o = (await chrome.storage.local.get("vs.checkout.pending"))["vs.checkout.pending"];
 			o["106-1111111-2222222"].placedOn = "2026-11-04";
-			await chrome.storage.local.set({ "vt.checkout.pending": o });
+			await chrome.storage.local.set({ "vs.checkout.pending": o });
 		});
 	});
 
@@ -211,7 +211,7 @@ async function test(name, fn) {
 
 	await test("'Send all orders' walks pages 1-3 and adds only the 20 new ones", async () => {
 		const page = await open("/vine/orders");
-		await page.locator("#vt-sheet-sync-all").click();
+		await page.locator("#vs-sheet-sync-all").click();
 		await waitFor(async () => /Added 20 order/.test(await toasts(page)), 40000);
 		assert.equal(sheet.grid.length, 3 + 30);
 		const nums = sheet.grid.slice(3).map((r) => r[1]);
@@ -251,7 +251,7 @@ async function test(name, fn) {
 		await page.waitForTimeout(3500);
 		assert.equal(log.requests.filter((r) => /sheets\.googleapis/.test(r.url)).length, reqs);
 		assert.equal(sheet.posts.length, before);
-		assert.equal(await page.locator("#vt-sheet-sync-all").count(), 0, "no extra button either");
+		assert.equal(await page.locator("#vs-sheet-sync-all").count(), 0, "no extra button either");
 		await page.close();
 	});
 

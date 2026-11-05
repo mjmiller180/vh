@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0130
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -41,7 +41,7 @@ test("drafts: saved per key, expire after 30 days, at most 60 kept, concurrent s
 		t += 1000;
 		await d.put("k" + i, { title: "", text: "x" + i });
 	}
-	assert.equal(Object.keys(st.data["vt.review.drafts"]).length, 60);
+	assert.equal(Object.keys(st.data["vs.review.drafts"]).length, 60);
 	assert.equal((await d.get("k69")).text, "x69");
 	assert.equal(await d.get("k0"), null, "oldest dropped");
 	await d.put("s", { title: "t", text: "x", submittedAt: 5 });
@@ -50,7 +50,7 @@ test("drafts: saved per key, expire after 30 days, at most 60 kept, concurrent s
 
 test("drafts: very long text is capped; junk in storage is ignored", async () => {
 	const st = memory();
-	st.data["vt.review.drafts"] = ["not", "an", "object"];
+	st.data["vs.review.drafts"] = ["not", "an", "object"];
 	const d = createDraftStore(st);
 	await d.put("a", { title: "x".repeat(900), text: "y".repeat(50000) });
 	const got = await d.get("a");
@@ -60,16 +60,16 @@ test("drafts: very long text is capped; junk in storage is ignored", async () =>
 
 test("snippets: add / rename / remove, validated on read, concurrent adds all land", async () => {
 	const st = memory();
-	const s = createSnippetStore(st, "vt.review.templates");
+	const s = createSnippetStore(st, "vs.review.templates");
 	await Promise.all(["a", "b", "c"].map((id) => s.add({ id, name: "N" + id, text: "T" + id })));
 	assert.deepEqual((await s.list()).map((x) => x.id).sort(), ["a", "b", "c"]);
 	await s.rename("b", "Bee");
 	assert.equal((await s.list()).find((x) => x.id === "b").name, "Bee");
 	await s.remove("a");
 	assert.deepEqual((await s.list()).map((x) => x.id).sort(), ["b", "c"]);
-	st.data["vt.review.templates"] = [{ id: "ok", name: "n", text: "t" }, null, { id: 5 }, "junk"];
+	st.data["vs.review.templates"] = [{ id: "ok", name: "n", text: "t" }, null, { id: 5 }, "junk"];
 	assert.deepEqual((await s.list()).map((x) => x.id), ["ok"]);
-	st.data["vt.review.templates"] = "garbage";
+	st.data["vs.review.templates"] = "garbage";
 	assert.deepEqual(await s.list(), []);
 });
 

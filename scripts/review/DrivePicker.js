@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0209
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -18,29 +18,29 @@ const send = (message) =>
 	});
 
 const CSS = `
-.vtd-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100001;display:flex;align-items:center;justify-content:center}
-.vtd-panel{background:#fff;color:#111;width:min(860px,94vw);max-height:88vh;display:flex;flex-direction:column;border-radius:8px;padding:14px;gap:8px}
-.vtd-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.vtd-grid{overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;min-height:120px}
-.vtd-item{border:1px solid #ccc;border-radius:6px;padding:4px;cursor:pointer;background:#fafafa;position:relative;display:flex;flex-direction:column;gap:2px}
-.vtd-item.sel{outline:3px solid #2196f3}
-.vtd-item img,.vtd-thumb{width:100%;height:100px;object-fit:cover;background:#e5e5e5;display:block}
-.vtd-name{font-size:.75em;word-break:break-all}
-.vtd-msg{font-size:.9em;color:#555;min-height:1.2em}
-.vtd-panel button,.vtd-panel input{font-size:1em;padding:3px 8px}
+.vsd-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100001;display:flex;align-items:center;justify-content:center}
+.vsd-panel{background:#fff;color:#111;width:min(860px,94vw);max-height:88vh;display:flex;flex-direction:column;border-radius:8px;padding:14px;gap:8px}
+.vsd-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.vsd-grid{overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;min-height:120px}
+.vsd-item{border:1px solid #ccc;border-radius:6px;padding:4px;cursor:pointer;background:#fafafa;position:relative;display:flex;flex-direction:column;gap:2px}
+.vsd-item.sel{outline:3px solid #2196f3}
+.vsd-item img,.vsd-thumb{width:100%;height:100px;object-fit:cover;background:#e5e5e5;display:block}
+.vsd-name{font-size:.75em;word-break:break-all}
+.vsd-msg{font-size:.9em;color:#555;min-height:1.2em}
+.vsd-panel button,.vsd-panel input{font-size:1em;padding:3px 8px}
 `;
 
 const b64ToBytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 
 function reasonText(res) {
-	if (res.reason === "signin") return "Sign in to Google first: VineTools settings, Google tab, \"Sign in to Google\".";
-	if (res.reason === "disabled") return "Pictures from Google Drive are switched off in VineTools' settings (Google tab).";
+	if (res.reason === "signin") return "Sign in to Google first: VineSmyths settings, Google tab, \"Sign in to Google\".";
+	if (res.reason === "disabled") return "Pictures from Google Drive are switched off in VineSmyths' settings (Google tab).";
 	return String(res.error || "Something went wrong").slice(0, 200);
 }
 
 /** @param {{attach: (files: File[]) => void}} deps */
 export function openDrivePicker({ attach }) {
-	if (document.querySelector(".vtd-modal")) return;
+	if (document.querySelector(".vsd-modal")) return;
 	const style = document.createElement("style");
 	style.textContent = CSS;
 	const mk = (tag, props = {}, kids = []) => {
@@ -59,8 +59,8 @@ export function openDrivePicker({ attach }) {
 	let view = { folderId: null, search: "", next: null, trail: [] }; // trail: where "Up" goes back to
 	let token = 0; // a newer listing makes older answers irrelevant
 
-	const msg = mk("div", { class: "vtd-msg", "aria-live": "polite" });
-	const grid = mk("div", { class: "vtd-grid" });
+	const msg = mk("div", { class: "vsd-msg", "aria-live": "polite" });
+	const grid = mk("div", { class: "vsd-grid" });
 	const where = mk("strong", { text: "Newest pictures" });
 	const search = mk("input", { type: "search", placeholder: "Search by file name", "aria-label": "Search by file name" });
 	const addBtn = mk("button", { type: "button", text: "Add 0 pictures", disabled: "" });
@@ -92,14 +92,14 @@ export function openDrivePicker({ attach }) {
 
 	const card = (f) => {
 		if (f.isFolder) {
-			return mk("div", { class: "vtd-item", role: "button", tabindex: "0", onclick: () => openFolder(f) }, [
-				mk("div", { class: "vtd-thumb", text: "📁" }),
-				mk("div", { class: "vtd-name", text: f.name }),
+			return mk("div", { class: "vsd-item", role: "button", tabindex: "0", onclick: () => openFolder(f) }, [
+				mk("div", { class: "vsd-thumb", text: "📁" }),
+				mk("div", { class: "vsd-name", text: f.name }),
 			]);
 		}
-		const img = mk("img", { alt: "", class: "vtd-thumb" });
+		const img = mk("img", { alt: "", class: "vsd-thumb" });
 		if (f.thumbnailLink) queue.push({ link: f.thumbnailLink, img });
-		const c = mk("div", { class: "vtd-item", role: "checkbox", tabindex: "0", "aria-checked": "false", title: f.name }, [img, mk("div", { class: "vtd-name", text: f.name })]);
+		const c = mk("div", { class: "vsd-item", role: "checkbox", tabindex: "0", "aria-checked": "false", title: f.name }, [img, mk("div", { class: "vsd-name", text: f.name })]);
 		const toggle = () => {
 			const on = !selected.has(f.id);
 			if (on) selected.set(f.id, f.name);
@@ -147,7 +147,7 @@ export function openDrivePicker({ attach }) {
 		load({ folderId: f.id, name: f.name, searchText: "" });
 	};
 
-	const bar = mk("div", { class: "vtd-bar" }, [
+	const bar = mk("div", { class: "vsd-bar" }, [
 		mk("button", { type: "button", text: "Newest", onclick: () => ((view.trail = []), load({ folderId: null, searchText: "" })) }),
 		mk("button", { type: "button", text: "My folder", onclick: () => ((view.trail = []), load({ folderId: "start", searchText: "" })) }),
 		mk("button", { type: "button", text: "↑ Up", onclick: () => { const t = view.trail.pop(); load(t ? { folderId: t.folderId, name: t.name, searchText: "" } : { folderId: null, searchText: "" }); } }),
@@ -175,13 +175,13 @@ export function openDrivePicker({ attach }) {
 		attach(files);
 	});
 
-	const modal = mk("div", { class: "vtd-modal", onclick: (e) => e.target === modal && close() }, [
-		mk("div", { class: "vtd-panel", role: "dialog", "aria-label": "Pictures from Google Drive" }, [
-			mk("div", { class: "vtd-bar" }, [mk("h3", { text: "Pictures from Google Drive", style: "margin:0;flex:1" }), mk("button", { type: "button", text: "Close", onclick: close })]),
+	const modal = mk("div", { class: "vsd-modal", onclick: (e) => e.target === modal && close() }, [
+		mk("div", { class: "vsd-panel", role: "dialog", "aria-label": "Pictures from Google Drive" }, [
+			mk("div", { class: "vsd-bar" }, [mk("h3", { text: "Pictures from Google Drive", style: "margin:0;flex:1" }), mk("button", { type: "button", text: "Close", onclick: close })]),
 			bar,
 			grid,
 			msg,
-			mk("div", { class: "vtd-bar" }, [more, addBtn]),
+			mk("div", { class: "vsd-bar" }, [more, addBtn]),
 		]),
 	]);
 	document.head.append(style);

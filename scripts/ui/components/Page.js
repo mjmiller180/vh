@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -335,7 +335,7 @@ class Page {
 		for (const vvpItemTile of vvpItemTiles) {
 			let asin = Tile.getASINFromDom(vvpItemTile);
 			if (!asin) {
-				console.warn("VineTools: Skipping tile without ASIN in hideAllItems");
+				console.warn("VineSmyths: Skipping tile without ASIN in hideAllItems");
 				continue; // Skip this tile if no ASIN found
 			}
 			arrTile.push({ asin: asin, hidden: true });
@@ -381,7 +381,7 @@ class Page {
 		for (const vvpItemTile of vvpItemTiles) {
 			let asin = Tile.getASINFromDom(vvpItemTile);
 			if (!asin) {
-				console.warn("VineTools: Skipping tile without ASIN in showAllItems");
+				console.warn("VineSmyths: Skipping tile without ASIN in showAllItems");
 				continue; // Skip this tile if no ASIN found
 			}
 			arrTile.push({ asin: asin, hidden: false });

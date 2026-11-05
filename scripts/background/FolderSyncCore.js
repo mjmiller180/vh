@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -6,14 +6,14 @@
  * Folder sync engine (dependency-injected so it can be tested in Node with a fake folder).
  *
  * The user picks a folder (typically inside Google Drive for Desktop). One JSON file in it,
- * vinetools-sync.json, holds the settings and the hidden/pinned lists. Every device that points at
+ * vinesmyths-sync.json, holds the settings and the hidden/pinned lists. Every device that points at
  * the same folder merges its state with that file (see SyncMerge.js).
  *
  * Nothing leaves the computer except through the user's own Drive client writing that file.
  */
 import { mergeState, toFile, parseFile, normaliseListMap } from "../core/utils/SyncMerge.js";
 
-export const SYNC_FILE_NAME = "vinetools-sync.json";
+export const SYNC_FILE_NAME = "vinesmyths-sync.json";
 const STATE_KEYS = ["settings", "settingsModifiedAt", "hiddenItems", "pinnedItems", "syncTombstones"];
 
 export function createFolderSync({ handleStore, storage, notifyTabs = () => {}, fileName = SYNC_FILE_NAME, now = Date.now }) {

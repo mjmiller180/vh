@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0049
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -304,7 +304,7 @@ async function test(name, fn) {
 		const file = await sp.evaluate(async () => {
 			const root = await navigator.storage.getDirectory();
 			const dir = await root.getDirectoryHandle("shared-drive-folder");
-			const fh = await dir.getFileHandle("vinetools-sync.json");
+			const fh = await dir.getFileHandle("vinesmyths-sync.json");
 			return JSON.parse(await (await fh.getFile()).text());
 		});
 		assert.equal(file.format, 1);
@@ -317,7 +317,7 @@ async function test(name, fn) {
 		await sp.evaluate(async () => {
 			const root = await navigator.storage.getDirectory();
 			const dir = await root.getDirectoryHandle("shared-drive-folder");
-			const fh = await dir.getFileHandle("vinetools-sync.json");
+			const fh = await dir.getFileHandle("vinesmyths-sync.json");
 			const cur = JSON.parse(await (await fh.getFile()).text());
 			cur.hiddenItems.FROM_OTHER_PC = Date.now() - 500;
 			cur.settingsModifiedAt = Date.now() + 5000;
@@ -355,14 +355,14 @@ async function test(name, fn) {
 		sp.evaluate(async () => {
 			const root = await navigator.storage.getDirectory();
 			const dir = await root.getDirectoryHandle("shared-drive-folder");
-			const fh = await dir.getFileHandle("vinetools-sync.json");
+			const fh = await dir.getFileHandle("vinesmyths-sync.json");
 			return JSON.parse(await (await fh.getFile()).text());
 		});
 	const writeSyncFile = (obj) =>
 		sp.evaluate(async (obj) => {
 			const root = await navigator.storage.getDirectory();
 			const dir = await root.getDirectoryHandle("shared-drive-folder");
-			const fh = await dir.getFileHandle("vinetools-sync.json", { create: true });
+			const fh = await dir.getFileHandle("vinesmyths-sync.json", { create: true });
 			const w = await fh.createWritable();
 			await w.write(JSON.stringify(obj));
 			await w.close();

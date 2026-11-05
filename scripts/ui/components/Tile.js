@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -69,7 +69,7 @@ class Tile {
 		// Check if ASIN extraction failed
 		if (!this.#asin) {
 			logger.add("WARNING: Creating Tile with null ASIN - tile will have limited functionality");
-			console.warn("VineTools: Tile created without ASIN", obj);
+			console.warn("VineSmyths: Tile created without ASIN", obj);
 			// Mark the tile DOM to indicate it has no ASIN
 			this.#tileDOM.classList.add("vh-no-asin");
 			this.#tileDOM.dataset.vhNoAsin = "true";
@@ -659,7 +659,7 @@ class Tile {
 		logger.add(
 			"TILE: WARNING - Could not extract ASIN from tile. Tile HTML: " + tileDom.outerHTML.substring(0, 200)
 		);
-		console.warn("VineTools: Could not extract ASIN from tile", tileDom);
+		console.warn("VineSmyths: Could not extract ASIN from tile", tileDom);
 		return null;
 	}
 

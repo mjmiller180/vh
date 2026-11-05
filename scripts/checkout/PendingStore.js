@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1050
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -7,7 +7,7 @@
  * { [purchaseId]: { seenAt, placedOn: "YYYY-MM-DD" | null, groups: [{arriving, items: [{asin, title}]}] } }
  * Only entries whose thank-you page was seen (the order was really placed) are ever used.
  */
-const KEY = "vt.checkout.pending";
+const KEY = "vs.checkout.pending";
 const TTL_MS = 30 * 24 * 3600 * 1000;
 const MAX_ENTRIES = 50;
 

@@ -1,7 +1,7 @@
 {
-	"name": "vinetools",
+	"name": "vinesmyths",
 	"private": true,
-	"description": "VineTools: Amazon Vine extension with no third-party servers, your own Discord webhook and folder sync.",
+	"description": "VineSmyths: Amazon Vine extension with no third-party servers, your own Discord webhook and folder sync.",
 	"scripts": {
 		"check": "node tools/check-refs.cjs && node tools/check-no-external.cjs && node tools/stamp-headers.cjs --check",
 		"stamp": "node tools/stamp-headers.cjs",

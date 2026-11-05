@@ -1,9 +1,9 @@
-<!-- Last compiled at 2026-11-05_1200 -->
+<!-- Last compiled at 2026-11-05_1508 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
 
-# VineTools
+# VineSmyths
 
 A browser extension for Amazon Vine. **It never contacts any server of its own or any
 third party.** The only traffic it adds on top of Amazon's own is a POST to *your* Discord webhook, if you
@@ -29,7 +29,7 @@ checkout recording, sounds, confetti.
 
 ## SmartSkip (Settings -> Keyboard)
 
-Press **k** on a Vine page and VineTools pages through the queue on a timer, stopping at the first page that has an item
+Press **k** on a Vine page and VineSmyths pages through the queue on a timer, stopping at the first page that has an item
 you have **not pinned** (items already hidden are ignored). **Space** pauses / resumes (resuming re-checks the page you
 are on, so pin or hide what it found and press Space to carry on), **Escape** stops and shows the totals, the previous-page
 key applies the brake (and also goes back one page), and the next-page / hide-all keys hand control back to you (scanning resumes on the next page).
@@ -41,7 +41,7 @@ convenience you run at your own risk and keep the delays generous.
 
 - **Orders → sheet.** Open Vine → Orders: new orders are added to the DASHBOARD tab of your sheet (date, order number,
   picture, ORDERED, title, ETV). The button above the list ("Send all orders to the sheet") does every page.
-- **Delivery date.** At checkout and on the "Order placed" page, VineTools remembers the estimated delivery date; when the
+- **Delivery date.** At checkout and on the "Order placed" page, VineSmyths remembers the estimated delivery date; when the
   order shows up on the Orders page the new row gets it in DELIVERY DATE. (Neither page shows the order number, so the
   rows themselves still come from the Orders page.)
 - **Reviews → sheet.** Open Vine → Reviews (Awaiting / Reviewed): status, quality score and review link are filled in on the
@@ -74,7 +74,7 @@ Automatic triggers run while you browse Vine pages; there is no background monit
 ## Sync with a Google Drive folder (Settings → Sync)
 
 Choose a folder inside **Google Drive for desktop** (e.g. `G:\My Drive\Amz Vine\Sync`). The extension keeps one
-file there, `vinetools-sync.json`, with your settings, hidden items and pinned items; Drive uploads it, and every
+file there, `vinesmyths-sync.json`, with your settings, hidden items and pinned items; Drive uploads it, and every
 computer pointing at the same folder merges with it:
 
 * hidden / pinned lists: the most recent action per item wins (un-hide and un-pin propagate);

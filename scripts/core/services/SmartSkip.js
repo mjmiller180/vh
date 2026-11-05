@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0049
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -43,7 +43,7 @@ import {
 	startUrl,
 } from "/scripts/core/utils/SmartSkipLogic.js";
 
-const STORAGE_KEY = "vt.smartskip";
+const STORAGE_KEY = "vs.smartskip";
 const isTabActive = () => !document.hidden && document.hasFocus();
 
 class SmartSkip {
@@ -282,7 +282,7 @@ class SmartSkip {
 		}
 		if (!this.#box) {
 			this.#box = document.createElement("div");
-			this.#box.id = "vt-smartskip";
+			this.#box.id = "vs-smartskip";
 			this.#box.style.cssText =
 				"position:fixed;bottom:10px;right:10px;background:rgba(0,0,0,0.9);color:white;padding:12px;border-radius:8px;z-index:9999;font-family:monospace;font-size:12px;line-height:1.4;box-shadow:0 4px 10px rgba(0,0,0,0.5);border:1px solid #444;min-width:180px;pointer-events:none;";
 			document.body.appendChild(this.#box);

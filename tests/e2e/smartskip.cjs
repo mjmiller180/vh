@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0049
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -66,8 +66,8 @@ async function test(name, fn) {
 			await chrome.storage.local.set({ pinnedItems: items });
 		}, { pages, PX });
 	const url = (p) => `?queue=encore&page=${p}`;
-	const state = (page) => page.evaluate(() => JSON.parse(sessionStorage.getItem("vt.smartskip") || "null"));
-	const boxText = (page) => page.evaluate(() => document.getElementById("vt-smartskip")?.textContent || "");
+	const state = (page) => page.evaluate(() => JSON.parse(sessionStorage.getItem("vs.smartskip") || "null"));
+	const boxText = (page) => page.evaluate(() => document.getElementById("vs-smartskip")?.textContent || "");
 	const waitFor = async (fn, ms = 40000) => {
 		const t0 = Date.now();
 		for (;;) {
@@ -118,7 +118,7 @@ async function test(name, fn) {
 	await test("Escape stops the session and clears it", async () => {
 		await page.keyboard.press("Escape");
 		await waitFor(async () => (await state(page)) === null);
-		assert.equal(await page.evaluate(() => document.getElementById("vt-smartskip")?.style.display), "none");
+		assert.equal(await page.evaluate(() => document.getElementById("vs-smartskip")?.style.display), "none");
 	});
 
 	await test("Space pauses while a page is waiting to turn, and resuming carries on", async () => {

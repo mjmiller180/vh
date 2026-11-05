@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -147,11 +147,11 @@ class HiddenListMgr {
 				if (chrome.runtime.lastError) {
 					const error = chrome.runtime.lastError;
 					if (error.message === "QUOTA_BYTES quota exceeded") {
-						alert(`VineTools local storage quota exceeded! Hidden items will be trimmed to make space.`);
+						alert(`VineSmyths local storage quota exceeded! Hidden items will be trimmed to make space.`);
 						this.garbageCollection();
 					} else {
 						alert(
-							`VineTools encountered an error while trying to save your hidden items. Please report the following details: ${e.name}, ${e.message}`
+							`VineSmyths encountered an error while trying to save your hidden items. Please report the following details: ${e.name}, ${e.message}`
 						);
 						return;
 					}

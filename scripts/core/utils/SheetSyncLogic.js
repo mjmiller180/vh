@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1050
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -91,7 +91,7 @@ export function describeReviewsResult(res) {
 
 function describeFailure(res) {
 	if (res.reason === "disabled" || res.reason === "not-configured") return null; // the owner has not turned it on
-	if (res.reason === "signin") return "Your Google sign-in is needed: open VineTools' settings, Google tab, and press Sign in.";
+	if (res.reason === "signin") return "Your Google sign-in is needed: open VineSmyths' settings, Google tab, and press Sign in.";
 	return "Google sheet: " + String(res.error || "something went wrong").slice(0, 200);
 }
 

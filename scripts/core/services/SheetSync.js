@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1050
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -44,7 +44,7 @@ const send = (message) =>
 
 const pendingDeliveries = async () => {
 	try {
-		return (await chrome.storage.local.get("vt.checkout.pending"))["vt.checkout.pending"] || {};
+		return (await chrome.storage.local.get("vs.checkout.pending"))["vs.checkout.pending"] || {};
 	} catch (e) {
 		return {};
 	}
@@ -85,7 +85,7 @@ class SheetSync {
 		if (parsed.length === 0) return null;
 		const res = await send({ type: "googleAddOrders", orders: toSheetOrders(parsed, marketplace()) });
 		const msg = describeOrdersResult(res);
-		if (msg && announce) say("VineTools", msg);
+		if (msg && announce) say("VineSmyths", msg);
 		return res;
 	}
 
@@ -94,15 +94,15 @@ class SheetSync {
 		if (parsed.length === 0) return null;
 		const res = await send({ type: "googleUpdateReviews", reviews: parsed });
 		const msg = describeReviewsResult(res);
-		if (msg && announce) say("VineTools", msg);
+		if (msg && announce) say("VineSmyths", msg);
 		return res;
 	}
 
 	#addButton(kind) {
-		if (document.getElementById("vt-sheet-sync-all")) return;
+		if (document.getElementById("vs-sheet-sync-all")) return;
 		const anchor = document.querySelector(".vvp-tab-content p, #vvp-body, .vvp-tab-content") || document.body;
 		const btn = document.createElement("button");
-		btn.id = "vt-sheet-sync-all";
+		btn.id = "vs-sheet-sync-all";
 		btn.type = "button";
 		btn.textContent = kind === "orders" ? "Send all orders to the sheet" : "Update the sheet from all review pages";
 		btn.style.cssText = "margin:6px 0;padding:4px 10px;cursor:pointer";
@@ -112,7 +112,7 @@ class SheetSync {
 
 	/** Walks every page of this list (page 1..N of the same address) and sends them. */
 	async #syncAll(kind, btn) {
-		if (this.#busy) return say("VineTools", "The automatic sync of this page is still running. Try again in a moment.", 6);
+		if (this.#busy) return say("VineSmyths", "The automatic sync of this page is still running. Try again in a moment.", 6);
 		const label = btn.textContent;
 		btn.disabled = true;
 		const totals = { added: 0, skipped: 0, updated: 0, unmatched: 0, failed: null, capped: 0 };
@@ -162,7 +162,7 @@ class SheetSync {
 			: kind === "orders"
 				? `Added ${totals.added} order(s); ${totals.skipped} were already on the sheet.`
 				: `Updated ${totals.updated} row(s); ${totals.unmatched} review(s) have no matching row on the sheet.`;
-		say("VineTools", text + (totals.capped && !totals.failed ? ` Only the first ${MAX_PAGES} of ${totals.capped} pages were read.` : ""), 30);
+		say("VineSmyths", text + (totals.capped && !totals.failed ? ` Only the first ${MAX_PAGES} of ${totals.capped} pages were read.` : ""), 30);
 	}
 }
 

@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -24,7 +24,7 @@ let regex = /^.+?amazon\..+\/vine\/.*ultraviner.*?$/;
 if (!regex.test(window.location.href)) {
 	loadStyleSheets(); //First call to launch the extension.
 } else {
-	console.log("VineTools detected UltraViner. Disabling VineTools on this page.");
+	console.log("VineSmyths detected UltraViner. Disabling VineSmyths on this page.");
 }
 
 //Loading the settings from the local storage

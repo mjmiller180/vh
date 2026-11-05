@@ -18,11 +18,11 @@ and remains under its own.
               the licence below.
 
    Includes:  Code adapted from "Vine Evaluation Metrics" (evaluationMetrics.user.js,
-              version 1.4.1) by robartsd, https://github.com/robartsd/VineTools, which
+              version 1.4.1) by robartsd, https://github.com/robartsd/VineSmyths, which
               upstream Vine Helper incorporated and credits to robartsd as a contribution
               (displayAccountDataEvaluationMetrics() in scripts/bootloader.js). It is
               distributed here as part of Vine Helper, under the Vine Helper licence below.
-              robartsd's repository (named "VineTools", unrelated to this product) does not
+              robartsd's repository (named "VineSmyths", unrelated to this product) does not
               publish a licence file.
 
 MIT License

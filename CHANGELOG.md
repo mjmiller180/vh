@@ -1,11 +1,11 @@
-<!-- Last compiled at 2026-11-05_1200 -->
+<!-- Last compiled at 2026-11-05_1508 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
 
 # Changelog
 
-## [VineTools 4.5] - 2026-11
+## [VineSmyths 4.5] - 2026-11
 
 ### Added
 - SmartSkip: automatic page scanner (start k, pause Space, stop Escape) that stops at the first unpinned item, built into
@@ -28,7 +28,8 @@
 - On-screen messages could be silently dropped when sent before the notification container existed; the notifier now waits for it.
 
 ### Renamed
-- The extension is now **VineTools**, a separate extension. User-visible names, the sync file (`vinetools-sync.json`) and the
+- Renamed again: **VineSmyths** (VS). The sync file is `vinesmyths-sync.json`; identifiers introduced since the first rename (`vt-` CSS classes, `vt.*` storage keys) became `vs-` / `vs.*`. The extension ID (manifest `key`) is unchanged.
+- The extension is now **VineSmyths**, a separate extension. User-visible names, the sync file (`vinesmyths-sync.json`) and the
   docs were renamed; internal identifiers (CSS classes, storage keys, file names) are unchanged so saved data keeps working.
 - Attributions that no licence requires were removed (About tab, source comments); the required notices are in `NOTICE`.
 - Every source file carries the project copyright header (`npm run stamp`, checked by `npm run check`).

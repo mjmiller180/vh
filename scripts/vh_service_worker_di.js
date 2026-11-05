@@ -1,10 +1,10 @@
-// Last compiled at 2026-11-05_0138
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
 /*global chrome*/
 /**
- * VineTools service worker.
+ * VineSmyths service worker.
  *
  * What is left in here:
  *  - context menu: copy ASIN / add selected word to the highlight or hide keywords

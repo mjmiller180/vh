@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0209
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -185,7 +185,7 @@ async function initiateSettings(firstRun = false) {
 	document.getElementById("factoryReset")?.addEventListener("click", async function () {
 		if (
 			await confirmPrompt(
-				"Reset all VineTools settings & local storage to default?\n\nThis deletes your settings, hidden items, pinned items, and the review phrases, templates and drafts on this computer.\n\nIf folder sync is set up, the next sync will bring your settings and lists BACK from the shared file (this computer is treated as a fresh install). To really start over, press 'Stop syncing' on the Sync tab first."
+				"Reset all VineSmyths settings & local storage to default?\n\nThis deletes your settings, hidden items, pinned items, and the review phrases, templates and drafts on this computer.\n\nIf folder sync is set up, the next sync will bring your settings and lists BACK from the shared file (this computer is treated as a fresh install). To really start over, press 'Stop syncing' on the Sync tab first."
 			)
 		) {
 			await chrome.storage.local.clear();
@@ -1170,7 +1170,7 @@ function initGoogleTab() {
 			orderNumber: "000-0000000-0000000",
 			orderDate: new Date().toISOString().slice(0, 10),
 			asin: "B000000000",
-			title: "VineTools preview order",
+			title: "VineSmyths preview order",
 			imageUrl: "https://m.media-amazon.com/images/I/31Vs7ybz1SL._SS210_.jpg",
 			etv: 12.34,
 		};

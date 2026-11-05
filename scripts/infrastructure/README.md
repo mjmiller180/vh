@@ -1,11 +1,11 @@
-<!-- Last compiled at 2026-11-04_2317 -->
+<!-- Last compiled at 2026-11-05_1508 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
 
 # Infrastructure Components
 
-This directory contains the foundational infrastructure components for VineTools' dependency injection system.
+This directory contains the foundational infrastructure components for VineSmyths' dependency injection system.
 
 ## Overview
 

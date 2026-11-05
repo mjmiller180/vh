@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0130
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -8,6 +8,6 @@
 		const mod = await import(chrome.runtime.getURL("./scripts/review/ReviewTools.js"));
 		await mod.startReviewTools();
 	} catch (error) {
-		console.error("VineTools review tools:", error);
+		console.error("VineSmyths review tools:", error);
 	}
 })();

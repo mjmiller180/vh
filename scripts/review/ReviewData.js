@@ -1,10 +1,10 @@
-// Last compiled at 2026-11-05_0130
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
 /** Storage and small pure helpers for the review form tools (no DOM, unit tested in Node). */
 
-const DRAFTS_KEY = "vt.review.drafts";
+const DRAFTS_KEY = "vs.review.drafts";
 const MAX_DRAFTS = 60;
 const DRAFT_TTL_MS = 30 * 24 * 3600 * 1000;
 const MAX_SNIPPETS = 200;

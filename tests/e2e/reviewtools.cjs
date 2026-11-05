@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1200
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -88,12 +88,12 @@ async function test(name, fn) {
 		const page = await ctx.newPage();
 		page.on("dialog", (d) => (page.__dialog ? page.__dialog(d) : d.accept()));
 		await page.goto(`https://www.amazon.com/review/create-review?encoding=UTF&channel=vine-portal&asin=${asin}`, { waitUntil: "load" });
-		await page.waitForSelector('[data-vt="toolbar"]', { timeout: 20000 });
+		await page.waitForSelector('[data-vs="toolbar"]', { timeout: 20000 });
 		return page;
 	};
 	const selectAll = (page, id) => page.evaluate((id) => { const t = document.getElementById(id); t.focus(); t.setSelectionRange(0, t.value.length); }, id);
 	const val = (page, id) => page.evaluate((id) => document.getElementById(id).value, id);
-	const btn = (page, title) => page.locator(`[data-vt="toolbar"] button[title="${title}"]`);
+	const btn = (page, title) => page.locator(`[data-vs="toolbar"] button[title="${title}"]`);
 
 	await waitFor(async () => (await sw.evaluate(() => chrome.storage.local.get("settings"))).settings);
 	console.log("\nReview form tools");
@@ -147,7 +147,7 @@ async function test(name, fn) {
 		await page.evaluate(() => { const t = document.getElementById("reviewText"); t.focus(); t.setSelectionRange(1, 1); });
 		await btn(page, "Bold").click();
 		assert.equal(await val(page, "reviewText"), "abc");
-		assert.match(await page.locator(".vt-status").textContent(), /Select some text/);
+		assert.match(await page.locator(".vs-status").textContent(), /Select some text/);
 		await page.close();
 	});
 
@@ -166,14 +166,14 @@ async function test(name, fn) {
 		await btn(page, "Save the whole text (or the selection) as a template").click();
 		await waitFor(async () => (await page.locator('select[title="Insert template…"] option').count()) === 2);
 		await page.reload();
-		await page.waitForSelector('[data-vt="toolbar"]');
+		await page.waitForSelector('[data-vs="toolbar"]');
 		await page.locator("#reviewText").fill("");
 		await page.locator('select[title="Insert template…"]').selectOption({ label: "Intro" });
 		assert.equal(await val(page, "reviewText"), "Thanks to Vine for this item.\nHere is my review:", "survives a reload");
 		// manage: rename then delete
 		page.__dialog = (d) => (d.type() === "prompt" ? d.accept("Renamed") : d.accept());
 		await btn(page, "Rename or delete phrases and templates").click();
-		const rowNamed = (n) => page.locator(".vt-row").filter({ has: page.locator(".vt-name", { hasText: new RegExp(`^${n}$`) }) });
+		const rowNamed = (n) => page.locator(".vs-row").filter({ has: page.locator(".vs-name", { hasText: new RegExp(`^${n}$`) }) });
 		await rowNamed("My phrase").getByRole("button", { name: "Rename", exact: true }).click();
 		await rowNamed("Renamed").waitFor();
 		await rowNamed("Renamed").getByRole("button", { name: "Delete" }).click();
@@ -184,14 +184,14 @@ async function test(name, fn) {
 
 	await test("a saved name containing HTML is shown as text, never as markup", async () => {
 		const page = await open();
-		await sw.evaluate(() => chrome.storage.local.set({ "vt.review.phrases": [{ id: "x1", name: '<img src=x onerror="window.__pwn=1">', text: "<b>t</b>" }] }));
+		await sw.evaluate(() => chrome.storage.local.set({ "vs.review.phrases": [{ id: "x1", name: '<img src=x onerror="window.__pwn=1">', text: "<b>t</b>" }] }));
 		await page.reload();
-		await page.waitForSelector('[data-vt="toolbar"]');
+		await page.waitForSelector('[data-vs="toolbar"]');
 		await page.locator('select[title="Insert phrase…"]').selectOption({ index: 1 });
 		assert.equal(await val(page, "reviewText"), "<b>t</b>");
 		assert.equal(await page.evaluate(() => window.__pwn), undefined);
-		assert.equal(await page.locator("[data-vt=toolbar] img").count(), 0);
-		await sw.evaluate(() => chrome.storage.local.remove("vt.review.phrases"));
+		assert.equal(await page.locator("[data-vs=toolbar] img").count(), 0);
+		await sw.evaluate(() => chrome.storage.local.remove("vs.review.phrases"));
 		await page.close();
 	});
 
@@ -199,9 +199,9 @@ async function test(name, fn) {
 		const page = await open("B0AUTOSAV1");
 		await page.locator("#reviewTitle").fill("Solid little gadget");
 		await page.locator("#reviewText").fill("Draft body text");
-		await waitFor(async () => /Draft saved/.test(await page.locator(".vt-status").textContent()));
+		await waitFor(async () => /Draft saved/.test(await page.locator(".vs-status").textContent()));
 		await page.reload();
-		await page.waitForSelector('[data-vt="toolbar"]');
+		await page.waitForSelector('[data-vs="toolbar"]');
 		await waitFor(async () => (await val(page, "reviewText")) === "Draft body text");
 		assert.equal(await val(page, "reviewTitle"), "Solid little gadget");
 		assert.equal((await page.evaluate(() => window.__reactSeen.at(-1)))[0], "reviewTitle", "restoring goes through input events so the page sees it");
@@ -224,10 +224,10 @@ async function test(name, fn) {
 		assert.match(m.reviews[0].reviewDate, /^\d{4}-\d{2}-\d{2}$/);
 		await page.waitForTimeout(1300); // longer than the autosave delay: a save queued before Submit must not undo the "submitted" mark
 		await page.reload();
-		await page.waitForSelector('[data-vt="toolbar"]');
+		await page.waitForSelector('[data-vs="toolbar"]');
 		await page.waitForTimeout(500);
 		assert.equal(await val(page, "reviewText"), "", "a submitted draft is not put back on its own");
-		await page.locator('[data-vt="toolbar"] button', { hasText: "Restore draft" }).click();
+		await page.locator('[data-vs="toolbar"] button', { hasText: "Restore draft" }).click();
 		assert.equal(await val(page, "reviewText"), "It does the job.");
 		await page.close();
 	});
@@ -293,17 +293,17 @@ async function test(name, fn) {
 		await enableDrive(true);
 		const page = await open();
 		await page.getByRole("button", { name: "Add from Google Drive…" }).click();
-		await page.locator(".vtd-item", { hasText: "20261025_155816.png" }).waitFor();
-		assert.equal(await page.locator(".vtd-name img, .vtd-grid b").count(), 0, "a folder name with <b> is shown as text");
-		await waitFor(() => page.evaluate(() => [...document.querySelectorAll(".vtd-item img")].filter((i) => i.src.startsWith("data:image/png")).length === 2));
-		await page.locator(".vtd-item", { hasText: "20261025_155816.png" }).click();
-		await page.locator(".vtd-item", { hasText: "20261025_155829.png" }).click();
+		await page.locator(".vsd-item", { hasText: "20261025_155816.png" }).waitFor();
+		assert.equal(await page.locator(".vsd-name img, .vsd-grid b").count(), 0, "a folder name with <b> is shown as text");
+		await waitFor(() => page.evaluate(() => [...document.querySelectorAll(".vsd-item img")].filter((i) => i.src.startsWith("data:image/png")).length === 2));
+		await page.locator(".vsd-item", { hasText: "20261025_155816.png" }).click();
+		await page.locator(".vsd-item", { hasText: "20261025_155829.png" }).click();
 		assert.equal(await page.getByRole("button", { name: "Add 2 pictures" }).count(), 1);
 		await page.getByRole("button", { name: "Add 2 pictures" }).click();
 		await waitFor(() => page.evaluate(() => window.__uploads.length === 2), 20000);
 		const up = await page.evaluate(() => window.__uploads);
 		assert.deepEqual(up.map((u) => [u[0], u[1], u[2]]), [["photoRecent001.png", "image/png", PNG.length], ["photoRecent002.png", "image/png", PNG.length]]);
-		assert.equal(await page.locator(".vtd-modal").count(), 0, "the window closes");
+		assert.equal(await page.locator(".vsd-modal").count(), 0, "the window closes");
 		await page.close();
 	});
 
@@ -311,15 +311,15 @@ async function test(name, fn) {
 		await enableDrive(true);
 		const page = await open();
 		await page.getByRole("button", { name: "Add from Google Drive…" }).click();
-		await page.locator(".vtd-item", { hasText: "Order 111-1000001" }).click();
-		await page.locator(".vtd-item", { hasText: "order-folder-pic.png" }).waitFor();
-		assert.match(await page.locator(".vtd-bar strong").textContent(), /Order 111-1000001/);
+		await page.locator(".vsd-item", { hasText: "Order 111-1000001" }).click();
+		await page.locator(".vsd-item", { hasText: "order-folder-pic.png" }).waitFor();
+		assert.match(await page.locator(".vsd-bar strong").textContent(), /Order 111-1000001/);
 		await page.getByRole("button", { name: "↑ Up" }).click();
-		await page.locator(".vtd-item", { hasText: "20261025_155816.png" }).waitFor();
-		await page.locator(".vtd-bar input[type=search]").fill("tire");
-		await page.locator(".vtd-bar input[type=search]").press("Enter");
-		await page.locator(".vtd-item", { hasText: "tire-front.png" }).waitFor();
-		assert.equal(await page.locator(".vtd-item").count(), 1);
+		await page.locator(".vsd-item", { hasText: "20261025_155816.png" }).waitFor();
+		await page.locator(".vsd-bar input[type=search]").fill("tire");
+		await page.locator(".vsd-bar input[type=search]").press("Enter");
+		await page.locator(".vsd-item", { hasText: "tire-front.png" }).waitFor();
+		assert.equal(await page.locator(".vsd-item").count(), 1);
 		await page.close();
 	});
 
@@ -328,7 +328,7 @@ async function test(name, fn) {
 		await sw.evaluate(() => { chrome.identity.getAuthToken = (opts, cb) => { chrome.runtime.lastError; cb(undefined); }; });
 		const page = await open();
 		await page.getByRole("button", { name: "Add from Google Drive…" }).click();
-		await waitFor(async () => /Sign in to Google first/.test(await page.locator(".vtd-msg").textContent()), 25000);
+		await waitFor(async () => /Sign in to Google first/.test(await page.locator(".vsd-msg").textContent()), 25000);
 		await page.close();
 		await sw.evaluate(() => { chrome.identity.getAuthToken = (opts, cb) => cb("fake-token"); });
 	});
@@ -342,7 +342,7 @@ async function test(name, fn) {
 		const page = await ctx.newPage();
 		await page.goto("https://www.amazon.com/review/create-review?asin=B0HCVX7XDG");
 		await page.waitForTimeout(2500);
-		assert.equal(await page.locator('[data-vt="toolbar"]').count(), 0);
+		assert.equal(await page.locator('[data-vs="toolbar"]').count(), 0);
 		await page.close();
 		await sw.evaluate(async () => {
 			const { settings } = await chrome.storage.local.get("settings");

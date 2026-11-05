@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1200
+// Last compiled at 2026-11-05_1508
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -38,16 +38,16 @@ const STYLE_BUTTONS = [
 ];
 
 const CSS = `
-.vt-toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 6px}
-.vt-toolbar button,.vt-toolbar select{font-size:1em;padding:2px 8px;border:1px solid #bbb;border-radius:4px;background:#f8f8f8;cursor:pointer}
-.vt-toolbar button:hover{background:#e8e8e8}
-.vt-status{margin-left:auto;font-size:.85em;color:#555}
-.vt-drop{outline:3px dashed #2196f3;outline-offset:3px}
-.vt-hint{font-size:.85em;color:#555;margin:4px 0}
-.vt-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100000;display:flex;align-items:center;justify-content:center}
-.vt-panel{background:#fff;color:#111;max-width:640px;width:92%;max-height:80vh;overflow:auto;border-radius:8px;padding:16px}
-.vt-row{display:flex;gap:8px;align-items:flex-start;border-bottom:1px solid #ddd;padding:8px 0}
-.vt-row .vt-name{font-weight:bold;min-width:9em}.vt-row .vt-preview{flex:1;white-space:pre-wrap;color:#444;font-size:.9em}
+.vs-toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 6px}
+.vs-toolbar button,.vs-toolbar select{font-size:1em;padding:2px 8px;border:1px solid #bbb;border-radius:4px;background:#f8f8f8;cursor:pointer}
+.vs-toolbar button:hover{background:#e8e8e8}
+.vs-status{margin-left:auto;font-size:.85em;color:#555}
+.vs-drop{outline:3px dashed #2196f3;outline-offset:3px}
+.vs-hint{font-size:.85em;color:#555;margin:4px 0}
+.vs-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100000;display:flex;align-items:center;justify-content:center}
+.vs-panel{background:#fff;color:#111;max-width:640px;width:92%;max-height:80vh;overflow:auto;border-radius:8px;padding:16px}
+.vs-row{display:flex;gap:8px;align-items:flex-start;border-bottom:1px solid #ddd;padding:8px 0}
+.vs-row .vs-name{font-weight:bold;min-width:9em}.vs-row .vs-preview{flex:1;white-space:pre-wrap;color:#444;font-size:.9em}
 `;
 
 function el(tag, props = {}, children = []) {
@@ -100,18 +100,18 @@ export async function startReviewTools() {
 	const { settings } = await chrome.storage.local.get("settings");
 	if (settings?.reviewTools?.enabled === false) return;
 	const ta = await waitFor(SELECTORS.text);
-	if (!ta || ta.dataset.vtTools) return;
-	ta.dataset.vtTools = "1";
+	if (!ta || ta.dataset.vsTools) return;
+	ta.dataset.vsTools = "1";
 
 	const style = el("style", { text: CSS });
 	document.head.append(style);
 
 	const drafts = createDraftStore(chrome.storage.local);
-	const phrases = createSnippetStore(chrome.storage.local, "vt.review.phrases");
-	const templates = createSnippetStore(chrome.storage.local, "vt.review.templates");
+	const phrases = createSnippetStore(chrome.storage.local, "vs.review.phrases");
+	const templates = createSnippetStore(chrome.storage.local, "vs.review.templates");
 	const key = draftKeyFor(location.href);
 
-	const status = el("span", { class: "vt-status", "aria-live": "polite" });
+	const status = el("span", { class: "vs-status", "aria-live": "polite" });
 	const say = (msg) => {
 		status.textContent = msg;
 	};
@@ -133,7 +133,7 @@ export async function startReviewTools() {
 		ta.focus();
 	};
 
-	const toolbar = el("div", { class: "vt-toolbar", "data-vt": "toolbar" });
+	const toolbar = el("div", { class: "vs-toolbar", "data-vs": "toolbar" });
 	for (const b of STYLE_BUTTONS) toolbar.append(button(b.label, b.title, withSelection((t) => toggleStyle(t, b.style))));
 	toolbar.append(
 		button("●", "Bullet list", withSelection(bulletLines, { wholeLineWhenEmpty: true })),
@@ -208,20 +208,20 @@ export async function startReviewTools() {
 	// ---------- manage window
 	function manage() {
 		const close = () => modal.remove();
-		const body = el("div", { class: "vt-panel" });
-		const modal = el("div", { class: "vt-modal", onclick: (e) => e.target === modal && close() }, [body]);
+		const body = el("div", { class: "vs-panel" });
+		const modal = el("div", { class: "vs-modal", onclick: (e) => e.target === modal && close() }, [body]);
 		const render = async () => {
 			body.textContent = "";
 			body.append(el("h3", { text: "Phrases and templates" }), button("Close", "Close", close));
 			for (const [label, store, ui] of [["Phrases", phrases, phraseUi], ["Templates", templates, templateUi]]) {
 				body.append(el("h4", { text: label }));
 				const list = await store.list();
-				if (!list.length) body.append(el("p", { class: "vt-hint", text: "None yet." }));
+				if (!list.length) body.append(el("p", { class: "vs-hint", text: "None yet." }));
 				for (const s of list) {
 					body.append(
-						el("div", { class: "vt-row" }, [
-							el("span", { class: "vt-name", text: s.name }),
-							el("span", { class: "vt-preview", text: s.text.length > 200 ? s.text.slice(0, 200) + "…" : s.text }),
+						el("div", { class: "vs-row" }, [
+							el("span", { class: "vs-name", text: s.name }),
+							el("span", { class: "vs-preview", text: s.text.length > 200 ? s.text.slice(0, 200) + "…" : s.text }),
 							button("Insert", "Insert at the cursor", () => {
 								insertAtCaret(s.text);
 								close();
@@ -297,7 +297,7 @@ export async function startReviewTools() {
 		});
 	};
 	// Exposed so the Google Drive picker (and tests) can hand files over the same way.
-	window.__vtAttachFiles = attach;
+	window.__vsAttachFiles = attach;
 
 	document.addEventListener("paste", (e) => {
 		const imgs = pickImages(e.clipboardData);
@@ -308,20 +308,20 @@ export async function startReviewTools() {
 	});
 	const zone = document.querySelector(SELECTORS.dropZone);
 	if (zone) {
-		const hint = el("div", { class: "vt-hint", text: "You can also paste (Ctrl+V) or drop pictures here." });
+		const hint = el("div", { class: "vs-hint", text: "You can also paste (Ctrl+V) or drop pictures here." });
 		zone.parentNode.insertBefore(hint, zone.nextSibling);
 		zone.addEventListener("dragover", (e) => {
 			e.preventDefault();
-			zone.classList.add("vt-drop");
+			zone.classList.add("vs-drop");
 		});
-		zone.addEventListener("dragleave", () => zone.classList.remove("vt-drop"));
+		zone.addEventListener("dragleave", () => zone.classList.remove("vs-drop"));
 		zone.addEventListener("drop", (e) => {
 			e.preventDefault();
-			zone.classList.remove("vt-drop");
+			zone.classList.remove("vs-drop");
 			attach([...(e.dataTransfer?.files || [])]);
 		});
 		zone.parentNode.insertBefore(
-			el("div", { class: "vt-toolbar" }, [
+			el("div", { class: "vs-toolbar" }, [
 				...(settings?.google?.drive?.enabled ? [button("Add from Google Drive…", "Pick pictures from your Google Drive", () => openDrivePicker({ attach }))] : []),
 				button("Paste picture from clipboard", "Add the picture you copied", async () => {
 					try {

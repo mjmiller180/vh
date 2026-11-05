@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_1433 -->
+<!-- Last compiled at 2026-11-05_1508 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -117,7 +117,7 @@ GENERAL REVIEW NOTES, REVIEW DATE, REVIEW LINK, REVIEW TITLE, REVIEW TEXT.
 
 ## One-time setup the owner does (about 10 minutes)
 
-1. console.cloud.google.com -> new project (e.g. "VineTools").
+1. console.cloud.google.com -> new project (e.g. "VineSmyths").
 2. APIs & Services -> Library -> enable **Google Sheets API** and **Google Drive API**.
 3. OAuth consent screen -> External -> add the accounts that will sign in as **test users** and the scopes chosen above.
    Then **Publish app** to "In production": a "Testing" app makes Google expire sign-ins every 7 days.
