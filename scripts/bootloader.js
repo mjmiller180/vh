@@ -438,7 +438,9 @@ function displayAccountHideOptOutButton() {
 }
 
 /**
- * Contribution from https://github.com/robartsd/VineTools/blob/main/evaluationMetrics.user.js
+ * Adapted from "Vine Evaluation Metrics" v1.4.1 by robartsd
+ * https://github.com/robartsd/VineTools/blob/main/evaluationMetrics.user.js
+ * Incorporated into Vine Helper (MIT) as a contribution by robartsd; see NOTICE.
  */
 function displayAccountDataEvaluationMetrics() {
 	if (!Settings.get("general.projectedAccountStatistics")) {
