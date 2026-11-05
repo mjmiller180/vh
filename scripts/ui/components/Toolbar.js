@@ -24,8 +24,8 @@ var Tpl = new Template();
 import { compileKeywordObjects } from "/scripts/core/utils/KeywordCompiler.js";
 import { findMatch } from "/scripts/core/utils/KeywordMatcher.js";
 import { escapeHTML } from "/scripts/core/utils/StringHelper.js";
-import { BrendaAnnounceQueue } from "/scripts/core/services/BrendaAnnounce.js";
-var brendaAnnounceQueue = new BrendaAnnounceQueue();
+import { DiscordWebhook } from "/scripts/core/services/DiscordWebhook.js";
+const discord = new DiscordWebhook();
 
 import { ScreenNotifier, ScreenNotification } from "/scripts/ui/components/ScreenNotifier.js";
 var Notifications = new ScreenNotifier();
@@ -82,13 +82,7 @@ class Toolbar {
 		const prom = await Tpl.loadFile("scripts/ui/templates/toolbar.html");
 		Tpl.setVar("toolbarId", toolbarId);
 		Tpl.setVar("asin", asin);
-		Tpl.setIf(
-			"announce",
-			Settings.get("discord.active") &&
-				Settings.get("discord.guid", false) != null &&
-				env.data.vineQueue != null &&
-				env.data.vineSearch == false
-		);
+		Tpl.setIf("announce", discord.isManualAvailable());
 		if (Settings.get("unavailableTab.active")) {
 			logger.add("DRAW-UPDATE-TOOLBAR: Create order widget");
 			Tpl.setVar("orderWidget", await this.createOrderWidget());
@@ -121,66 +115,15 @@ class Toolbar {
 			etvToolbar.style.display = "none";
 		}
 
-		// Activate the announce button when the ETV is set (changed)
-		const etvElements = container2.querySelectorAll(".etv");
-		etvElements.forEach((etv) => {
-			// Create the click handler outside the change event
-			const announceClickHandler = async (e) => {
+		// "Send to my Discord" button
+		const announceLink = this.#toolbarDOM.querySelector(".vh-announce-link[id^='vh-announce-link-']");
+		if (announceLink) {
+			announceLink.addEventListener("click", async (e) => {
 				e.preventDefault();
-
-				if (env.data.vineQueue == null) throw new Exception("Cannot announce an item in an unknown queue.");
-
-				const etvElement = this.#tile.getDOM().querySelector(".etv");
-				if (!etvElement) {
-					logger.add(`TOOLBAR: Cannot find .etv element for announcement - ASIN: ${this.#tile.getAsin()}`);
-					return;
-				}
-				let etv = etvElement.textContent;
-
-				// In case of price range, only send the highest value
-				etv = etv.split("-").pop();
-				etv = Number(etv.replace(/[^0-9-.]+/g, ""));
-
-				brendaAnnounceQueue.announce(this.#tile.getAsin(), etv, env.data.vineQueue, i13n.getDomainTLD());
-
-				if (!Settings.get("notification.reduce")) {
-					let note = new ScreenNotification();
-					note.title = "Announce to Brenda";
-					note.lifespan = 10;
-					note.content = `Sending this product ${this.#tile.getAsin()} from the ${env.data.vineQueueAbbr} queue to Brenda over on discord`;
-					await Notifications.pushNotification(note);
-				}
-
-				// Visually deactivate this item
-				let tileDOM = this.#tile.getDOM();
-				let announcementIcon = tileDOM.querySelector(".vh-icon-announcement");
-				if (announcementIcon) {
-					let parentAnchor = announcementIcon.parentElement;
-					if (parentAnchor && parentAnchor.tagName === "A") {
-						parentAnchor.removeEventListener("click", announceClickHandler);
-						parentAnchor.style.opacity = "0.3";
-					}
-				}
-			};
-
-			etv.addEventListener("change", (event) => {
-				if (event.currentTarget.textContent === "") return false;
-				if (env.data.vineSearch) return false;
-
-				let tileDOM = this.#tile.getDOM();
-				let announcementIcon = tileDOM.querySelector(".vh-icon-announcement");
-
-				if (announcementIcon) {
-					announcementIcon.style.opacity = "1";
-					let parentAnchor = announcementIcon.parentElement;
-					if (parentAnchor && parentAnchor.tagName === "A") {
-						// Only add the click handler once
-						parentAnchor.removeEventListener("click", announceClickHandler);
-						parentAnchor.addEventListener("click", announceClickHandler);
-					}
-				}
+				const ok = await discord.sendManual(this.#tile);
+				if (ok) announceLink.style.opacity = "0.4";
 			});
-		});
+		}
 
 		// If the small tiles will be shown, hide the ETV icon to gain space
 		if (
@@ -441,6 +384,7 @@ class Toolbar {
 
 		let checkHideList = false;
 		let match;
+		let matchedKeyword = null;
 		const oldHighlight = this.#tile.getDOM().dataset.highlightedKeyword;
 		this.#tile.getDOM().dataset.highlightedKeyword = "";
 		const highlightKeywords = Settings.get("general.highlightKeywords");
@@ -479,6 +423,7 @@ class Toolbar {
 					});
 				}
 
+				matchedKeyword = matchString;
 				this.#tile.getDOM().dataset.highlightedKeyword = escapeHTML(matchString);
 				this.#tile.getDOM().dataset.keywordHighlight = true;
 				this.#tile.getDOM().dataset.typeHighlight = "1";
@@ -539,6 +484,13 @@ class Toolbar {
 
 		logger.add("Toolbar: processHighlight: colorize");
 		this.#tile.colorizeHighlight();
+
+		//Tell the Discord webhooks about this item (they decide if anything needs to be sent)
+		discord.onTileProcessed(this.#tile, {
+			keyword: matchedKeyword,
+			zeroETV: this.#tile.getDOM().dataset.typeZeroETV === "1",
+			hidden: !!this.#tile.getDOM().dataset.hideKeyword,
+		});
 	}
 
 	//Create the order widget part of the toolbar

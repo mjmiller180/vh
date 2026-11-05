@@ -10,6 +10,7 @@
 
 // Use relative import for better testability
 import { Logger } from "../utils/Logger.js";
+import { requestSync } from "./SyncState.js";
 
 export class SettingsMgrDI {
 	#storageAdapter;
@@ -41,9 +42,10 @@ export class SettingsMgrDI {
 		}
 	}
 
-	// Return true if the user has a valid premium membership on Patreon
-	isPremiumUser(tier = 2) {
-		return parseInt(this.get("general.patreon.tier")) >= tier;
+	// Historical: features used to be gated behind a Patreon tier checked against Vine Helper's server.
+	// Every feature that remains in this build works locally, so nothing is gated any more.
+	isPremiumUser() {
+		return true;
 	}
 
 	async waitForLoad() {
@@ -104,6 +106,8 @@ export class SettingsMgrDI {
 	async #save(broadcastChanges = true) {
 		try {
 			await this.#storageAdapter.set("settings", this.#settings);
+			//Lets the folder sync know which side has the newest settings
+			await this.#storageAdapter.set("settingsModifiedAt", Date.now());
 			//console.log(`[${performance.now().toFixed(3)}] SettingsMgr: Settings saved to storage`);
 		} catch (e) {
 			// Enhanced error handling for Safari and other browsers
@@ -131,6 +135,8 @@ export class SettingsMgrDI {
 				return false;
 			}
 		}
+
+		requestSync(); //Folder sync (no-op unless a folder was chosen in the settings)
 
 		//Send a message to the service worker to notify all tabs to refresh the settings
 
@@ -428,15 +434,15 @@ export class SettingsMgrDI {
 				remote: false,
 			},
 
+			// Discord webhooks to the user's own server. Placeholders usable in the messages:
+			// $QUEUE_NAME $TITLE $IMG_URL $ASIN $VH_URL $VINE_SEARCH_URL $AMZ_URL $KEYWORD $ETV
 			discord: {
-				active: false,
-				guid: null,
-
+				active: false, //Master switch
 				webhook: {
+					default: { url: "" }, //Used by every trigger that has no URL of its own
 					KWsMatch: {
 						active: false,
 						url: "",
-						method: "POST",
 						content: `{
 "content": "New item in $QUEUE_NAME!",
 "embeds": [{
@@ -451,7 +457,6 @@ export class SettingsMgrDI {
 					AFA: {
 						active: false,
 						url: "",
-						method: "POST",
 						content: `{
 "content": "New item in $QUEUE_NAME!",
 "embeds": [{
@@ -466,7 +471,6 @@ export class SettingsMgrDI {
 					RFY: {
 						active: false,
 						url: "",
-						method: "POST",
 						content: `{
 "content": "New item in $QUEUE_NAME!",
 "embeds": [{
@@ -481,9 +485,22 @@ export class SettingsMgrDI {
 					zeroETV: {
 						active: false,
 						url: "",
-						method: "POST",
 						content: `{
 "content": "0 ETV item in $QUEUE_NAME!",
+"embeds": [{
+	"title": "$TITLE",
+	"url": "$VH_URL",
+	"thumbnail":  {
+		"url": "$IMG_URL"
+	}
+}]
+}`,
+					},
+					manual: {
+						active: false,
+						url: "",
+						content: `{
+"content": "$QUEUE_NAME item",
 "embeds": [{
 	"title": "$TITLE",
 	"url": "$VH_URL",

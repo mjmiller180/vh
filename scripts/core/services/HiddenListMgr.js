@@ -9,11 +9,7 @@ const Settings = new SettingsMgr();
 import { ScreenNotifier, ScreenNotification } from "/scripts/ui/components/ScreenNotifier.js";
 var Notifications = new ScreenNotifier();
 
-import { Internationalization } from "/scripts/core/services/Internationalization.js";
-const i13n = new Internationalization();
-
-import { Environment } from "/scripts/core/services/Environment.js";
-var env = new Environment();
+import { recordRemoval, clearRemoval, requestSync } from "/scripts/core/services/SyncState.js";
 
 import { CryptoKeys } from "/scripts/core/utils/CryptoKeys.js";
 var cryptoKeys = new CryptoKeys();
@@ -33,7 +29,6 @@ class HiddenListMgr {
 		HiddenListMgr.#instance = this;
 
 		this.mapHidden = new Map();
-		this.arrChanges = [];
 		this.listLoaded = false;
 		this.broadcast = new BroadcastChannel("VineHelper");
 
@@ -94,10 +89,10 @@ class HiddenListMgr {
 
 		this.mapHidden.delete(asin);
 
-		//The server may not be in sync with the local list, and will deal with duplicate.
-		this.updateArrChange({ asin: asin, hidden: false });
-
-		if (save) this.saveList();
+		if (save) {
+			await recordRemoval("hidden", asin); //Lets other devices know about the un-hide (folder sync)
+			this.saveList();
+		}
 
 		//Broadcast the change to other tabs
 		if (broadcast) {
@@ -110,10 +105,10 @@ class HiddenListMgr {
 
 		if (!(await this.isHidden(asin))) this.mapHidden.set(asin, Date.now());
 
-		//The server may not be in sync with the local list, and will deal with duplicate.
-		this.updateArrChange({ asin: asin, hidden: true });
-
-		if (save) this.saveList();
+		if (save) {
+			await clearRemoval("hidden", asin);
+			this.saveList();
+		}
 
 		//Broadcast the change to other tabs
 		if (broadcast) {
@@ -121,7 +116,7 @@ class HiddenListMgr {
 		}
 	}
 
-	async saveList(remoteSave = true) {
+	async saveList() {
 		let storableVal = Object.fromEntries(this.mapHidden);
 
 		if (isSafari()) {
@@ -145,10 +140,7 @@ class HiddenListMgr {
 			});
 		}
 
-		if (remoteSave && Settings.get("hiddenTab.remote")) {
-			await this.notifyServerOfHiddenItem();
-			this.arrChanges = [];
-		}
+		requestSync(); //Folder sync (no-op unless a folder was chosen in the settings)
 	}
 
 	async isHidden(asin) {
@@ -160,48 +152,6 @@ class HiddenListMgr {
 			throw new Error("Asin not defined");
 		}
 		return this.mapHidden.has(asin);
-	}
-
-	isChange(asin) {
-		for (const id in this.arrChanges) {
-			if (this.arrChanges[id].asin == asin) {
-				return id;
-			}
-		}
-		return false;
-	}
-
-	updateArrChange(obj) {
-		let itemId = this.isChange(obj.asin);
-		if (itemId == false) this.arrChanges.push(obj);
-		else this.arrChanges[itemId] = obj;
-	}
-
-	/**
-	 * Send new items on the server to be added or removed from the hidden list.
-	 */
-	async notifyServerOfHiddenItem() {
-		logger.add("Saving hidden item(s) remotely...");
-
-		const content = {
-			api_version: 5,
-			app_version: env.data.appVersion,
-			action: "save_hidden_list",
-			country: i13n.getCountryCode(),
-			uuid: Settings.get("general.uuid", false),
-			cid: await env.getCID(),
-			items: this.arrChanges,
-		};
-		const s = await cryptoKeys.signData(content);
-		content.s = s;
-		content.pk = await cryptoKeys.getExportedPublicKey();
-
-		//Post an AJAX request to the 3rd party server, passing along the JSON array of all the products on the page
-		fetch(env.getAPIUrl(), {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(content),
-		});
 	}
 
 	async garbageCollection() {
@@ -285,7 +235,7 @@ class HiddenListMgr {
 					itemDeleted++;
 				}
 
-				await this.saveList(false);
+				await this.saveList();
 				bytes = await getStorageSizeFull();
 			}
 

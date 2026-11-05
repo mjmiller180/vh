@@ -259,7 +259,6 @@ class Page {
 		Tpl.setVar("is_pre_release", is_pre_release);
 		Tpl.setVar("enrollment_guid", enrollment_guid);
 		Tpl.setVar("recommendationType", recommendationType);
-		Tpl.setIf("PINNEDTAB_REMOTE", Settings.isPremiumUser(1) && Settings.get("pinnedTab.remote"));
 		Tpl.setVar("recommendationId", recommendationId);
 
 		let content = Tpl.render(prom2, true);
@@ -278,72 +277,6 @@ class Page {
 			this.removePinnedTile(asin);
 			// updateTileCounts() is already called by tile.setPinned(false) in removePinnedTile
 		};
-
-		//Bind the click event the the reload button
-		const pinnedReloadLink = document.querySelector("#vh-pin-" + asin + " .pinned-reload-link");
-		if (pinnedReloadLink) {
-			pinnedReloadLink.onclick = (e) => {
-				e.preventDefault();
-
-				if (!Settings.isPremiumUser(1) || !Settings.get("pinnedTab.remote")) {
-					return false;
-				}
-
-				//Reload all pinned tiles
-				this.reloadAllPinnedTile();
-			};
-		}
-	}
-
-	async reloadAllPinnedTile() {
-		//Reload all pinned tiles
-		const content = {
-			api_version: 5,
-			app_version: env.data.appVersion,
-			action: "reload_pinned_items",
-			country: i13n.getCountryCode(),
-			uuid: await Settings.get("general.uuid", false),
-			fid: await Settings.get("general.fingerprint.id", false),
-			cid: await env.getCID(),
-		};
-		const s = await cryptoKeys.signData(content);
-		content.s = s;
-		content.pk = await cryptoKeys.getExportedPublicKey();
-
-		await fetch(env.getAPIUrl(), {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(content),
-		})
-			.then((response) => response.json())
-			.then(async (response) => {
-				//console.log("Reloading all pinned tiles", response);
-				//Reload all pinned tiles
-				document.querySelectorAll(`#tab-pinned .pinned`).forEach((element) => {
-					console.log("Removing pinned tile", element);
-					element.remove();
-				});
-
-				//Add all pinned items
-				for (let i = response["pinned_products"].length; i >= 0; i--) {
-					//console.log("Adding pinned tile", response["pinned_products"][i]);
-
-					const productData = response["pinned_products"][i];
-					try {
-						const item = new Item(productData);
-						await this.addPinnedTile(item);
-					} catch (error) {
-						console.error("[Grid] Cannot create item for pinned tile -", error.message, {
-							source: "pinned products from server response",
-							index: i,
-							total_pinned_items: response["pinned_products"].length,
-							product_data: productData,
-							has_asin: productData?.asin !== undefined,
-							has_enrollment_guid: productData?.enrollment_guid !== undefined,
-						});
-					}
-				}
-			});
 	}
 
 	async #disableItem(notif) {

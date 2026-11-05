@@ -62,7 +62,6 @@ async function loadStyleSheets() {
 		);
 	}
 
-	loadStyleSheet("scripts/vendor/splide/dist/css/splide.min.css");
 	//Load Thorvarium stylesheets
 	if (Settings.get("thorvarium.mobileios")) loadStyleSheet("scripts/vendor/vine-styling/mobile/ios-with-bugfix.css");
 

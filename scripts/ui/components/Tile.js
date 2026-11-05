@@ -22,15 +22,12 @@ import { Page } from "/scripts/ui/components/Page.js";
 import { HiddenListMgr } from "/scripts/core/services/HiddenListMgr.js";
 var HiddenList = new HiddenListMgr();
 
-import { VariantButton } from "/scripts/ui/components/VariantButton.js";
 
 import { StyleUtils } from "/scripts/ui/utils/StyleUtils.js";
 
 import { YMDHiStoISODate } from "/scripts/core/utils/DateHelper.js";
 import { unescapeHTML, escapeHTML } from "/scripts/core/utils/StringHelper.js";
 
-import "/scripts/vendor/canvas-confetti/dist/confetti.browser.js";
-import "/scripts/vendor/splide/dist/js/splide.min.js";
 
 class Tile {
 	#tileDOM;
@@ -45,7 +42,6 @@ class Tile {
 	#orderUnavailable = false;
 	#title = null;
 	#thumbnailUrl = null;
-	#variantButton = null;
 
 	constructor(obj, gridInstance) {
 		this.#tileDOM = obj;
@@ -91,20 +87,6 @@ class Tile {
 
 	//#################
 	//## Public methods
-
-	async addVariant(asin, title, etv) {
-		// Only add button if it doesn't exist
-		if (!this.#variantButton) {
-			this.#variantButton = new VariantButton(this);
-			await this.#variantButton.initialize();
-		}
-
-		await this.#variantButton.addVariant(asin, title, etv);
-	}
-
-	getVariantButton() {
-		return this.#variantButton;
-	}
 
 	isPinned() {
 		return this.#isPinned;
@@ -223,129 +205,6 @@ class Tile {
 			this.#thumbnailUrl = this.#getThumbnailURLFromDom(this.#tileDOM);
 		}
 		return this.#thumbnailUrl;
-	}
-
-	markAsDiscovered() {
-		const container = this.#tileDOM.querySelector(".vh-img-container");
-
-		const newCorner = document.createElement("div");
-		newCorner.classList.add("vh-new-corner-discovered");
-		//Add a span into the div
-		const span = document.createElement("span");
-		span.innerHTML = "FIRST<br>DISCOVERY";
-		newCorner.appendChild(span);
-
-		//Insert newCorner as the first child of the container
-		container.insertBefore(newCorner, container.firstChild);
-
-		if (Settings.get("general.discoveryFirst")) {
-			logger.add("Tile: markAsDiscovered: discoveryFirst");
-			//Move the highlighted item to the top of the grid
-			this.getGrid().getDOM().insertBefore(this.getDOM(), this.getGrid().getDOM().firstChild);
-		}
-
-		//Confetti animation
-		//Wait 1 seconds for the item to take their final position
-		setTimeout(() => {
-			this.explodeConfettiFromDiv(this.getDOM());
-		}, 1000);
-	}
-
-	explodeConfettiFromDiv(div) {
-		if (!div) return;
-
-		const rect = div.getBoundingClientRect();
-
-		if (rect.top == 0 && rect.left == 0) {
-			return; //div not visible.
-		}
-
-		// Create confetti from three sides
-		const positions = [
-			// Left side
-			{ x: rect.left / window.innerWidth, y: rect.top / window.innerHeight },
-			{ x: rect.left / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight },
-			{ x: rect.left / window.innerWidth, y: rect.bottom / window.innerHeight },
-			// Top side
-			{ x: (rect.left + rect.width / 4) / window.innerWidth, y: rect.top / window.innerHeight },
-			{ x: (rect.left + rect.width / 2) / window.innerWidth, y: rect.top / window.innerHeight },
-			{ x: (rect.left + (rect.width * 3) / 4) / window.innerWidth, y: rect.top / window.innerHeight },
-			// Right side
-			{ x: rect.right / window.innerWidth, y: rect.top / window.innerHeight },
-			{ x: rect.right / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight },
-			{ x: rect.right / window.innerWidth, y: rect.bottom / window.innerHeight },
-		];
-
-		positions.forEach((pos) => {
-			confetti({
-				particleCount: 15, // Reduced particle count per origin point
-				spread: 45,
-				startVelocity: 15, // Reduced velocity for shorter distance
-				decay: 0.9, // Faster decay
-				gravity: 0.8, // Reduced gravity
-				ticks: 100, // Controls animation duration (~500ms)
-				origin: pos,
-				colors: ["#ff0", "#ff4500", "#ff1493", "#00ffff", "#00ff00"],
-				scalar: 0.8, // Smaller particles
-				drift: 0, // No sideways drift
-				disableForReducedMotion: true,
-			});
-		});
-	}
-
-	setDateAdded(timenow, mysqlDate) {
-		if (mysqlDate == undefined || !Settings.get("general.displayFirstSeen")) {
-			return false;
-		}
-
-		let serverCurrentDate = YMDHiStoISODate(timenow);
-		let itemDateAdded = YMDHiStoISODate(mysqlDate);
-		let bookmarkDate = new Date(Settings.get("general.bookmarkDate"));
-		if (isNaN(serverCurrentDate.getTime()) || isNaN(itemDateAdded.getTime())) {
-			logger.add(
-				"! Time firstseen wrong: serverCurrentDate:" +
-					serverCurrentDate +
-					" itemDateAdded:" +
-					itemDateAdded +
-					"preformated current time: " +
-					timenow +
-					"preformatted item time" +
-					mysqlDate
-			);
-			return;
-		}
-		//Add the data-date attribute to the tile
-		// Convert to local time and store in dataset
-		this.#tileDOM.dataset.date = new Date(itemDateAdded).toLocaleString();
-
-		let textDate = this.#timeSince(serverCurrentDate, itemDateAdded);
-		const dateAddedMessage = `${textDate} ago`;
-
-		let dateAddedDiv = document.createElement("div");
-		dateAddedDiv.classList.add("vh-date-added"); // Add the class
-		dateAddedDiv.textContent = dateAddedMessage;
-
-		// Find the container and append the new div
-		const container = this.#tileDOM.querySelector(".vh-img-container");
-		if (container) {
-			container.appendChild(dateAddedDiv);
-		} else {
-			logger.add(`TILE: Cannot add date - .vh-img-container not found for ASIN: ${this.#asin}`);
-		}
-
-		//Highlight the tile background if the bookmark date is in the past
-		if (
-			Settings.get("general.bookmark") &&
-			itemDateAdded > bookmarkDate &&
-			Settings.get("general.bookmarkDate") != 0
-		) {
-			logger.add("TILE: The item is more recent than the time marker, highlight its toolbar.");
-			const statusContainer = this.#tileDOM.querySelector(".vh-status-container");
-			if (statusContainer) {
-				statusContainer.style.backgroundColor = Settings.get("general.bookmarkColor");
-			}
-			this.#tileDOM.classList.add("vh-new-item-highlight");
-		}
 	}
 
 	async initiateTile() {
@@ -527,80 +386,6 @@ class Tile {
 		if (this.#asin) {
 			this.getDOM().closest(".vvp-item-tile").dataset.asin = this.#asin;
 		}
-	}
-
-	async #initCarousel(additionalImages) {
-		if (!Settings.isPremiumUser(3)) {
-			return;
-		}
-
-		if (additionalImages.length <= 1) {
-			return;
-		}
-
-		//Find the img of the tile
-		const img = this.#tileDOM.querySelector("img");
-
-		//Detach the image from is container
-		img.parentNode.removeChild(img);
-
-		//Delete any pre-existing carousel
-		const existingCarousel = this.#tileDOM.querySelector("#thumbnail-carousel-" + this.#asin);
-		if (existingCarousel) {
-			existingCarousel.remove();
-		}
-
-		//Find the image container
-		const imgContainer = this.#tileDOM.querySelector(".vh-img-container");
-
-		//Create the carousel
-		const carousel = document.createElement("section");
-		carousel.id = "thumbnail-carousel-" + this.#asin;
-		carousel.classList.add("splide");
-		carousel.setAttribute("aria-label", "Carousel of thumbnails.");
-
-		const track = document.createElement("div");
-		track.classList.add("splide__track");
-		carousel.appendChild(track);
-
-		const list = document.createElement("ul");
-		list.classList.add("splide__list");
-		track.appendChild(list);
-
-		const slide1 = document.createElement("li");
-		slide1.classList.add("splide__slide");
-		list.appendChild(slide1);
-
-		slide1.appendChild(img);
-
-		//Add the additional images
-		for (let i = 1; i < additionalImages.length; i++) {
-			const slide = document.createElement("li");
-			slide.classList.add("splide__slide");
-			list.appendChild(slide);
-
-			const img = document.createElement("img");
-			img.src = additionalImages[i];
-			img.alt = "thumbnail " + i;
-			slide.appendChild(img);
-		}
-
-		//Attach the carousel to the image container
-		imgContainer.insertBefore(carousel, imgContainer.firstChild);
-
-		//Initialize the carousel
-		new Splide("#thumbnail-carousel-" + this.#asin, {
-			gap: 1,
-			rewind: true,
-			pagination: false,
-		}).mount();
-	}
-
-	setAdditionalImages(images) {
-		if (!Settings.isPremiumUser(3) || !Settings.get("general.carousel.active")) {
-			return false;
-		}
-		this.#initCarousel(images);
 	}
 
 	colorizeHighlight() {
