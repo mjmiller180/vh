@@ -44,15 +44,19 @@ const SENT_KEY = "discordSent";
 const DEDUPE_DAYS = 14;
 const QUEUE_ABBR = { potluck: "RFY", last_chance: "AFA", encore: "AI", all_items: "ALL" };
 
-let sentCache = null; // {key: ts}, loaded lazily
+let sentPromise = null; // resolves to {key: ts}. The PROMISE is cached so that tiles processed
+// concurrently all share one object (caching the value lost entries when several tiles raced).
+let sentCache = null;
 let sentSaveTimer = null;
 
-async function loadSent() {
-	if (sentCache === null) {
-		const data = await chrome.storage.local.get(SENT_KEY);
-		sentCache = pruneSent(data[SENT_KEY], Date.now(), DEDUPE_DAYS * 24 * 3600 * 1000);
+function loadSent() {
+	if (sentPromise === null) {
+		sentPromise = chrome.storage.local.get(SENT_KEY).then((data) => {
+			sentCache = pruneSent(data[SENT_KEY], Date.now(), DEDUPE_DAYS * 24 * 3600 * 1000);
+			return sentCache;
+		});
 	}
-	return sentCache;
+	return sentPromise;
 }
 
 function saveSentSoon() {
@@ -170,18 +174,29 @@ class DiscordWebhook {
 			if (await tile.isHidden()) return; // hidden through the hidden list
 
 			const sent = await loadSent();
-			let item = null;
-			for (const [type, extra] of wanted) {
-				const k = dedupeKey(type, asin);
-				if (sent[k]) continue;
-				sent[k] = Date.now(); // mark first: avoids double-sends while the request is in flight
-				saveSentSoon();
-				item = item || itemFromTile(tile);
-				if (!item) return;
+			const pending = wanted.filter(([type]) => !sent[dedupeKey(type, asin)]);
+			if (pending.length === 0) return;
+
+			// Remember all of them first (avoids double sends while requests are in flight).
+			for (const [type] of pending) sent[dedupeKey(type, asin)] = Date.now();
+			saveSentSoon();
+
+			// An item that triggers several rules for the same webhook URL is sent once,
+			// using the highest-priority rule (keyword > zero ETV > RFY > AFA).
+			const priority = ["keyword", "zeroETV", "rfy", "afa"];
+			pending.sort((a, b) => priority.indexOf(a[0]) - priority.indexOf(b[0]));
+			const seenUrls = new Set();
+			const item = itemFromTile(tile);
+			if (!item) return;
+			for (const [type, extra] of pending) {
+				const url = urlFor(type);
+				if (seenUrls.has(url)) continue;
+				seenUrls.add(url);
 				const res = await send(type, tile, item, extra);
 				if (!res.ok) {
-					delete sent[k]; // allow a retry on the next page load
+					for (const [t] of pending) delete sent[dedupeKey(t, asin)]; // allow a retry on the next page load
 					logger.add(`DISCORD: ${type} webhook failed for ${asin}: ${res.error}`);
+					break;
 				}
 			}
 		} catch (e) {

@@ -213,7 +213,7 @@ export class SettingsMgrDI {
 	#getDefaultSettings() {
 		this.#defaultSettings = {
 			unavailableTab: {
-				active: true,
+				active: false, //Needed Vine Helper's server (order statistics): nothing to show any more
 			},
 
 			general: {
@@ -233,7 +233,7 @@ export class SettingsMgrDI {
 				discoveryFirst: true,
 				displayETV: true,
 				displayPrice: false,
-				displayFirstSeen: true,
+				displayFirstSeen: false,
 				displayFullTitleTooltip: false,
 				displayModalETV: false,
 				displayVariantIcon: false,

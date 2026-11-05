@@ -207,40 +207,30 @@ class Tile {
 		return this.#thumbnailUrl;
 	}
 
-	async initiateTile() {
-		// Check if blur should be applied based on pre-computed blur keyword match
-		// The blur keyword matching is done in NewItemStreamProcessing.js
-		// dataset.blurkw contains the actual blur keyword if matched, or empty/undefined if not
-		const shouldBlur = this.#tileDOM.dataset.blurkw && this.#tileDOM.dataset.blurkw !== "false";
-
-		// Debug logging for blur keyword application
-		if (Settings.get("general.debugKeywords")) {
-			console.log("[Tile.initiateTile] Applying blur based on pre-computed match", {
-				asin: this.getAsin(),
-				title: this.getTitle(),
-				shouldBlur: shouldBlur,
-				dataBlurKw: this.#tileDOM.dataset.blurkw,
-			});
-		}
-
-		if (Settings.isPremiumUser() && shouldBlur) {
-			// Get the blur keyword from the DOM data (set during stream processing)
-			const blurKeyword = this.#tileDOM.dataset.blurkw || "blur keyword";
-
-			logger.add("TILE: The item matches blur keyword, applying blur");
-			const img = this.#tileDOM.querySelector("img");
-			if (img) {
-				if (Settings.get("general.unblurImageOnHover")) {
-					img.classList.add("dynamic-blur");
-				} else {
-					img.classList.add("blur");
-				}
-			}
-			this.#tileDOM.querySelector(".vvp-item-product-title-container")?.classList.add("dynamic-blur");
-			this.#tileDOM.dataset.blurredKeyword = escapeHTML(blurKeyword);
-		} else {
+	/**
+	 * Blur the item's image/title (blur keywords). Pass null to remove the blur.
+	 */
+	applyBlur(blurKeyword) {
+		const img = this.#tileDOM.querySelector("img");
+		const title = this.#tileDOM.querySelector(".vvp-item-product-title-container");
+		if (!blurKeyword) {
+			img?.classList.remove("blur", "dynamic-blur");
+			title?.classList.remove("dynamic-blur");
 			this.#tileDOM.dataset.blurredKeyword = "";
+			return;
 		}
+		logger.add("TILE: The item matches blur keyword, applying blur");
+		if (img) {
+			img.classList.add(Settings.get("general.unblurImageOnHover") ? "dynamic-blur" : "blur");
+		}
+		title?.classList.add("dynamic-blur");
+		this.#tileDOM.dataset.blurredKeyword = escapeHTML(blurKeyword);
+	}
+
+	async initiateTile() {
+		// dataset.blurkw holds the matched blur keyword (set by the toolbar), if any
+		const kw = this.#tileDOM.dataset.blurkw;
+		this.applyBlur(kw && kw !== "false" ? kw : null);
 
 		//Unescape titles and ensure they remain visible
 		const truncateFull = this.getDOM().querySelector(".a-truncate-full");

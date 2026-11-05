@@ -39,6 +39,7 @@ class Toolbar {
 
 	// Pre-compiled keywords for performance
 	#compiledHighlightKeywords = null;
+	#compiledBlurKeywords = [];
 	#compiledHideKeywords = null;
 
 	constructor(tileInstance) {
@@ -54,6 +55,12 @@ class Toolbar {
 		}
 
 		// Compile hide keywords
+		// Blur keywords are plain words (comma separated list in the settings)
+		const blurKeywords = Settings.get("general.blurKeywords");
+		this.#compiledBlurKeywords = Array.isArray(blurKeywords)
+			? compileKeywordObjects(blurKeywords.map((k) => ({ contains: k, without: "", etv_min: "", etv_max: "" })))
+			: [];
+
 		const hideKeywords = Settings.get("general.hideKeywords");
 		if (hideKeywords && hideKeywords.length > 0) {
 			this.#compiledHideKeywords = compileKeywordObjects(hideKeywords);
@@ -461,6 +468,14 @@ class Toolbar {
 					this.#tile.getDOM().dataset.hideKeyword = escapeHTML(hideMatchString);
 				}
 			}
+		}
+
+		//Blur keywords
+		if (this.#compiledBlurKeywords.length > 0) {
+			const blurMatch = findMatch(this.#tile.getTitle(), this.#compiledBlurKeywords, etv1, etv2);
+			const blurWord = blurMatch ? (typeof blurMatch === "object" ? blurMatch.contains : blurMatch) : "";
+			this.#tile.getDOM().dataset.blurkw = blurWord || "";
+			this.#tile.applyBlur(blurWord || null);
 		}
 
 		if (etv1 === null && etv2 === null) {
