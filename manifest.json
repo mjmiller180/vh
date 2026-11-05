@@ -159,6 +159,50 @@
 				"*://*.amazon.es/gp/buy/thankyou/*"
 			],
 			"run_at": "document_end"
+		},
+		{
+			"js": [
+				"scripts/reviewLoader.js"
+			],
+			"matches": [
+				"*://*.amazon.ca/review/review-your-purchases*",
+				"*://*.amazon.ca/review/create-review*",
+				"*://*.amazon.ca/reviews/edit-review/*",
+				"*://*.amazon.it/review/review-your-purchases*",
+				"*://*.amazon.it/review/create-review*",
+				"*://*.amazon.it/reviews/edit-review/*",
+				"*://*.amazon.es/review/review-your-purchases*",
+				"*://*.amazon.es/review/create-review*",
+				"*://*.amazon.es/reviews/edit-review/*",
+				"*://*.amazon.de/review/review-your-purchases*",
+				"*://*.amazon.de/review/create-review*",
+				"*://*.amazon.de/reviews/edit-review/*",
+				"*://*.amazon.fr/review/review-your-purchases*",
+				"*://*.amazon.fr/review/create-review*",
+				"*://*.amazon.fr/reviews/edit-review/*",
+				"*://*.amazon.co.uk/review/review-your-purchases*",
+				"*://*.amazon.co.uk/review/create-review*",
+				"*://*.amazon.co.uk/reviews/edit-review/*",
+				"*://*.amazon.co.jp/review/review-your-purchases*",
+				"*://*.amazon.co.jp/review/create-review*",
+				"*://*.amazon.co.jp/reviews/edit-review/*",
+				"*://*.amazon.com/review/review-your-purchases*",
+				"*://*.amazon.com/review/create-review*",
+				"*://*.amazon.com/reviews/edit-review/*",
+				"*://*.amazon.com.au/review/review-your-purchases*",
+				"*://*.amazon.com.au/review/create-review*",
+				"*://*.amazon.com.au/reviews/edit-review/*",
+				"*://*.amazon.com.br/review/review-your-purchases*",
+				"*://*.amazon.com.br/review/create-review*",
+				"*://*.amazon.com.br/reviews/edit-review/*",
+				"*://*.amazon.com.mx/review/review-your-purchases*",
+				"*://*.amazon.com.mx/review/create-review*",
+				"*://*.amazon.com.mx/reviews/edit-review/*",
+				"*://*.amazon.sg/review/review-your-purchases*",
+				"*://*.amazon.sg/review/create-review*",
+				"*://*.amazon.sg/reviews/edit-review/*"
+			],
+			"run_at": "document_end"
 		}
 	],
 	"oauth2": {

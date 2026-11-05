@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0123
+// Last compiled at 2026-11-05_0130
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -248,12 +248,14 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 			const status = mapReviewStatus(r.status);
 			const now = cur(row, "reviewStatus");
 			if (status && !MANUAL_REVIEW_STATES.includes(now)) {
-				if (status === "NOT SUBMITTED" ? now === "" : status !== now) fields.reviewStatus = status;
+				if (status === "NOT SUBMITTED" ? now === "" || now === "PENDING APPROVAL" : status !== now) fields.reviewStatus = status;
 			}
 			const score = mapReviewScore(r.score);
 			if (score && score !== cur(row, "reviewScore")) fields.reviewScore = score;
 			if (status === "LIVE" && !MANUAL_REVIEW_STATES.includes(now) && DONE_BEFORE_REVIEW.includes(cur(row, "status"))) fields.status = "COMPLETED";
 			if (r.reviewLink && r.reviewLink !== cur(row, "reviewLink")) fields.reviewLink = r.reviewLink;
+			if (r.starRating) fields.starRating = r.starRating;
+			if (r.reviewDate) fields.reviewDate = r.reviewDate;
 
 			const cells = buildFieldCells(fields, dash.colMap);
 			if (cells.length === 0) {

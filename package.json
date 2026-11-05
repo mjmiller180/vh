@@ -5,8 +5,8 @@
 	"scripts": {
 		"check": "node tools/check-refs.cjs && node tools/check-no-external.cjs && node tools/stamp-headers.cjs --check",
 		"stamp": "node tools/stamp-headers.cjs",
-		"test:unit": "node --test tests/unit/syncmerge.test.mjs tests/unit/webhook.test.mjs tests/unit/foldersync.test.mjs tests/unit/settings-timestamp.test.mjs tests/unit/sheets.test.mjs tests/unit/smartskip.test.mjs tests/unit/googleservice.test.mjs tests/unit/sheetsync.test.mjs",
-		"test:e2e": "node tests/e2e/run.cjs && node tests/e2e/smartskip.cjs && node tests/e2e/sheetsync.cjs",
+		"test:unit": "node --test tests/unit/syncmerge.test.mjs tests/unit/webhook.test.mjs tests/unit/foldersync.test.mjs tests/unit/settings-timestamp.test.mjs tests/unit/sheets.test.mjs tests/unit/smartskip.test.mjs tests/unit/googleservice.test.mjs tests/unit/sheetsync.test.mjs tests/unit/unicodestyles.test.mjs tests/unit/reviewdata.test.mjs",
+		"test:e2e": "node tests/e2e/run.cjs && node tests/e2e/smartskip.cjs && node tests/e2e/sheetsync.cjs && node tests/e2e/reviewtools.cjs",
 		"test": "npm run check && npm run test:unit && npm run test:e2e"
 	}
 }

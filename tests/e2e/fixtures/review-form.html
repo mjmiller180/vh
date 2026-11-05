@@ -1,0 +1,55 @@
+<!-- Last compiled at 2026-11-05_0130 -->
+<!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
+<!-- https://toolsmyths.com -->
+<!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
+<!doctype html>
+<html lang="en-us"><head><meta charset="utf-8"><title>Review Your Purchases</title></head>
+<body>
+<!-- Mirrors the structure of Amazon's create-review form (ids, test ids, hidden file input, 5 star radios, submit) -->
+<div id="app">
+<form data-testid="in-context-ryp-form" id="in-context-ryp-form" class="in-context-ryp-form-desktop">
+ <div class="a-section in-context-ryp__form_fields_container-desktop">
+  <div class="in-context-ryp__form-field-container">
+   <div class="in-context-ryp__form-field--starRating" role="radiogroup" aria-label="Start rating">
+    <span tabindex="0" role="radio" aria-checked="false" aria-label="select to rate item one star." class="in-context-ryp__form-field--starRating-single" data-testid="in-context-ryp__form-field--starRating-single">1</span>
+    <span tabindex="0" role="radio" aria-checked="false" aria-label="select to rate item two star." class="in-context-ryp__form-field--starRating-single" data-testid="in-context-ryp__form-field--starRating-single">2</span>
+    <span tabindex="0" role="radio" aria-checked="false" aria-label="select to rate item three star." class="in-context-ryp__form-field--starRating-single" data-testid="in-context-ryp__form-field--starRating-single">3</span>
+    <span tabindex="0" role="radio" aria-checked="false" aria-label="select to rate item four star." class="in-context-ryp__form-field--starRating-single" data-testid="in-context-ryp__form-field--starRating-single">4</span>
+    <span tabindex="0" role="radio" aria-checked="false" aria-label="select to rate item five star." class="in-context-ryp__form-field--starRating-single" data-testid="in-context-ryp__form-field--starRating-single">5</span>
+   </div>
+  </div>
+  <div class="in-context-ryp__form-field-container">
+   <label class="in-context-ryp__field-label" for="reviewText">Write a review </label>
+   <div class="a-section a-spacing-none"><span><div data-testid="review-text-textarea" class="a-input-text-wrapper in-context-ryp__form-field--reviewText false">
+     <textarea placeholder="What should other customers know?" id="reviewText" name="reviewText" rows="6" cols="40"></textarea>
+   </div></span></div>
+  </div>
+  <div class="in-context-ryp__form-field-container">
+   <label class="in-context-ryp__field-label" for="media">Share a video or photo </label>
+   <div class="in-context-ryp__form-field--mediaUploadInput">
+    <div class="in-context-ryp__form-field__mediaUploadCTA--no-margin">
+     <input type="file" id="media" accept="image/*,video/*" data-testid="in-context-ryp__form-field--mediaUploadInputHidden" style="display:none">
+     <div class="in-context-ryp__form-field--mediaUploadInput--custom-wrapper" tabindex="0" style="min-height:60px;border:1px solid #888">
+      <div class="in-context-ryp__form-field--mediaUploadInput--custom" aria-label="Share a video or photo">Share a video or photo</div>
+     </div>
+    </div>
+   </div>
+   <ul id="uploads"></ul>
+  </div>
+  <div class="in-context-ryp__form-field-container">
+   <label class="in-context-ryp__field-label" for="reviewTitle">Title your review <span>(required)</span></label>
+   <span><input type="text" id="reviewTitle" placeholder="What's most important to know?" name="reviewTitle" class="a-input-text in-context-ryp__form-field--reviewTitle"></span>
+  </div>
+ </div>
+ <div class="a-section in-context-ryp__submit-button-frame-desktop"><span class="a-button a-button-primary"><input type="submit" class="a-button-input"><span class="a-button-text">Submit</span></span></div>
+</form>
+</div>
+<script>
+// stand-ins for the page's own behaviour: a controlled textarea that only trusts input events, star clicks, upload log, submit
+window.__submits = []; window.__uploads = []; window.__reactSeen = [];
+for (const id of ["reviewText", "reviewTitle"]) document.getElementById(id).addEventListener("input", (e) => window.__reactSeen.push([id, e.target.value]));
+document.querySelectorAll('[role=radio]').forEach((s) => s.addEventListener('click', () => { document.querySelectorAll('[role=radio]').forEach((x) => x.setAttribute('aria-checked', 'false')); s.setAttribute('aria-checked', 'true'); }));
+document.getElementById('media').addEventListener('change', (e) => { for (const f of e.target.files) { window.__uploads.push([f.name, f.type, f.size]); const li = document.createElement('li'); li.textContent = f.name; document.getElementById('uploads').append(li); } });
+document.getElementById('in-context-ryp-form').addEventListener('submit', (e) => { e.preventDefault(); window.__submits.push({ title: document.getElementById('reviewTitle').value, text: document.getElementById('reviewText').value }); });
+</script>
+</body></html>

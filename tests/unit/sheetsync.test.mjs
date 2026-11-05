@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0123
+// Last compiled at 2026-11-05_0130
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -159,9 +159,11 @@ test("updateReviews: unknown ASIN is counted as unmatched; 'Not yet reviewed' on
 	assert.deepEqual([res.unmatched, res.updated], [1, 2]);
 	assert.deepEqual(writes(f).map((w) => w[2]), ["NOT SUBMITTED", "NOT SUBMITTED"]);
 	const f2 = fake(baseRows(), LINKS);
-	f2.grid[5][9] = "PENDING APPROVAL";
+	f2.grid[5][9] = "REJECTED";
 	const keep = await client(f2).updateReviews("S", "DASHBOARD", [{ asin: "B0CCCCCCCC", status: "Not yet reviewed" }]);
-	assert.equal(keep.updated, 0, "a status the owner or an earlier run set is not downgraded");
+	assert.equal(keep.updated, 0, "a real Amazon verdict is not overwritten by 'not yet reviewed'");
+	f2.grid[5][9] = "PENDING APPROVAL"; // written when the review was submitted; still listed as awaiting = the submit did not go through
+	assert.equal((await client(f2).updateReviews("S", "DASHBOARD", [{ asin: "B0CCCCCCCC", status: "Not yet reviewed" }])).updated, 1);
 	const f3 = fake(baseRows(), LINKS);
 	const dry = await client(f3).updateReviews("S", "DASHBOARD", [{ asin: "B0AAAAAAAA", status: "Approved" }], { dryRun: true });
 	assert.equal(dry.dryRun, true);
@@ -183,4 +185,13 @@ test("service.updateReviews: validates and cleans what the page sent (bad ASIN, 
 	assert.ok(!writes(f).some((w) => w[1] === 14), "a link that is not an Amazon address is dropped");
 	const off = createGoogleSheetsService({ getConfig: () => ({ enabled: false, id: "1o1zOgVLvMNbmqvcSjWJ9wgfpEkrwlNBndEgRzSVMBpI", tab: "DASHBOARD" }), auth: { getToken: async () => "t" }, makeClient: () => { throw new Error("must not be built"); } });
 	assert.deepEqual(await off.updateReviews([{ asin: "B0AAAAAAAA" }]), { ok: false, reason: "disabled" });
+});
+
+test("updateReviews: a review submitted from the form records stars, today's date and the pending status", async () => {
+	const f = fake(baseRows(), LINKS);
+	const res = await client(f).updateReviews("S", "DASHBOARD", [{ asin: "B0CCCCCCCC", status: "Pending approval", score: "Pending", starRating: 4, reviewDate: "2026-11-05" }]);
+	assert.equal(res.updated, 1);
+	const w = writes(f).sort((a, b) => a[1] - b[1]);
+	assert.deepEqual(w.map((x) => x[1]), [9, 10, 11, 13]);
+	assert.deepEqual([w[0][2], w[1][2], w[2][2]], ["PENDING APPROVAL", "PENDING", "⭐⭐⭐⭐"]);
 });
