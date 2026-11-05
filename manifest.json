@@ -216,7 +216,7 @@
 		}
 	],
 	"oauth2": {
-		"client_id": "REPLACE_WITH_YOUR_CLIENT_ID.apps.googleusercontent.com",
+		"client_id": "379060378844-81g67ttss8cmq39sieebp4oju2f5fj7t.apps.googleusercontent.com",
 		"scopes": [
 			"https://www.googleapis.com/auth/spreadsheets",
 			"https://www.googleapis.com/auth/drive.readonly"
