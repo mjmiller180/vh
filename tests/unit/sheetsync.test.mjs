@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1200
+// Last compiled at 2026-11-05_1433
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -132,9 +132,9 @@ const writes = (f) => f.posts.flatMap((p) => p.requests).map((r) => [r.updateCel
 
 test("updateReviews: status, score, COMPLETED and link go to the row found by ASIN; nothing else is written", async () => {
 	const f = fake(baseRows(), LINKS);
-	const res = await client(f).updateReviews("S", "DASHBOARD", [{ asin: "B0AAAAAAAA", orderDate: "2026-01-06", status: "Approved", score: "Excellent", reviewLink: "https://www.amazon.com/gp/customer-reviews/R1" }]);
+	const res = await client(f).updateReviews("S", "DASHBOARD", [{ asin: "B0AAAAAAAA", orderDate: "2026-01-06", status: "Approved", score: "Excellent", reviewLink: "https://www.amazon.com/gp/customer-reviews/R3NCIWZ4UAGTNT" }]);
 	assert.deepEqual([res.updated, res.unchanged, res.unmatched, res.ambiguous], [1, 0, 0, 0]);
-	assert.deepEqual(writes(f).sort((a, b) => a[1] - b[1]), [[2, 3, "COMPLETED"], [2, 9, "LIVE"], [2, 10, "EXCELLENT"], [2, 14, "https://www.amazon.com/gp/customer-reviews/R1"]]);
+	assert.deepEqual(writes(f).sort((a, b) => a[1] - b[1]), [[2, 3, "COMPLETED"], [2, 9, "LIVE"], [2, 10, "EXCELLENT"], [2, 14, "https://www.amazon.com/review/R3NCIWZ4UAGTNT/ref=cm_cr_othr_d_rdp_perm?ie=UTF8"]]);
 });
 
 test("updateReviews: values that are already right are not rewritten; the same review twice is one update", async () => {
@@ -302,4 +302,39 @@ test("service: review title and text are length-limited and must be strings", as
 	const svc2 = createGoogleSheetsService({ getConfig: () => ({ enabled: true, id: "1o1zOgVLvMNbmqvcSjWJ9wgfpEkrwlNBndEgRzSVMBpI", tab: "DASHBOARD" }), auth: { getToken: async () => "t" }, makeClient: (deps) => createSheetsClient({ ...deps, fetchFn: f2.handler, sleep: async () => {} }) });
 	await svc2.updateReviews([{ asin: "B0CCCCCCCC", status: "Pending approval", reviewTitle: { evil: 1 }, reviewText: 5 }]);
 	assert.deepEqual(f2.posts[0].requests.map((r) => r.updateCells.start.columnIndex), [9], "non-string values are ignored");
+});
+
+// ---------------------------------------------------------------- the owner's real sheet (copy of Reviews, 2026-11-05)
+const REAL_ROWS = () => [
+	["", "", "", "", "$815.31", "$4,076.53", "", "", "", "52.63%", "80.00%"],
+	HEADERS,
+	// linked title, review already LIVE with the owner's own link form
+	["9/18/2026", "111-2164556-4013016", "", "COMPLETED", "Tire Inflator 150 PSI Compatible with Makita 18V Battery | Portable air compressor", "$53.99", "", "", "", "LIVE", "EXCELLENT", "⭐⭐⭐⭐⭐", "my notes", "2026-09-29_2053", "https://www.amazon.com/review/R3NCIWZ4UAGTNT/ref=cm_cr_othr_d_rdp_perm?ie=UTF8"],
+	// NO link on the title, literal entities in the text (older paste)
+	["9/16/2026", "111-6728766-4923425", "", "DELIVERED", "PETSOLON Automatic Dog Water Dispenser, Auto Fill Dog Water Bowl Dispenser | 1 Gallon, Durable Water Bowl for Pets &amp; Livestock, Indoor &amp; Outdoor Use, Wide Bowl, BPA Free, Fits GHT 3/4&#34; Faucet, Gray", "$59.99"],
+];
+const REAL_LINKS = { 2: "https://www.amazon.com/dp/B0H5JR235Z" };
+
+test("real sheet: a row without a title link is found by order date + title (entities decoded); the owner's review link form counts as the same review", async () => {
+	const f = fake(REAL_ROWS().map((r) => [...r, ...Array(17 - r.length).fill("")]), REAL_LINKS);
+	const res = await client(f).updateReviews("S", "DASHBOARD", [
+		// linked row, same review in Amazon's other link form: nothing to change
+		{ asin: "B0H5JR235Z", orderDate: "2026-09-18", title: "Tire Inflator 150 PSI Compatible with Makita 18V Battery | Portable air compressor", status: "Approved", score: "Excellent", reviewLink: "https://www.amazon.com/gp/customer-reviews/R3NCIWZ4UAGTNT" },
+		// no link on the sheet row: found through its title and date
+		{ asin: "B0H9R5QBJC", orderDate: "2026-09-16", title: 'PETSOLON Automatic Dog Water Dispenser, Auto Fill Dog Water Bowl Dispenser | 1 Gallon, Durable Water Bowl for Pets & Livestock, Indoor & Outdoor Use, Wide Bowl, BPA Free, Fits GHT 3/4" Faucet, Gray', status: "Approved", score: "Excellent", reviewLink: "https://www.amazon.com/gp/customer-reviews/R3JIP39KX3DNXX" },
+	]);
+	assert.deepEqual([res.updated, res.unchanged, res.unmatched], [1, 1, 0]);
+	const w = writes(f);
+	assert.ok(w.every((x) => x[0] === 3), "only the unlinked row (row 4) is written");
+	assert.deepEqual(w.map((x) => x[2]).sort(), ["COMPLETED", "EXCELLENT", "LIVE", "https://www.amazon.com/review/R3JIP39KX3DNXX/ref=cm_cr_othr_d_rdp_perm?ie=UTF8"].sort());
+});
+
+test("real sheet: a title match needs the same day; another product the same day is not confused with it", async () => {
+	const f = fake(REAL_ROWS().map((r) => [...r, ...Array(17 - r.length).fill("")]), REAL_LINKS);
+	const res = await client(f).updateReviews("S", "DASHBOARD", [
+		{ asin: "B0XXXXXXXX", orderDate: "2026-09-17", title: "PETSOLON Automatic Dog Water Dispenser, Auto Fill Dog Water Bowl Dispenser", status: "Approved" }, // other day
+		{ asin: "B0YYYYYYYY", orderDate: "2026-09-16", title: "A completely different product on the same day", status: "Approved" },
+	]);
+	assert.deepEqual([res.updated, res.unmatched], [0, 2]);
+	assert.equal(f.posts.length, 0);
 });

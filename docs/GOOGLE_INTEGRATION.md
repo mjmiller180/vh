@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_1200 -->
+<!-- Last compiled at 2026-11-05_1433 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -84,6 +84,12 @@ GENERAL REVIEW NOTES, REVIEW DATE, REVIEW LINK, REVIEW TITLE, REVIEW TEXT.
     106-... next to order id 111-...), so nothing is written to the sheet from them; when the Orders page later adds the row,
     the remembered date (same ASIN, order date within 2 days of the day it was placed) goes into DELIVERY DATE. Checkouts
     that were never completed are ignored.
+  * Checked against a read-only look at a copy of the owner's sheet (2026-11-05): header row 2, data from row 3, `=image("")`
+    placeholders from the first empty row down, titles that contain literal `&amp;` / `&#39;` from older pastes, some
+    title cells without a product link (so rows are matched by ASIN link first, then by order date + title), review links
+    in the form `https://www.amazon.com/review/<ID>/ref=cm_cr_othr_d_rdp_perm?ie=UTF8` (the extension writes that form and
+    treats the same review ID in Amazon's `/gp/customer-reviews/<ID>` form as already present), REVIEW DATE holding either a
+    date or a text stamp such as `2026-09-29_2053`.
   * Reviews: the Vine **Reviews** pages (Awaiting / Reviewed) update REVIEW SATUS (LIVE / NOT SUBMITTED / REJECTED /
     PENDING APPROVAL), REVIEW SCORE, REVIEW LINK, and STATUS -> COMPLETED when a review goes live. The row is found by the
     ASIN in the TITLE cell's link (and the order date when an ASIN appears twice). Values you set by hand (TAKEN DOWN,

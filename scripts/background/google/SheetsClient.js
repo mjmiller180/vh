@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1200
+// Last compiled at 2026-11-05_1433
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -14,6 +14,7 @@
  *    (manual columns, formulas) is ever cleared
  *  - an order number that is already on the sheet is never added twice
  */
+import { decodeEntities } from "../../core/utils/VineListParser.js";
 import { mapColumns, buildOrderCells, buildFieldCells, normaliseHeader, NO_ORDER_NUMBER_COLUMN, mapReviewStatus, mapReviewScore, dateToSerial, starsText, MANUAL_REVIEW_STATES } from "../../core/utils/DashboardRow.js";
 
 const BASE = "https://sheets.googleapis.com";
@@ -226,6 +227,23 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 		for (const [row, asin] of asins) {
 			if (row > dash.headerRow) rowsByAsin.set(asin, [...(rowsByAsin.get(asin) || []), row]);
 		}
+		// Rows whose title cell has no product link (not all of the owner's rows have one) are found by order date + title.
+		// The sheet's titles may hold literal entities ("&amp;", "&#39;") from older pastes: compare the decoded text.
+		const norm = (t) => decodeEntities(t).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+		const sameTitle = (a, b) => {
+			const n = Math.min(a.length, b.length, 60);
+			return n >= 20 && a.slice(0, n) === b.slice(0, n); // (one of the two may be shortened)
+		};
+		const rowsByTitle = (title, serial) => {
+			const want = norm(title);
+			if (!want || serial === null) return [];
+			const out = [];
+			for (let i = dash.headerRow + 1; i < dash.values.length; i++) {
+				if (cellSerial(dash, i, "orderDate") === serial && sameTitle(norm(cur(i, "title")), want)) out.push(i);
+			}
+			return out;
+		};
+		const reviewId = (u) => String(u || "").match(/\/(R[A-Z0-9]{8,})(?:[/?#]|$)/)?.[1] || null;
 		const requests = [];
 		const seenRows = new Set();
 		let updated = 0, unchanged = 0, unmatched = 0, ambiguous = 0;
@@ -242,6 +260,13 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 					const have = cellSerial(dash, x, "orderDate");
 					return have === null || have === want; // an unreadable date on the sheet does not rule the row out
 				});
+			}
+			if (rows.length === 0 && r.title && r.orderDate) {
+				let want = null;
+				try {
+					want = dateToSerial(r.orderDate);
+				} catch (e) {}
+				rows = rowsByTitle(r.title, want);
 			}
 			if (rows.length === 0) {
 				unmatched++;
@@ -269,7 +294,10 @@ export function createSheetsClient({ fetchFn = globalThis.fetch?.bind(globalThis
 			const score = mapReviewScore(r.score);
 			if (score && score !== cur(row, "reviewScore")) fields.reviewScore = score;
 			if (status === "LIVE" && DONE_BEFORE_REVIEW.includes(cur(row, "status"))) fields.status = "COMPLETED";
-			if (r.reviewLink && r.reviewLink !== cur(row, "reviewLink")) fields.reviewLink = r.reviewLink;
+			// the owner's sheet keeps review links as https://www.amazon.com/review/<ID>/ref=cm_cr_othr_d_rdp_perm?ie=UTF8;
+			// the Vine list gives /gp/customer-reviews/<ID>. The same review in either form is "already there".
+			const rid = reviewId(r.reviewLink);
+			if (rid && rid !== reviewId(cur(row, "reviewLink"))) fields.reviewLink = `https://www.amazon.com/review/${rid}/ref=cm_cr_othr_d_rdp_perm?ie=UTF8`;
 			for (const key of ["reviewTitle", "reviewText"]) if (r[key] && String(r[key]).slice(0, 50000) !== cur(row, key)) fields[key] = r[key];
 			if (r.starRating && starsText(r.starRating) !== cur(row, "starRating")) fields.starRating = r.starRating;
 			if (r.reviewDate) {
