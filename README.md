@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_1558 -->
+<!-- Last compiled at 2026-11-07_2157 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -36,6 +36,14 @@ key applies the brake (and also goes back one page), and the next-page / hide-al
 The queue, keys, delays (never below 2 seconds), and a page limit are configurable. The session lives in the tab only and
 nothing is sent anywhere. Automated paging is outside what Amazon's Vine terms expect from normal use, so treat it as a
 convenience you run at your own risk and keep the delays generous.
+
+## Saved searches (Vine items pages)
+
+Search for something, press **Save Search** (next to the search box) and it appears in the header between the Vine logo and
+the Messages / Help links: two per column, top then bottom, then the next column (up to 14). Click one to run that search
+again. On a saved search the same button reads **Remove Search**. You can also type a search and save it before running it.
+Only the search text and the queue / category are kept. The list is part of your settings, so it follows them when the
+folder sync is on.
 
 ## Google Sheet, review tools and Drive pictures (Settings → Google)
 

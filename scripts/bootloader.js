@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1508
+// Last compiled at 2026-11-07_2157
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -57,6 +57,8 @@ import { SmartSkip } from "/scripts/core/services/SmartSkip.js";
 const smartSkip = new SmartSkip();
 import { SheetSync } from "/scripts/core/services/SheetSync.js";
 const sheetSync = new SheetSync();
+import { SavedSearches } from "/scripts/core/services/SavedSearches.js";
+const savedSearches = new SavedSearches();
 var pagination = new Pagination();
 import { PinnedListMgr } from "/scripts/core/services/PinnedListMgr.js";
 var PinnedList = new PinnedListMgr();
@@ -234,6 +236,7 @@ async function init() {
 		Notifications.pushNotification(note);
 	}
 	smartSkip.install(); //SmartSkip keyboard shortcuts
+	savedSearches.install(); //Saved searches in the header (after the sync above, so they are up to date)
 	await initCreateTabs(); //Create the 4 grids/tabs
 	logger.add("BOOT: Waiting for environment to load");
 	await env.waitForLoad(); // Ensure environment is loaded before creating toolbars

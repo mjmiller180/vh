@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-05_1558 -->
+<!-- Last compiled at 2026-11-07_2157 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -8,6 +8,7 @@
 ## [VineSmyths 4.5] - 2026-11
 
 ### Added
+- Saved searches in the Vine header (Save Search / Remove Search button, chips two per column), kept in the settings so they sync.
 - SmartSkip: automatic page scanner (start k, pause Space, stop Escape) that stops at the first unpinned item, built into
   the extension (uses the pinned list and the Available grid directly, status box without innerHTML, toasts instead of alert).
 - Google Sheet DASHBOARD sync (Settings -> Google): new orders from the Vine **Orders** page (title, ASIN, picture, order

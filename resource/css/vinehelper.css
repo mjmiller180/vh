@@ -1,4 +1,4 @@
-/* Last compiled at 2026-11-04_2317 */
+/* Last compiled at 2026-11-07_2157 */
 /* Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. */
 /* https://toolsmyths.com */
 /* SPDX-License-Identifier: LicenseRef-Proprietary */
@@ -745,4 +745,45 @@ button.splide__arrow--prev {
 	aspect-ratio: 1;
 	object-fit: contain;
 	width: 100%; /* For Firefox */
+}
+
+/* Saved searches: between the Vine logo and the header links, two per column, top then bottom, then the next column */
+#vs-saved-searches {
+	display: inline-grid;
+	grid-auto-flow: column;
+	grid-template-rows: repeat(2, auto);
+	gap: 6px 10px;
+	vertical-align: top;
+	margin: 4px auto 0 20px;
+	max-width: calc(100% - 640px);
+	overflow: hidden;
+}
+#vs-saved-searches:empty {
+	display: none;
+}
+#vs-saved-searches a.vs-search-chip {
+	display: block;
+	box-sizing: border-box;
+	width: 170px;
+	padding: 4px 8px;
+	border: 2px solid #1fc21f;
+	background: #000;
+	color: #1fd1c4 !important;
+	font: bold 12px/1.3 Arial, sans-serif;
+	text-decoration: none !important;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+#vs-saved-searches a.vs-search-chip:hover,
+#vs-saved-searches a.vs-search-chip:focus {
+	background: #0b2b0b;
+}
+#vs-saved-searches a.vs-search-chip.vs-current {
+	background: #0b2b0b;
+	box-shadow: 0 0 0 2px #1fc21f;
+}
+#vs-save-search {
+	margin-right: 8px;
+	cursor: pointer;
 }

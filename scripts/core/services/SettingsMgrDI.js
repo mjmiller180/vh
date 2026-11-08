@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0138
+// Last compiled at 2026-11-07_2157
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -485,6 +485,11 @@ export class SettingsMgrDI {
 					enabled: false,
 					folder: "", //folder URL or ID to start in; empty = newest pictures anywhere in Drive
 				},
+			},
+
+			// Saved Vine searches (addresses like /vine/vine-items?search=dog), shown in the header
+			savedSearches: {
+				items: [],
 			},
 
 			// Tools on Amazon's review form (see scripts/review/)
