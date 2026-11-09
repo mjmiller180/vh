@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-09_1226 -->
+<!-- Last compiled at 2026-11-09_1647 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -8,6 +8,7 @@
 ## [VineSmyths 4.5] - 2026-11
 
 ### Added
+- SmartSkip starts from the current page when you press Hide All + Next Page (as the original script did); setting in the Keyboard tab.
 - SmartSkip patrol mode (key t, loops over a configurable page range, counts laps, shows the last found ASIN), jump keys 1/2/3 (start at configurable pages), click-to-enlarge status box. These were in the later versions of the original script (3.4 - 3.5.3) but not in the 3.1 that was first integrated.
 - Toolbar popup: "Sync now" and "Stop syncing" work in the popup; only choosing a folder opens the full settings page.
 - Saved searches in the Vine header (Save Search / Remove Search button, chips two per column), kept in the settings so they sync.

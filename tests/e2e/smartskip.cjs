@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1130
+// Last compiled at 2026-11-09_1647
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -251,6 +251,26 @@ async function test(name, fn) {
 		await page.keyboard.press("3");
 		await page.waitForURL(/page=300/);
 		await stopSession(page);
+	});
+
+	await test("Hide All + Next Page starts SmartSkip from the page you are on (and the setting can switch that off)", async () => {
+		await setSettings({ "keyBindings.hideAllNext": "h", "keyBindings.hideAll": "", "smartSkip.startOnHideAllNext": true });
+		await pin([1, 2, 3, 4, 5]);
+		await page.goto("https://www.amazon.com/vine/vine-items" + url(2));
+		await ready(page);
+		assert.equal(await state(page), null, "no session before the key");
+		await page.keyboard.press("h");
+		// the extension's own handler hides the page and opens the next one; SmartSkip is running there and keeps going
+		await waitFor(async () => (await state(page))?.seen >= 1 && /page=[3-5]/.test(page.url()), 20000);
+		assert.equal((await state(page)).patrol, false);
+		await stopSession(page);
+		await setSettings({ "smartSkip.startOnHideAllNext": false });
+		await page.goto("https://www.amazon.com/vine/vine-items" + url(2));
+		await ready(page);
+		await page.keyboard.press("h");
+		await page.waitForTimeout(4000);
+		assert.equal(await state(page), null, "switched off: the key only hides and turns the page");
+		await setSettings({ "smartSkip.startOnHideAllNext": true });
 	});
 
 	await test("clicking the status box enlarges it into the middle of the page; [X] makes it small again", async () => {

@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-09_1130 -->
+<!-- Last compiled at 2026-11-09_1647 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -33,6 +33,8 @@ Press **k** on a Vine page and VineSmyths pages through the queue on a timer, st
 you have **not pinned** (items already hidden are ignored). **Space** pauses / resumes (resuming re-checks the page you
 are on, so pin or hide what it found and press Space to carry on), **Escape** stops and shows the totals in the status box, the previous-page
 key applies the brake (and also goes back one page), and the next-page / hide-all keys hand control back to you (scanning resumes on the next page).
+**Hide All + Next Page** (your own key for it) also starts SmartSkip from the page you are on (a setting, on by default); the
+start key **k** always begins at page 1.
 **Patrol** (key **t**): for when most items are already hidden. It loops over a range of pages (default 1-25, both ends
 configurable) again and again, stops when an unpinned item shows up (the status box shows its ASIN as "Last Found" and the
 lap count), and carries on with Space. A lap also ends early when the queue has fewer pages than the range. **Jump keys**

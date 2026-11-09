@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1130
+// Last compiled at 2026-11-09_1647
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -504,6 +504,7 @@ export class SettingsMgrDI {
 			// SmartSkip: automatic paging that stops at the first unpinned item (see SmartSkip.js)
 			smartSkip: {
 				enabled: true,
+				startOnHideAllNext: true, // Hide All + Next Page also starts SmartSkip from the current page
 				startQueue: "encore",
 				maxPages: 300,
 				// patrol: loop over pages startPage..lastPage again and again (1-25 by default)
