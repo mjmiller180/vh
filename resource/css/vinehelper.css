@@ -1,4 +1,4 @@
-/* Last compiled at 2026-11-07_2157 */
+/* Last compiled at 2026-11-09_1226 */
 /* Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. */
 /* https://toolsmyths.com */
 /* SPDX-License-Identifier: LicenseRef-Proprietary */
@@ -786,4 +786,14 @@ button.splide__arrow--prev {
 #vs-save-search {
 	margin-right: 8px;
 	cursor: pointer;
+}
+
+/* The copy of the pagination at the top (and the expanded one) flows normally inside the "Displaying ..." line, even when
+   the "Pagination on top" style positions every .a-pagination absolutely: two paginations never sit on top of each other */
+.topPagination .a-pagination,
+.topPaginationVerbose .a-pagination,
+.topPagination ul.a-pagination,
+.topPaginationVerbose ul.a-pagination {
+	position: static !important;
+	transform: none !important;
 }
