@@ -1,4 +1,4 @@
-/* Last compiled at 2026-11-09_1721 */
+/* Last compiled at 2026-11-09_1758 */
 /* Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. */
 /* https://toolsmyths.com */
 /* SPDX-License-Identifier: LicenseRef-Proprietary */
@@ -799,7 +799,9 @@ button.splide__arrow--prev {
 }
 
 /* Auto-hide panel in the Product Details dialog */
-.vs-autohide { margin: 8px 0; padding: 0 12px; font-size: 13px; }
+.vs-autohide { display: block; clear: both; margin: 0 0 8px; padding: 0 12px; font-size: 13px; }
+.vs-autohide + * { clear: both; }
+#vvp-product-details-modal--request-btn.vs-ah-locked { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
 .vs-autohide .vs-ah-toggle { cursor: pointer; padding: 4px 10px; border: 1px solid #888; border-radius: 6px; background: #f3f3f3; }
 .vs-autohide .vs-ah-body { margin-top: 8px; padding: 10px; border: 1px solid #c8c8c8; border-radius: 8px; background: #fafafa; }
 .vs-autohide .vs-ah-body[hidden] { display: none; }

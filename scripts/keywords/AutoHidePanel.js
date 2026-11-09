@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1721
+// Last compiled at 2026-11-09_1758
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -67,8 +67,9 @@ class AutoHidePanel {
 		for (const dialog of document.querySelectorAll(".a-popover-modal")) {
 			const content = dialog.querySelector("#vvp-product-details-modal--content");
 			if (!content || dialog.querySelector("." + ID)) continue;
-			// the dialog's own scrolling area, so the panel scrolls with the product and the footer buttons stay in place
-			(dialog.querySelector(".a-popover-inner") || content.parentNode).append(this.#build(dialog));
+			// First thing in the dialog's own scrolling area: Amazon's product block can be taller than its box, so anything
+			// placed after it would overlap the picture or the option dropdowns.
+			(dialog.querySelector(".a-popover-inner") || content.parentNode).prepend(this.#build(dialog));
 		}
 	}
 
@@ -114,11 +115,43 @@ class AutoHidePanel {
 		};
 
 		const root = el("div", { class: ID });
-		const toggle = el("button", { type: "button", class: "vs-ah-toggle", text: "Auto-hide / highlight keywords…" });
+		const toggle = el("button", { type: "button", class: "vs-ah-toggle", title: "Add auto-hide or highlight keywords from this title", text: "Hide / Highlight" });
 		const body = el("div", { class: "vs-ah-body", hidden: "" });
 		root.append(toggle, body);
+
+		// While the panel is open "Request product" is off, so a click meant for the panel can never request the item.
+		// Amazon's handler listens on the outer span, so the click is stopped before it gets there.
+		const lock = (on) => {
+			const btn = dialog.querySelector("#vvp-product-details-modal--request-btn");
+			if (!btn) return;
+			btn.classList.toggle("a-button-disabled", on);
+			btn.classList.toggle("vs-ah-locked", on);
+			const input = btn.querySelector("input");
+			if (input) input.disabled = on;
+			if (on) dialog.dataset.vsLocked = "1";
+			else delete dialog.dataset.vsLocked;
+		};
+		if (!dialog.dataset.vsLockGuard) {
+			dialog.dataset.vsLockGuard = "1";
+			dialog.addEventListener(
+				"click",
+				(e) => {
+					if (dialog.dataset.vsLocked && e.target.closest?.("#vvp-product-details-modal--request-btn, [data-action='vvp-request-product']")) {
+						e.preventDefault();
+						e.stopImmediatePropagation();
+					}
+				},
+				true
+			);
+		}
+		const closePanel = () => {
+			body.hidden = true;
+			lock(false);
+		};
 		toggle.addEventListener("click", () => {
+			if (!body.hidden) return closePanel();
 			if (body.hidden) {
+				lock(true);
 				state.product = this.#readProduct(dialog);
 				state.words = [];
 				state.current = [];
@@ -131,7 +164,7 @@ class AutoHidePanel {
 				body.hidden = false;
 				render();
 				root.scrollIntoView({ block: "nearest" });
-			} else body.hidden = true;
+			}
 		});
 
 		const current = () => {
@@ -376,9 +409,7 @@ class AutoHidePanel {
 				type: "button",
 				class: "vs-ah-small",
 				text: "Cancel",
-				onclick: () => {
-					body.hidden = true;
-				},
+				onclick: closePanel,
 			});
 			body.append(el("div", { class: "vs-ah-row" }, add, cancel));
 			if (needsChoice) body.append(el("div", { class: "vs-ah-note", text: "Choose which keyword wins to continue." }));

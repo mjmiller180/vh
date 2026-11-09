@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1721
+// Last compiled at 2026-11-09_1758
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -43,7 +43,9 @@ document.addEventListener("click", (e) => {
 		a.textContent = TITLES[btn.dataset.asin];
 	}, 150);
 	dialog.querySelector('button[data-action="a-popover-close"]').addEventListener("click", () => dialog.remove());
-}, true);`;
+}, true);
+window.__requests = 0;
+document.addEventListener("click", (e) => { if (e.target.closest("[data-action='vvp-request-product']")) window.__requests++; });`;
 	return `<!doctype html><html lang="en-us"><head><meta charset="utf-8"><title>Vine</title></head><body>
 <script type="a-state" data-a-state='{"key":"vvp-context"}'>${JSON.stringify({ queueKey: "encore", customerId: "A1FIXTURE", marketplaceId: "ATVPDKIKX0DER", voiceDetails: { tierStatus: "TIER1" } })}</script>
 <div id="vvp-header"><div id="vvp-vine-participation-content"><ul><li>Silver tier. Limit of $ 2,000.00 this period.</li></ul></div></div>
@@ -127,6 +129,31 @@ async function test(name, fn) {
 		await page.click('input[data-asin="B0AUTO0002"]');
 		await page.waitForSelector(".vs-autohide .vs-ah-toggle");
 		assert.equal(await page.locator(".vs-autohide").count(), 1);
+		await page.close();
+	});
+
+	await test("while the panel is open Request product is off (and works again after closing); the panel does not overlap the product", async () => {
+		const page = await open();
+		await page.click('input[data-asin="B0AUTO0001"]');
+		await page.waitForSelector("#vvp-product-details-modal--product-title:not(:empty)");
+		const reqInput = "#vvp-product-details-modal--request-btn input";
+		assert.equal(await page.locator(reqInput).isDisabled(), false);
+		assert.equal(await page.textContent(".vs-ah-toggle"), "Hide / Highlight");
+		await page.click(".vs-ah-toggle");
+		await page.waitForSelector(".vs-ah-chip");
+		assert.equal(await page.locator(reqInput).isDisabled(), true);
+		await page.locator("#vvp-product-details-modal--request-btn").dispatchEvent("click");
+		assert.equal(await page.evaluate(() => window.__requests), 0, "a click on the off button reached Amazon's handler");
+		const r = await page.evaluate(() => {
+			const a = document.querySelector(".vs-autohide").getBoundingClientRect();
+			const b = document.querySelector("#vvp-product-details-modal--main").getBoundingClientRect();
+			return { aBottom: a.bottom, bTop: b.top };
+		});
+		assert.ok(r.aBottom <= r.bTop + 1, "panel is above the product block: " + JSON.stringify(r));
+		await page.click(".vs-ah-toggle"); // closes the panel
+		assert.equal(await page.locator(reqInput).isDisabled(), false);
+		await page.locator("#vvp-product-details-modal--request-btn").dispatchEvent("click");
+		assert.equal(await page.evaluate(() => window.__requests), 1);
 		await page.close();
 	});
 

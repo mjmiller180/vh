@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-09_1721 -->
+<!-- Last compiled at 2026-11-09_1758 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -45,7 +45,7 @@ nothing is sent anywhere. Automated paging is outside what Amazon's Vine terms e
 convenience you run at your own risk and keep the delays generous.
 
 ## Auto-hide / Highlight panel (Product Details dialog)
-Open an item's **See details** dialog and press **Auto-hide / highlight keywords…** under the product. Click words of the
+Open an item's **See details** dialog and press **Hide / Highlight** at the top of the dialog (Request product is switched off while the panel is open). Click words of the
 title to build a rule: a click is a word (any of the clicked words), **Ctrl+click** builds a phrase in the order clicked
 (other words may sit between them), **+ phrase** starts another phrase (two phrases that start with the same word share it:
 `toyota.*\b(tundra|sequoia)`). **Hide this brand** adds the brand as written. The panel shows the rule in words and as an
