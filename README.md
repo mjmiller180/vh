@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-09_1647 -->
+<!-- Last compiled at 2026-11-09_1721 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -43,6 +43,16 @@ box to enlarge it into the middle of the page ([X] makes it small again).
 The queue, keys, delays (never below 2 seconds), and a page limit are configurable. The session lives in the tab only and
 nothing is sent anywhere. Automated paging is outside what Amazon's Vine terms expect from normal use, so treat it as a
 convenience you run at your own risk and keep the delays generous.
+
+## Auto-hide / Highlight panel (Product Details dialog)
+Open an item's **See details** dialog and press **Auto-hide / highlight keywords…** under the product. Click words of the
+title to build a rule: a click is a word (any of the clicked words), **Ctrl+click** builds a phrase in the order clicked
+(other words may sit between them), **+ phrase** starts another phrase (two phrases that start with the same word share it:
+`toyota.*\b(tundra|sequoia)`). **Hide this brand** adds the brand as written. The panel shows the rule in words and as an
+editable expression, how many items on the page it would hide, and which pinned items stay visible (pinning overrides the
+hide keywords for that item only). If the rule would also catch something your highlight keywords match you choose which
+wins; the same applies the other way round in Highlight mode. New words go into an existing rule of the same **Group**
+(Keywords tab) while it has room (10 alternatives / 350 characters), otherwise a new rule starts. **Undo** puts everything back.
 
 ## Saved searches (Vine items pages)
 

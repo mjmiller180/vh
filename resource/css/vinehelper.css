@@ -1,4 +1,4 @@
-/* Last compiled at 2026-11-09_1226 */
+/* Last compiled at 2026-11-09_1721 */
 /* Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. */
 /* https://toolsmyths.com */
 /* SPDX-License-Identifier: LicenseRef-Proprietary */
@@ -797,3 +797,29 @@ button.splide__arrow--prev {
 	position: static !important;
 	transform: none !important;
 }
+
+/* Auto-hide panel in the Product Details dialog */
+.vs-autohide { margin: 8px 0; padding: 0 12px; font-size: 13px; }
+.vs-autohide .vs-ah-toggle { cursor: pointer; padding: 4px 10px; border: 1px solid #888; border-radius: 6px; background: #f3f3f3; }
+.vs-autohide .vs-ah-body { margin-top: 8px; padding: 10px; border: 1px solid #c8c8c8; border-radius: 8px; background: #fafafa; }
+.vs-autohide .vs-ah-body[hidden] { display: none; }
+.vs-autohide .vs-ah-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; align-items: center; }
+.vs-autohide .vs-ah-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.vs-autohide button { font: inherit; cursor: pointer; }
+.vs-autohide .vs-ah-chip { padding: 2px 8px; border: 1px solid #aaa; border-radius: 12px; background: #fff; }
+.vs-autohide .vs-ah-chip.vs-ah-stop { opacity: 0.55; }
+.vs-autohide .vs-ah-chip.vs-ah-word { background: #cde7ff; border-color: #2a7ac0; }
+.vs-autohide .vs-ah-chip.vs-ah-phrase { background: #ffe9b8; border-color: #c08a1a; }
+.vs-autohide .vs-ah-mode, .vs-autohide .vs-ah-small, .vs-autohide .vs-ah-go { padding: 3px 10px; border: 1px solid #888; border-radius: 6px; background: #f3f3f3; }
+.vs-autohide .vs-ah-mode.vs-ah-on { background: #2a7ac0; color: #fff; border-color: #1d5a91; }
+.vs-autohide .vs-ah-go { background: #ffd814; border-color: #c9a400; font-weight: bold; }
+.vs-autohide button[disabled] { opacity: 0.45; cursor: not-allowed; }
+.vs-autohide .vs-ah-field { display: block; margin: 6px 0; }
+.vs-autohide .vs-ah-text { width: 100%; box-sizing: border-box; padding: 3px 6px; }
+.vs-autohide .vs-ah-expr { font-family: monospace; }
+.vs-autohide .vs-ah-help, .vs-autohide .vs-ah-note { color: #555; margin: 4px 0; }
+.vs-autohide .vs-ah-warn { color: #b12704; }
+.vs-autohide .vs-ah-preview ul, .vs-autohide .vs-ah-conflict ul { margin: 4px 0 4px 18px; }
+.vs-autohide .vs-ah-conflict { margin: 8px 0; padding: 8px; border: 1px solid #c9a400; background: #fff8d6; border-radius: 6px; }
+.vs-autohide .vs-ah-radio { display: block; margin: 4px 0; }
+.vs-autohide .vs-ah-done { margin-top: 8px; padding: 6px 8px; background: #e7f6e7; border: 1px solid #5a5; border-radius: 6px; }
