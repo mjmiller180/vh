@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-09_1130 -->
+<!-- Last compiled at 2026-11-09_1226 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -23,6 +23,7 @@
   (read only, needs the extra Drive permission).
 
 ### Fixed
+- Top pagination was drawn twice on top of itself (garbled numbers, "Previus") when the "Pagination on top" style and "Pagination also at the top" were both on: the extra copy is no longer added while the style already moves Amazon's own pagination to the top, and a copy can never be positioned absolutely.
 - Settings: the SmartSkip box no longer overflows (label / value rows), the toolbar popup no longer scrolls sideways, and the header has no logo (title left, settings button right).
 - SmartSkip showed its status box and a second (white) popup for the same event. There is only the status box now: it says what to do when items are found, and shows the totals for 30 seconds when a session ends.
 - Independent review of the sheet/review/Drive code: reviews of a re-ordered ASIN could land on the older order's row; rows set

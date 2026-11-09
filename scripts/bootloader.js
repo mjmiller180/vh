@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-07_2157
+// Last compiled at 2026-11-09_1226
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -737,8 +737,10 @@ async function initCreateTabs() {
 }
 
 function initInsertTopPagination() {
-	//Top pagination
-	if (Settings.get("general.topPagination")) {
+	//Top pagination.
+	//The "Pagination on top" style (Styles tab) already moves Amazon's own pagination to the top of the page, so a
+	//second copy at the same place would be drawn on top of it (the numbers overlap): the copy is only added without it.
+	if (Settings.get("general.topPagination") && !Settings.get("thorvarium.paginationOnTop")) {
 		const container = document.getElementById("vvp-items-grid-container");
 		if (container == null) {
 			//There is no listing on this page
