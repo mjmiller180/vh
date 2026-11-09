@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-07_2157
+// Last compiled at 2026-11-09_1130
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -468,6 +468,10 @@ export class SettingsMgrDI {
 				smartSkipStart: "k",
 				smartSkipPause: "Space",
 				smartSkipStop: "Escape",
+				smartSkipPatrol: "t",
+				smartSkipJump1: "1",
+				smartSkipJump2: "2",
+				smartSkipJump3: "3",
 				previousPage: "p",
 				RFYPage: "r",
 				showAll: "s",
@@ -502,6 +506,12 @@ export class SettingsMgrDI {
 				enabled: true,
 				startQueue: "encore",
 				maxPages: 300,
+				// patrol: loop over pages startPage..lastPage again and again (1-25 by default)
+				patrol: { startPage: 1, lastPage: 25 },
+				// the jump keys start a normal session at these pages
+				jumpPage1: 100,
+				jumpPage2: 200,
+				jumpPage3: 300,
 				delay: {
 					active: { min: 2500, max: 4000 },
 					background: { min: 3500, max: 3500 },

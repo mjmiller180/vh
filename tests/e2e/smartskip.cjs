@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1558
+// Last compiled at 2026-11-09_1130
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -82,6 +82,12 @@ async function test(name, fn) {
 			await new Promise((r) => setTimeout(r, 250));
 		}
 	};
+	// Escape can be lost while a page is reloading: press it until the session is gone
+	const stopSession = (page) =>
+		waitFor(async () => {
+			await page.keyboard.press("Escape");
+			return (await state(page)) === null;
+		}, 20000);
 	const ready = (page) => page.waitForSelector("#vh-status[data-status='productsUpdated']", { state: "attached" });
 
 	// first visit creates the default settings; then make the delays short (2s is the enforced floor)
@@ -177,6 +183,90 @@ async function test(name, fn) {
 		await page.keyboard.type("kkk");
 		await page.waitForTimeout(500);
 		assert.equal(await state(page), null);
+	});
+
+	console.log("\nPatrol, jump keys, enlarged box");
+	await test("patrol: loops pages 1-3 again and again, counting laps, never hits the page limit or the end of the queue", async () => {
+		await setSettings({ "smartSkip.patrol.startPage": "1", "smartSkip.patrol.lastPage": "3", "smartSkip.maxPages": "2" });
+		await pin([1, 2, 3, 4, 5]);
+		await page.goto("https://www.amazon.com/vine/vine-items" + url(1));
+		await ready(page);
+		await page.keyboard.press("t");
+		await waitFor(async () => (await state(page))?.patrol === true && (await state(page)).laps >= 2 && (await state(page)).seen >= 4, 40000);
+		const st = await state(page);
+		assert.equal(st.status, "running");
+		assert.ok(st.seen >= 4, "seen " + st.seen + ": more pages than maxPages=2 allows for a normal session");
+		const p = Number(new URL(page.url()).searchParams.get("page") || 1);
+		assert.ok(p >= 1 && p <= 3, "never beyond the patrol range, was on page " + p);
+		await waitFor(async () => /PATROLLING \(1-3\)/.test(await boxText(page)));
+		assert.match(await boxText(page), /Laps: \d+/);
+		await stopSession(page);
+		await waitFor(async () => /Laps: \d+/.test(await boxText(page)) && /Pages seen:/.test(await boxText(page)));
+	});
+
+	await test("patrol: stops at the first page with something new and shows its ASIN as Last Found; Space carries on and clears it", async () => {
+		await setSettings({ "smartSkip.patrol.startPage": "1", "smartSkip.patrol.lastPage": "5", "smartSkip.maxPages": "300" });
+		await pin([1, 3, 4, 5]); // page 2 has unpinned items
+		await page.goto("https://www.amazon.com/vine/vine-items" + url(1));
+		await ready(page);
+		await page.keyboard.press("t");
+		await waitFor(async () => (await state(page))?.status === "found", 30000);
+		assert.match(page.url(), /page=2/);
+		assert.equal((await state(page)).lastFound, asinOf(2, 1));
+		assert.match(await boxText(page), new RegExp("Last Found: " + asinOf(2, 1)));
+		await page.locator(`#vh-pin-link-${asinOf(2, 1)}`).evaluate((el) => el.click());
+		await page.waitForTimeout(1200); // pin clicks are debounced for 1s
+		await page.locator(`#vh-pin-link-${asinOf(2, 2)}`).evaluate((el) => el.click());
+		await page.waitForTimeout(1200);
+		await page.keyboard.press("Space");
+		await waitFor(async () => /page=3/.test(page.url()), 15000); // carried on: page 3 is pinned, the patrol moves on
+		assert.equal((await state(page)).lastFound, "", "cleared when scanning resumed");
+		assert.equal((await state(page)).patrol, true);
+		await stopSession(page);
+	});
+
+	await test("patrol: a queue shorter than the patrol range ends a lap at its last page instead of stopping", async () => {
+		await setSettings({ "smartSkip.patrol.startPage": "1", "smartSkip.patrol.lastPage": "25" });
+		await pin([1, 2, 3, 4, 5]);
+		await page.goto("https://www.amazon.com/vine/vine-items" + url(1));
+		await ready(page);
+		await page.keyboard.press("t");
+		await waitFor(async () => (await state(page))?.laps >= 2, 45000);
+		assert.equal((await state(page)).patrol, true, "still patrolling after the queue ended");
+		await stopSession(page);
+	});
+
+	await test("jump key 2 starts a normal session at the configured page; blank pages fall back to 100/200/300", async () => {
+		await setSettings({ "smartSkip.jumpPage2": "3" });
+		await page.goto("https://www.amazon.com/vine/vine-items" + url(1));
+		await ready(page);
+		await page.keyboard.press("2");
+		await page.waitForURL(/page=3/);
+		const st = await state(page);
+		assert.equal(st.patrol, false);
+		await stopSession(page);
+		await setSettings({ "smartSkip.jumpPage3": "" });
+		await page.goto("https://www.amazon.com/vine/vine-items" + url(1));
+		await ready(page);
+		await page.keyboard.press("3");
+		await page.waitForURL(/page=300/);
+		await stopSession(page);
+	});
+
+	await test("clicking the status box enlarges it into the middle of the page; [X] makes it small again", async () => {
+		await pin([1, 2, 3, 4, 5]);
+		await page.goto("https://www.amazon.com/vine/vine-items" + url(1));
+		await ready(page);
+		await page.keyboard.press("k");
+		await waitFor(async () => (await state(page))?.skips === 1);
+		const box = page.locator("#vs-smartskip");
+		await box.click();
+		await waitFor(async () => /translate/.test((await box.getAttribute("style")) || ""));
+		assert.ok((await box.boundingBox()).width > 400, "enlarged");
+		await page.locator("#vs-smartskip .vs-close").click();
+		await waitFor(async () => !/translate/.test((await box.getAttribute("style")) || ""));
+		assert.ok((await box.boundingBox()).width < 300, "small again");
+		await stopSession(page);
 	});
 
 	await test("the session never leaves the tab: no third-party requests", async () => {

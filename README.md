@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-07_2157 -->
+<!-- Last compiled at 2026-11-09_1130 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -33,6 +33,11 @@ Press **k** on a Vine page and VineSmyths pages through the queue on a timer, st
 you have **not pinned** (items already hidden are ignored). **Space** pauses / resumes (resuming re-checks the page you
 are on, so pin or hide what it found and press Space to carry on), **Escape** stops and shows the totals in the status box, the previous-page
 key applies the brake (and also goes back one page), and the next-page / hide-all keys hand control back to you (scanning resumes on the next page).
+**Patrol** (key **t**): for when most items are already hidden. It loops over a range of pages (default 1-25, both ends
+configurable) again and again, stops when an unpinned item shows up (the status box shows its ASIN as "Last Found" and the
+lap count), and carries on with Space. A lap also ends early when the queue has fewer pages than the range. **Jump keys**
+(**1 / 2 / 3**) start a normal SmartSkip session at pages 100 / 200 / 300 (configurable) instead of page 1. Click the status
+box to enlarge it into the middle of the page ([X] makes it small again).
 The queue, keys, delays (never below 2 seconds), and a page limit are configurable. The session lives in the tab only and
 nothing is sent anywhere. Automated paging is outside what Amazon's Vine terms expect from normal use, so treat it as a
 convenience you run at your own risk and keep the delays generous.

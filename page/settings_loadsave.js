@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1508
+// Last compiled at 2026-11-09_1130
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -296,6 +296,13 @@ async function initiateSettings(firstRun = false) {
 	manageInputText("keyBindings.smartSkipStart");
 	manageInputText("keyBindings.smartSkipPause");
 	manageInputText("keyBindings.smartSkipStop");
+	manageInputText("keyBindings.smartSkipPatrol");
+	manageInputText("smartSkip.patrol.startPage");
+	manageInputText("smartSkip.patrol.lastPage");
+	for (const n of [1, 2, 3]) {
+		manageInputText(`keyBindings.smartSkipJump${n}`);
+		manageInputText(`smartSkip.jumpPage${n}`);
+	}
 	manageCheckboxSetting("smartSkip.enabled");
 	manageSelectBox("smartSkip.startQueue");
 	manageInputText("smartSkip.maxPages");
@@ -1046,7 +1053,12 @@ function managePlayButton(btnId, selectName, volumeName) {
 function manageSelectBox(key) {
 	const val = Settings.get(key);
 	const keyE = CSS.escape(key);
-	const selectObj = document.querySelector(`label[for='${keyE}'] select`);
+	// by name first (the SmartSkip rows are not wrapped in a label), then the older "select inside <label for=key>" layout
+	const selectObj = document.querySelector(`select[name='${keyE}']`) || document.querySelector(`label[for='${keyE}'] select`);
+	if (selectObj == null) {
+		console.log("Select name='" + key + "' does not exist");
+		return;
+	}
 
 	for (let i = 0; i < selectObj.options.length; i++) {
 		if (selectObj.options[i].value == val) {
@@ -1220,13 +1232,34 @@ function initSyncTab() {
 		return "Sync failed: " + (res.error || res.reason);
 	}
 
+	const syncNow = async () => {
+		$("syncResult").textContent = "Syncing...";
+		const res = await ask({ type: "folderSync", reason: "manual" });
+		$("syncResult").textContent = describe(res);
+		await refresh();
+	};
+	const forgetFolder = async () => {
+		const { handleStore } = await import("/scripts/background/FolderSync.js");
+		await handleStore.clear();
+		$("syncResult").textContent = "Stopped syncing. The file in the folder was left untouched.";
+		await refresh();
+	};
+
 	if (typeof window.popupView !== "undefined") {
-		// The toolbar popup closes as soon as a native dialog (folder picker / permission prompt) takes focus,
-		// so those actions only work in the full settings page.
-		$("syncChooseFolder").textContent = "Open full settings to choose / sync...";
+		// Only the actions that open a native Chrome window (the folder picker, the "allow access again" prompt) need the
+		// full settings page: the toolbar popup closes the moment such a window takes focus, which would cancel the
+		// action half way. Syncing with the folder already chosen and stopping the sync show no window, so they work here.
+		$("syncChooseFolder").textContent = "Choose folder (opens full settings)...";
 		$("syncChooseFolder").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("page/settings.html") });
-		$("syncNowButton").style.display = "none";
-		$("syncForgetFolder").style.display = "none";
+		$("syncNowButton").onclick = async () => {
+			const st = (await ask({ type: "folderSyncStatus" })) || {};
+			if (st.permission !== "granted") {
+				$("syncResult").textContent = "Chrome needs your permission for the folder again: open the full settings page and press Sync now there.";
+				return;
+			}
+			await syncNow();
+		};
+		$("syncForgetFolder").onclick = forgetFolder;
 		refresh();
 		return;
 	}
@@ -1258,12 +1291,7 @@ function initSyncTab() {
 		await refresh();
 	};
 
-	$("syncForgetFolder").onclick = async () => {
-		const { handleStore } = await import("/scripts/background/FolderSync.js");
-		await handleStore.clear();
-		$("syncResult").textContent = "Stopped syncing. The file in the folder was left untouched.";
-		await refresh();
-	};
+	$("syncForgetFolder").onclick = forgetFolder;
 
 	refresh();
 }

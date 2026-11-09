@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_0049
+// Last compiled at 2026-11-09_1130
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -63,14 +63,65 @@ export function decidePage({ unpinnedCount, seen, maxPages }) {
 	return seen >= normaliseMaxPages(maxPages) ? "limit" : "skip";
 }
 
-export function newSession(now = Date.now()) {
-	return { status: "running", seen: 0, skips: 0, found: 0, consecutive: 0, startedAt: now };
+/** Patrol: loop over a fixed range of pages again and again, looking for items that were not there last lap. */
+export const DEFAULT_PATROL = { start: 1, last: 25 };
+export const DEFAULT_JUMP_PAGES = [100, 200, 300];
+
+const pageNumber = (v, fallback) => {
+	const n = toNum(v);
+	return Number.isFinite(n) && n >= 1 ? Math.min(HARD_MAX_PAGES, Math.floor(n)) : fallback;
+};
+
+/** Patrol range from free-text settings: 1 <= start <= last <= HARD_MAX_PAGES; blanks / junk mean the defaults. */
+export function normalisePatrol(start, last) {
+	const s = pageNumber(start, DEFAULT_PATROL.start);
+	const l = Math.max(s, pageNumber(last, Math.max(s, DEFAULT_PATROL.last)));
+	return { start: s, last: l };
+}
+
+/** Page a jump key opens (blank / junk -> that key's default). */
+export function normaliseJumpPage(v, fallback = 1) {
+	return pageNumber(v, fallback);
+}
+
+/** Page number of a Vine list address (no / bad `page` means 1). */
+export function pageOfUrl(href) {
+	try {
+		return pageNumber(new URL(href, "https://www.amazon.com").searchParams.get("page"), 1);
+	} catch (e) {
+		return 1;
+	}
+}
+
+/** The same address with another page number (queue, category and search stay). */
+export function urlWithPage(href, page) {
+	const u = new URL(href, "https://www.amazon.com");
+	u.searchParams.set("page", String(pageNumber(page, 1)));
+	return u.toString();
+}
+
+/**
+ * After a page with nothing new in a patrol: turn the page ("next") or start the next lap ("lap").
+ * A lap ends at the last page of the range, or earlier when the queue itself has no next page.
+ */
+export function patrolAction({ patrolLast }, currentPage, hasNext) {
+	return currentPage >= patrolLast || !hasNext ? "lap" : "next";
+}
+
+export function newSession(now = Date.now(), { patrol = false, patrolStart, patrolLast } = {}) {
+	const range = normalisePatrol(patrolStart, patrolLast);
+	return { status: "running", seen: 0, skips: 0, found: 0, consecutive: 0, startedAt: now, patrol: !!patrol, laps: 1, lastFound: "", patrolStart: range.start, patrolLast: range.last };
 }
 
 const cleanInt = (v, max = 1e9) => {
 	const n = toNum(v);
 	return Number.isFinite(n) && n >= 0 && n < max ? Math.floor(n) : 0;
 };
+
+function normalisePatrolState(o) {
+	const r = normalisePatrol(o.patrolStart, o.patrolLast);
+	return { patrolStart: r.start, patrolLast: r.last };
+}
 
 /** Read the stored session defensively (the page's own scripts can write sessionStorage too). */
 export function parseState(json) {
@@ -89,6 +140,10 @@ export function parseState(json) {
 		found: cleanInt(o.found),
 		consecutive: cleanInt(o.consecutive),
 		startedAt: cleanInt(o.startedAt, 1e14), //epoch milliseconds
+		patrol: o.patrol === true,
+		laps: Math.max(1, cleanInt(o.laps)),
+		lastFound: typeof o.lastFound === "string" && /^[A-Z0-9]{4,12}$/i.test(o.lastFound) ? o.lastFound.toUpperCase() : "",
+		...normalisePatrolState(o),
 	};
 }
 
@@ -100,8 +155,8 @@ export function keyMatches(eventKey, binding) {
 }
 
 /** The page SmartSkip starts from. Marketplace TLD and queue are whitelisted/sanitised. */
-export function startUrl(tld, queue) {
+export function startUrl(tld, queue, page = 1) {
 	const safeTld = /^[a-z]{2,3}(\.[a-z]{2,3})?$/.test(String(tld)) ? tld : "com";
 	const safeQueue = QUEUES.includes(queue) ? queue : "encore";
-	return `https://www.amazon.${safeTld}/vine/vine-items?queue=${safeQueue}&pn=&cn=&page=1`;
+	return `https://www.amazon.${safeTld}/vine/vine-items?queue=${safeQueue}&pn=&cn=&page=${pageNumber(page, 1)}`;
 }

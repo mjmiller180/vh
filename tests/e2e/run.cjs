@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1508
+// Last compiled at 2026-11-09_1130
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -271,6 +271,42 @@ async function test(name, fn) {
 		await setSettings({ "discord.webhook.default.url": "https://discord.com/api/webhooks/123456789012345678/TESTtoken_abc-123", "discord.webhook.RFY.url": "" });
 	});
 
+	await test("SmartSkip settings: every field shows its saved/default value, edits are saved, and the toolbar popup has no sideways overflow", async () => {
+		await sp.locator("#tabs-index li", { hasText: "Keyboard" }).click();
+		const val = (n) => sp.locator(`input[name='${n}']`).inputValue();
+		assert.equal(await val("smartSkip.maxPages"), "300");
+		assert.equal(await val("smartSkip.delay.active.min"), "2500");
+		assert.equal(await val("smartSkip.delay.background.max"), "3500");
+		assert.deepEqual([await val("smartSkip.patrol.startPage"), await val("smartSkip.patrol.lastPage")], ["1", "25"]);
+		assert.deepEqual([await val("keyBindings.smartSkipPatrol"), await val("keyBindings.smartSkipJump1"), await val("keyBindings.smartSkipJump3")], ["t", "1", "3"]);
+		assert.deepEqual([await val("smartSkip.jumpPage1"), await val("smartSkip.jumpPage2"), await val("smartSkip.jumpPage3")], ["100", "200", "300"]);
+		assert.equal(await sp.locator("select[name='smartSkip.startQueue']").inputValue(), "encore");
+		await sp.locator("input[name='smartSkip.patrol.lastPage']").fill("40");
+		await sp.locator("input[name='smartSkip.patrol.lastPage']").blur();
+		await waitFor(async () => String((await storageGet(["settings"])).settings?.smartSkip?.patrol?.lastPage) === "40", 5000);
+		await sp.locator("input[name='smartSkip.patrol.lastPage']").fill("25");
+		await sp.locator("input[name='smartSkip.patrol.lastPage']").blur();
+		await waitFor(async () => String((await storageGet(["settings"])).settings?.smartSkip?.patrol?.lastPage) === "25", 5000);
+		// the toolbar popup: 350 px wide, header = title left + settings button right, no logo, nothing wider than the window
+		const pop = await ctx.newPage();
+		await pop.setViewportSize({ width: 350, height: 700 });
+		await pop.goto(`chrome-extension://${extId}/popup/homepage.html`);
+		await pop.waitForSelector("#tabs-index");
+		await pop.locator("#tabs-index li", { hasText: "Keyboard" }).click();
+		const wide = await pop.evaluate(() => {
+			const vw = document.documentElement.clientWidth;
+			return [...document.querySelectorAll("body *")].filter((e) => e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().right > vw + 1).map((e) => e.tagName + "." + e.className);
+		});
+		assert.deepEqual(wide, [], "elements wider than the popup");
+		assert.equal(await pop.locator(".header-logo").count(), 0, "no logo");
+		const t = await pop.locator(".header-title").boundingBox();
+		const g = await pop.locator(".button-settings").boundingBox();
+		assert.ok(t.x < g.x && Math.abs(t.y + t.height / 2 - (g.y + g.height / 2)) < 30, "title to the left of the gear, same row");
+		const rows = await pop.locator(".ss-grid > span:not(.ss-sub):not(.ss-pair)").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().width)));
+		assert.ok(rows.every((w) => w > 80), "labels keep a readable width: " + rows.join(","));
+		await pop.close();
+	});
+
 	await test("Google tab: without a client id the test says 'not signed in' and nothing is sent to Google", async () => {
 		await sp.locator("#tabs-index li", { hasText: "Google" }).click();
 		await sp.locator("input[name='google.sheet.id']").fill("https://docs.google.com/spreadsheets/d/1o1zOgVLvMNbmqvcSjWJ9wgfpEkrwlNBndEgRzSVMBpI/edit");
@@ -340,6 +376,22 @@ async function test(name, fn) {
 		assert.equal(st.folderName, "shared-drive-folder");
 		assert.equal(st.permission, "granted");
 		assert.ok(st.lastSync > 0);
+	});
+
+	await test("toolbar popup: Sync now and Stop syncing work there (no native window needed); only choosing a folder opens the full settings", async () => {
+		const pop = await ctx.newPage();
+		await pop.setViewportSize({ width: 350, height: 700 });
+		await pop.goto(`chrome-extension://${extId}/popup/homepage.html`);
+		await pop.waitForSelector("#tabs-index");
+		await pop.locator("#tabs-index li", { hasText: "Sync" }).click();
+		await waitFor(async () => /shared-drive-folder/.test((await pop.locator("#syncFolderName").textContent()) || ""), 8000);
+		assert.match(await pop.locator("#syncChooseFolder").textContent(), /opens full settings/);
+		assert.equal(await pop.locator("#syncNowButton").isVisible(), true);
+		assert.equal(await pop.locator("#syncNowButton").isEnabled(), true);
+		assert.equal(await pop.locator("#syncForgetFolder").isVisible(), true);
+		await pop.locator("#syncNowButton").click();
+		await waitFor(async () => /^Done:/.test((await pop.locator("#syncResult").textContent()) || ""), 10000);
+		await pop.close();
 	});
 
 	await test("the Vine page pulls the folder into storage on load", async () => {

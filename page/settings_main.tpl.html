@@ -1,27 +1,22 @@
-<!-- Last compiled at 2026-11-05_1508 -->
+<!-- Last compiled at 2026-11-09_1130 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
 <div>
-	<div class="header">
-		<div class="header-logo vh-icon-logo">
-			<div class="header-text">
-				<h1>
-					VineSmyths <br />
-					<span id="version">{{$APP_VERSION}}</span>
-				</h1>
+	<div class="header header-row">
+		<h1 class="header-title">VineSmyths <span id="version">{{$APP_VERSION}}</span></h1>
+		{{if country_known}}
+		<div class="buttons-header">
+			<div class="button-settings">
+				<a id="settingsLink" href="" target="_blank">
+					<div class="button-inner vh-icon-32 vh-icon-cogs"></div>
+				</a>
 			</div>
 		</div>
+		{{endif}}
 	</div>
 
 	{{if country_known}}
-	<div class="buttons-header" style="width: 100%">
-		<div class="button-settings" style="margin-right: 15px; margin-left: auto">
-			<a id="settingsLink" href="" target="_blank">
-				<div class="button-inner vh-icon-32 vh-icon-cogs"></div>
-			</a>
-		</div>
-	</div>
 
 	<div id="tabs-index" style="height: auto" class="vh-tabs">
 		<ul>

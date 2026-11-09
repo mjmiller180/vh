@@ -1,11 +1,11 @@
-// Last compiled at 2026-11-05_0049
+// Last compiled at 2026-11-09_1130
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
 // SmartSkip decision logic (pure functions).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MIN_DELAY_MS, DEFAULT_MAX_PAGES, HARD_MAX_PAGES, normaliseMaxPages, clampRange, pickDelay, formatDuration, decidePage, newSession, parseState, keyMatches, startUrl } from "../../scripts/core/utils/SmartSkipLogic.js";
+import { MIN_DELAY_MS, DEFAULT_MAX_PAGES, HARD_MAX_PAGES, normaliseMaxPages, clampRange, pickDelay, formatDuration, decidePage, newSession, parseState, keyMatches, startUrl, normalisePatrol, normaliseJumpPage, pageOfUrl, urlWithPage, patrolAction, DEFAULT_PATROL, DEFAULT_JUMP_PAGES } from "../../scripts/core/utils/SmartSkipLogic.js";
 
 test("delays: parsed from strings, never below the safety floor, max never below min", () => {
 	assert.deepEqual(clampRange("2500", "4000", { min: 2500, max: 4000 }), { min: 2500, max: 4000 });
@@ -55,7 +55,7 @@ test("state: sanitised on read, so tampered or corrupt sessionStorage cannot inj
 	assert.equal(parseState("{not json"), null);
 	assert.equal(parseState(JSON.stringify({ status: "<img onerror=x>" })), null);
 	const t = parseState(JSON.stringify({ status: "running", seen: "7", skips: -3, found: "<b>9</b>", consecutive: 1e99, startedAt: "x", extra: "ignored" }));
-	assert.deepEqual(t, { status: "running", seen: 7, skips: 0, found: 0, consecutive: 0, startedAt: 0 });
+	assert.deepEqual(t, { status: "running", seen: 7, skips: 0, found: 0, consecutive: 0, startedAt: 0, patrol: false, laps: 1, lastFound: "", patrolStart: 1, patrolLast: 25 });
 });
 
 test("state keeps a real epoch-millisecond start time (it was being zeroed by the sanitiser)", () => {
@@ -80,4 +80,60 @@ test("startUrl: marketplace aware, queue whitelisted", () => {
 	assert.equal(startUrl("co.uk", "potluck"), "https://www.amazon.co.uk/vine/vine-items?queue=potluck&pn=&cn=&page=1");
 	assert.equal(startUrl("com", "evil&x=1"), "https://www.amazon.com/vine/vine-items?queue=encore&pn=&cn=&page=1");
 	assert.equal(startUrl("evil.example/", "encore"), "https://www.amazon.com/vine/vine-items?queue=encore&pn=&cn=&page=1");
+});
+
+test("normalisePatrol: first/last page from free text; blanks and junk mean 1-25; last is never before first; capped", () => {
+	assert.deepEqual(normalisePatrol("", ""), { start: 1, last: 25 });
+	assert.deepEqual(normalisePatrol(undefined, undefined), DEFAULT_PATROL);
+	assert.deepEqual(normalisePatrol("3", "40"), { start: 3, last: 40 });
+	assert.deepEqual(normalisePatrol("10", "4"), { start: 10, last: 10 }, "last is raised to the first page");
+	assert.deepEqual(normalisePatrol("abc", "-5"), { start: 1, last: 25 });
+	assert.deepEqual(normalisePatrol("0", "7"), { start: 1, last: 7 });
+	assert.deepEqual(normalisePatrol("1", "99999"), { start: 1, last: HARD_MAX_PAGES });
+	assert.deepEqual(normalisePatrol(2.9, 5.9), { start: 2, last: 5 });
+	assert.deepEqual(normalisePatrol("30", ""), { start: 30, last: 30 }, "a first page beyond the default last page is a one-page patrol, not a loop over nothing");
+});
+
+test("normaliseJumpPage: blank / junk gives the key's own default", () => {
+	assert.deepEqual(DEFAULT_JUMP_PAGES, [100, 200, 300]);
+	assert.equal(normaliseJumpPage("150", 100), 150);
+	assert.equal(normaliseJumpPage("", 200), 200);
+	assert.equal(normaliseJumpPage("x", 300), 300);
+	assert.equal(normaliseJumpPage("0", 100), 100);
+	assert.equal(normaliseJumpPage("5000", 100), HARD_MAX_PAGES);
+});
+
+test("pageOfUrl / urlWithPage: the page changes, queue and category stay", () => {
+	assert.equal(pageOfUrl("https://www.amazon.com/vine/vine-items?queue=encore&pn=&cn=&page=7"), 7);
+	assert.equal(pageOfUrl("https://www.amazon.com/vine/vine-items?queue=encore"), 1);
+	assert.equal(pageOfUrl("https://www.amazon.com/vine/vine-items?page=abc"), 1);
+	assert.equal(pageOfUrl("nonsense %%%"), 1);
+	assert.equal(urlWithPage("https://www.amazon.com/vine/vine-items?queue=encore&pn=&cn=2&page=25", 1), "https://www.amazon.com/vine/vine-items?queue=encore&pn=&cn=2&page=1");
+	assert.equal(urlWithPage("https://www.amazon.com/vine/vine-items?queue=potluck", 4), "https://www.amazon.com/vine/vine-items?queue=potluck&page=4");
+});
+
+test("patrolAction: a lap ends at the last page, or earlier when the queue has no next page", () => {
+	assert.equal(patrolAction({ patrolLast: 25 }, 10, true), "next");
+	assert.equal(patrolAction({ patrolLast: 25 }, 25, true), "lap");
+	assert.equal(patrolAction({ patrolLast: 25 }, 26, true), "lap");
+	assert.equal(patrolAction({ patrolLast: 25 }, 12, false), "lap");
+});
+
+test("startUrl: any start page; junk becomes page 1", () => {
+	assert.equal(startUrl("com", "encore", 300), "https://www.amazon.com/vine/vine-items?queue=encore&pn=&cn=&page=300");
+	assert.match(startUrl("com", "encore"), /page=1$/);
+	assert.match(startUrl("com", "encore", "abc"), /page=1$/);
+	assert.match(startUrl("com", "encore", 99999), new RegExp(`page=${HARD_MAX_PAGES}$`));
+});
+
+test("session state: patrol fields survive storage, junk is cleaned", () => {
+	const st = parseState(JSON.stringify(newSession(1000, { patrol: true, patrolStart: 2, patrolLast: 9 })));
+	assert.deepEqual([st.patrol, st.laps, st.patrolStart, st.patrolLast, st.lastFound], [true, 1, 2, 9, ""]);
+	const plain = parseState(JSON.stringify(newSession(1000)));
+	assert.deepEqual([plain.patrol, plain.patrolStart, plain.patrolLast], [false, 1, 25]);
+	const junk = parseState(JSON.stringify({ status: "running", patrol: "yes", laps: -3, lastFound: "<img onerror=x>", patrolStart: "x", patrolLast: 1e9 }));
+	assert.deepEqual([junk.patrol, junk.laps, junk.lastFound, junk.patrolStart, junk.patrolLast], [false, 1, "", 1, HARD_MAX_PAGES]);
+	assert.equal(parseState(JSON.stringify({ status: "running", lastFound: "b0abc12345" })).lastFound, "B0ABC12345");
+	// sessions stored by the version before patrol still load
+	assert.equal(parseState(JSON.stringify({ status: "found", seen: 3, skips: 2, found: 1, consecutive: 0, startedAt: 5 })).laps, 1);
 });

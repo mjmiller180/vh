@@ -1,4 +1,4 @@
-/* Last compiled at 2026-11-04_2317 */
+/* Last compiled at 2026-11-09_1130 */
 /* Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. */
 /* https://toolsmyths.com */
 /* SPDX-License-Identifier: LicenseRef-Proprietary */
@@ -22,7 +22,7 @@ label {
 	padding: 4px 10px;
 }
 #tabs-content .tab {
-	width: 350px;
+	width: auto;
 }
 
 textarea {
@@ -30,13 +30,16 @@ textarea {
 }
 
 body {
+	box-sizing: border-box;
 	width: 350px;
 	height: 500px;
+	margin: 0;
+	padding: 6px 14px 6px 6px; /* right side leaves room for the scrollbar */
 	overflow-x: hidden;
 }
 
 div.buttons-header {
-	width: 335px;
+	width: 100%;
 }
 
 #guid-txt {

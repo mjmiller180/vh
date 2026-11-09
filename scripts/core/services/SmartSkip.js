@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1558
+// Last compiled at 2026-11-09_1130
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -7,6 +7,8 @@
  * at the first page that has an item you have not pinned and that was not already hidden.
  *
  *   start key   begin a session (opens page 1 of the configured queue)
+ *   patrol key  begin a PATROL: loop over pages start..last again and again, stopping when something new shows up
+ *   jump keys   begin a session at a chosen page (default 100 / 200 / 300)
  *   Space       pause / resume (resume re-checks the current page)
  *   Escape      stop and show the session totals
  *   previous    "brake": stop scanning but keep the session
@@ -39,6 +41,12 @@ import {
 	parseState,
 	keyMatches,
 	startUrl,
+	normalisePatrol,
+	normaliseJumpPage,
+	DEFAULT_JUMP_PAGES,
+	pageOfUrl,
+	urlWithPage,
+	patrolAction,
 } from "/scripts/core/utils/SmartSkipLogic.js";
 
 const STORAGE_KEY = "vs.smartskip";
@@ -51,6 +59,7 @@ class SmartSkip {
 	#originalTitle = null;
 	#box = null;
 	#installed = false;
+	#enlarged = false; //the status box shown big in the middle of the page
 	#final = null; //how the last session ended, shown in the status box for a while: {title, lines, until}
 	#pageReady = false; //true once this page's tiles are processed (onPageReady has run)
 
@@ -75,6 +84,12 @@ class SmartSkip {
 	}
 	#key(name) {
 		return Settings.get(`keyBindings.${name}`);
+	}
+	#patrolRange() {
+		return normalisePatrol(Settings.get("smartSkip.patrol.startPage"), Settings.get("smartSkip.patrol.lastPage"));
+	}
+	#jumpPage(n) {
+		return normaliseJumpPage(Settings.get(`smartSkip.jumpPage${n}`), DEFAULT_JUMP_PAGES[n - 1]);
 	}
 
 	//## session state
@@ -126,10 +141,13 @@ class SmartSkip {
 		if (state && keyMatches(e.key, this.#key("smartSkipStop"))) return this.#terminate("SmartSkip stopped");
 		if (!Settings.get("keyBindings.active")) return;
 
-		if (!state) {
-			if (!e.repeat && keyMatches(e.key, this.#key("smartSkipStart"))) this.#start();
-			return;
+		// start / patrol / jump keys always begin a fresh session (also while one is running, like the original script)
+		if (!e.repeat) {
+			if (keyMatches(e.key, this.#key("smartSkipPatrol"))) return this.#start({ patrol: true });
+			if (keyMatches(e.key, this.#key("smartSkipStart"))) return this.#start({});
+			for (const n of [1, 2, 3]) if (keyMatches(e.key, this.#key(`smartSkipJump${n}`))) return this.#start({ page: this.#jumpPage(n) });
 		}
+		if (!state) return;
 		if (keyMatches(e.key, this.#key("smartSkipPause"))) {
 			// Space must still activate a focused button / link (toolbar, Amazon modal), and holding it must not flap.
 			if (el && el.closest && el.closest("button, a, [role='button']")) return;
@@ -149,9 +167,12 @@ class SmartSkip {
 		}
 	}
 
-	#start() {
-		this.#save(newSession());
-		window.location.href = startUrl(i13n.getDomainTLD(), Settings.get("smartSkip.startQueue"));
+	#start({ patrol = false, page = 1 }) {
+		const range = this.#patrolRange();
+		this.#clearTimer();
+		this.#final = null;
+		this.#save(newSession(Date.now(), { patrol, patrolStart: range.start, patrolLast: range.last }));
+		window.location.href = startUrl(i13n.getDomainTLD(), Settings.get("smartSkip.startQueue"), patrol ? range.start : page);
 	}
 
 	#togglePause(state) {
@@ -163,7 +184,7 @@ class SmartSkip {
 		}
 		// paused / braked / found: resume. Before this page is ready, only mark it running: onPageReady will evaluate it.
 		this.#resetTitle();
-		const next = this.#update(state, { status: "running" });
+		const next = this.#update(state, { status: "running", lastFound: "" });
 		if (this.#pageReady) this.#evaluate(next, false);
 	}
 
@@ -179,8 +200,8 @@ class SmartSkip {
 		const grid = Page.instance?.getGrid("vvp-items-grid");
 		const tiles = grid ? Object.values(grid.getAllTiles() || {}) : [];
 		const pinned = await new PinnedListMgr().getList();
-		const unpinned = tiles.filter((t) => t && t.getAsin() && !pinned.has(t.getAsin())).length;
-		return { available: tiles.length, unpinned };
+		const fresh = tiles.filter((t) => t && t.getAsin() && !pinned.has(t.getAsin()));
+		return { available: tiles.length, unpinned: fresh.length, firstAsin: fresh[0]?.getAsin() || "" };
 	}
 
 	async #evaluate(state, countPage) {
@@ -190,13 +211,14 @@ class SmartSkip {
 		let st = state;
 		if (countPage) st = this.#update(st, { seen: st.seen + 1 });
 
-		const { unpinned } = await this.#scan();
-		const verdict = decidePage({ unpinnedCount: unpinned, seen: st.seen, maxPages: this.#maxPages() });
+		const { unpinned, firstAsin } = await this.#scan();
+		// a patrol never runs out of pages: it laps; only a normal session has a page limit
+		const verdict = st.patrol ? (unpinned > 0 ? "found" : "skip") : decidePage({ unpinnedCount: unpinned, seen: st.seen, maxPages: this.#maxPages() });
 
 		if (verdict === "limit") return this.#terminate("SmartSkip stopped: page limit reached");
 
 		if (verdict === "found") {
-			st = this.#update(st, { status: "found", consecutive: 0, found: countPage ? st.found + unpinned : st.found });
+			st = this.#update(st, { status: "found", consecutive: 0, found: countPage ? st.found + unpinned : st.found, lastFound: firstAsin });
 			this.#announce();
 			return;
 		}
@@ -212,13 +234,20 @@ class SmartSkip {
 	}
 
 	#scheduleNext() {
-		if (!this.#nextLink()) return this.#terminate("SmartSkip finished: end of the queue");
+		const now = this.#load();
+		if (!now?.patrol && !this.#nextLink()) return this.#terminate("SmartSkip finished: end of the queue");
 		const range = isTabActive() ? this.#delay().active : this.#delay().background;
 		this.#clearTimer();
 		this.#timer = setTimeout(() => {
 			this.#timer = null;
 			const cur = this.#load();
 			if (!cur || cur.status !== "running") return;
+			if (cur.patrol && patrolAction(cur, pageOfUrl(location.href), !!this.#nextLink()) === "lap") {
+				// end of the range (or of the queue): count the lap and start again at the first page of the patrol
+				this.#save({ ...cur, laps: cur.laps + 1 });
+				window.location.href = urlWithPage(location.href, cur.patrolStart);
+				return;
+			}
 			const link = this.#nextLink();
 			if (link) link.click();
 			else this.#terminate("SmartSkip finished: end of the queue");
@@ -242,7 +271,7 @@ class SmartSkip {
 		this.#clear();
 		// the session is over: the same status box shows how it ended and the totals for 30 seconds
 		this.#final = st
-			? { title, until: Date.now() + 30000, lines: [`Pages seen: ${st.seen}`, `Skipped: ${st.skips}`, `Items found: ${st.found}`, `Time: ${formatDuration(Date.now() - st.startedAt)}`] }
+			? { title, until: Date.now() + 30000, lines: [...(st.patrol ? [`Laps: ${st.laps}`] : []), `Pages seen: ${st.seen}`, `Skipped: ${st.skips}`, `Items found: ${st.found}`, `Time: ${formatDuration(Date.now() - st.startedAt)}`] }
 			: null;
 		this.#draw();
 		logger.add("SMARTSKIP: " + title);
@@ -265,58 +294,81 @@ class SmartSkip {
 		this.#originalTitle = null;
 	}
 
-	//## status box (all text via textContent: nothing from storage is ever parsed as HTML)
+	//## status box (all text via textContent: nothing from storage is ever parsed as HTML).
+	//   Click the box to enlarge it (readable from across the room); [X] makes it small again.
+	#setEnlarged(on) {
+		this.#enlarged = on;
+		this.#styleBox();
+		this.#draw();
+	}
+	#styleBox() {
+		const base =
+			"position:fixed;bottom:10px;right:10px;background:rgba(0,0,0,0.95);color:white;padding:12px;border-radius:8px;z-index:9999;font-family:monospace;font-size:12px;line-height:1.4;box-shadow:0 4px 15px rgba(0,0,0,0.7);border:1px solid #444;min-width:180px;cursor:pointer;";
+		const big = "bottom:50%;right:50%;transform:translate(50%,50%);font-size:24px;padding:30px;min-width:450px;cursor:default;";
+		this.#box.style.cssText = base + (this.#enlarged ? big : "");
+	}
+
 	#draw() {
 		const st = this.#load();
 		if (st) this.#final = null; // a new session replaces the old result
 		const showFinal = !st && this.#final && Date.now() < this.#final.until;
 		if (!st && !showFinal) {
 			this.#final = null;
+			this.#enlarged = false;
 			if (this.#box) this.#box.style.display = "none";
 			return;
 		}
 		if (!this.#box) {
 			this.#box = document.createElement("div");
 			this.#box.id = "vs-smartskip";
-			this.#box.style.cssText =
-				"position:fixed;bottom:10px;right:10px;background:rgba(0,0,0,0.9);color:white;padding:12px;border-radius:8px;z-index:9999;font-family:monospace;font-size:12px;line-height:1.4;box-shadow:0 4px 10px rgba(0,0,0,0.5);border:1px solid #444;min-width:180px;pointer-events:none;";
+			this.#styleBox();
+			this.#box.addEventListener("click", (e) => {
+				if (e.target.closest && e.target.closest(".vs-close")) {
+					e.stopPropagation();
+					return this.#setEnlarged(false);
+				}
+				if (!this.#enlarged) this.#setEnlarged(true);
+			});
 			document.body.appendChild(this.#box);
 		}
-		const text0 = (text, style) => {
-			const d = document.createElement("div");
-			d.textContent = text;
-			if (style) d.style.cssText = style;
-			return d;
-		};
-		if (showFinal) {
-			this.#box.replaceChildren(
-				text0(`SmartSkip [${isTabActive() ? "ACTIVE" : "BG"}]`, "color:cyan;font-weight:bold;border-bottom:1px solid #444;margin-bottom:5px;padding-bottom:3px;"),
-				text0(this.#final.title, "color:#ffff00;margin-bottom:5px;font-weight:bold;"),
-				...this.#final.lines.map((l) => text0(l, "font-size:10px;color:#aaa;"))
-			);
-			this.#box.style.display = "block";
-			return;
-		}
-		const label = {
-			running: this.#timer ? `SCANNING (${st.consecutive})` : "ARMED (continues on the next page)",
-			paused: "PAUSED",
-			braked: "BRAKE APPLIED",
-			found: "FOUND NEW ITEMS",
-		}[st.status];
-		const color = { running: "cyan", paused: "#ffff00", braked: "#ff4444", found: "#00ff00" }[st.status];
-
 		const line = (text, style) => {
 			const d = document.createElement("div");
 			d.textContent = text;
 			if (style) d.style.cssText = style;
 			return d;
 		};
+		const head = () => {
+			const h = line(`SmartSkip [${isTabActive() ? "ACTIVE" : "BG"}]`, "color:cyan;font-weight:bold;border-bottom:1px solid #444;margin-bottom:5px;padding-bottom:3px;");
+			if (this.#enlarged) {
+				const x = line("[X]", "position:absolute;top:8px;right:14px;color:#ff4444;cursor:pointer;font-weight:bold;");
+				x.className = "vs-close";
+				h.append(x);
+			}
+			return h;
+		};
+		if (showFinal) {
+			this.#box.replaceChildren(head(), line(this.#final.title, "color:#ffff00;margin-bottom:5px;font-weight:bold;"), ...this.#final.lines.map((l) => line(l, "color:#aaa;")));
+			this.#box.style.display = "block";
+			return;
+		}
+		const patrolling = st.patrol && st.status === "running";
+		const label = patrolling
+			? `PATROLLING (${st.patrolStart}-${st.patrolLast})`
+			: {
+					running: this.#timer ? `SCANNING (${st.consecutive})` : "ARMED (continues on the next page)",
+					paused: "PAUSED",
+					braked: "BRAKE APPLIED",
+					found: "FOUND NEW ITEMS",
+			  }[st.status];
+		const color = patrolling ? "#ff00ff" : { running: "cyan", paused: "#ffff00", braked: "#ff4444", found: "#00ff00" }[st.status];
 		this.#box.replaceChildren(
-			line(`SmartSkip [${isTabActive() ? "ACTIVE" : "BG"}]`, "color:cyan;font-weight:bold;border-bottom:1px solid #444;margin-bottom:5px;padding-bottom:3px;"),
+			head(),
 			line(label, `color:${color};margin-bottom:5px;font-weight:bold;`),
-			line(`Seen: ${st.seen} | Skips: ${st.skips}`, "font-size:10px;color:#aaa;"),
-			line(`Runtime: ${formatDuration(Date.now() - st.startedAt)} | Found: ${st.found}`, "font-size:10px;color:#aaa;"),
-			...(st.status === "found" ? [line("Pin or hide the new items, then press Space to keep scanning.", "margin-top:6px;color:#00ff00;max-width:220px;")] : []),
+			line(st.patrol ? `Laps: ${st.laps} | Skips: ${st.skips}` : `Seen: ${st.seen} | Skips: ${st.skips}`, "color:#aaa;"),
+			...(st.patrol ? [line(`Seen: ${st.seen}`, "color:#aaa;")] : []),
+			line(`Last Found: ${st.lastFound || "None"}`, "color:#aaa;user-select:text;"),
+			line(`Runtime: ${formatDuration(Date.now() - st.startedAt)} | Found: ${st.found}`, "color:#aaa;"),
+			...(st.status === "found" ? [line("Pin or hide the new items, then press Space to keep scanning.", "margin-top:6px;color:#00ff00;max-width:" + (this.#enlarged ? "420px" : "220px") + ";")] : []),
 			...(st.status === "paused" ? [line("Space = resume, Esc = stop", "margin-top:6px;color:#ffff00;")] : [])
 		);
 		this.#box.style.display = "block";
