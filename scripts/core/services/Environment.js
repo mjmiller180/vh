@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 import { Logger } from "/scripts/core/utils/Logger.js";
 var logger = new Logger();
 
@@ -7,16 +11,12 @@ var i13n = new Internationalization();
 import { SettingsMgr } from "/scripts/core/services/SettingsMgrCompat.js";
 var Settings = new SettingsMgr();
 
-import { DeviceFingerprintMgr } from "/scripts/core/services/DeviceFingerprintMgr.js";
-import { DeviceMgr } from "/scripts/core/services/DeviceMgr.js";
 
 import { CryptoKeys } from "/scripts/core/utils/CryptoKeys.js";
 var cryptoKeys = new CryptoKeys();
 
 import { isFirefox, isSafari } from "/scripts/core/utils/BrowserDetection.js";
 
-const VINE_HELPER_API_V5_URL = "https://api.vinehelper.ovh";
-//const VINE_HELPER_API_V5_URL = "http://127.0.0.1:3000";
 
 /**
  * Environment file, used to load and store global variables
@@ -28,7 +28,6 @@ class Environment {
 	data = {};
 	loaded = false;
 
-	#UUIDRequestFailed = false;
 	#vvpContext = null;
 
 	constructor() {
@@ -41,12 +40,7 @@ class Environment {
 
 		logger.add("ENV: Initializing environment...");
 
-		this._deviceMgr = new DeviceMgr(Settings);
-		this._deviceFingerprintMgr = new DeviceFingerprintMgr(this, Settings);
 		this.#init();
-
-		// Request the _pluginInit script to inject the plugin scripts, if any
-		chrome.runtime.sendMessage({ action: "injectPluginsContentScripts" });
 	}
 
 	async #init() {
@@ -57,7 +51,6 @@ class Environment {
 		await Settings.waitForLoad();
 		logger.add("ENV: Settings loaded.");
 
-		this.#loadDiscordActive();
 		await this.#loadCountryCode();
 		await cryptoKeys.waitForLoad();
 
@@ -67,7 +60,6 @@ class Environment {
 		}
 		logger.add("ENV: VVP context data available.");
 		this.#readVVPContext();
-		this.#loadUUID();
 		this.#loadBrowsingContext();
 		this.loaded = true;
 		logger.add("ENV: Loading vvp-context data completed.");
@@ -98,15 +90,6 @@ class Environment {
 			const code = i13n.getCountryCode();
 			if (code) {
 				await Settings.set("general.country", code);
-			}
-		}
-	}
-
-	#loadDiscordActive() {
-		//If the domain if not from outside the countries supported by the discord API, disable discord
-		if (i13n.getDomainTLD() != null) {
-			if (["ca", "com", "co.uk"].indexOf(i13n.getDomainTLD()) == -1) {
-				Settings.set("discord.active", false);
 			}
 		}
 	}
@@ -148,103 +131,6 @@ class Environment {
 		} else {
 			this.data.vinePageNumber = 1;
 		}
-	}
-
-	async #loadUUID() {
-		//Generate a UUID for the user
-		let uuid = Settings.get("general.uuid", false);
-		if (!uuid || uuid == "") {
-			try {
-				uuid = await this.#requestNewUUID();
-				await Settings.set("general.uuid", uuid);
-				await Settings.set("general.uuidError", null);
-				logger.add("ENV: Obtained new UUID");
-			} catch (error) {
-				this.#UUIDRequestFailed = true;
-				await Settings.set("general.uuidError", error.message);
-				return false;
-			}
-		}
-
-		//Generate a device name
-		let deviceName = await this._deviceMgr.getDeviceName();
-		if (!deviceName) {
-			deviceName = await this._deviceMgr.generateDeviceName(true);
-		}
-
-		//Generate a fingerprint
-		if (
-			!(await this._deviceFingerprintMgr.getFingerprintHash()) || //If the fingerprint was not generated.
-			!(await this._deviceFingerprintMgr.getFingerprintId()) //If the fingerprint was not sucessfully saved.
-		) {
-			try {
-				await this._deviceFingerprintMgr.generateFingerprint(uuid, deviceName);
-			} catch (error) {
-				//There was an error generating or submitting the fingerprint.
-				//Clear the fingerprint and try again later.
-				console.error(error);
-				await this._deviceFingerprintMgr.clearFingerprint();
-			}
-		}
-	}
-
-	//Wait for the UUID to be set,
-	async waitForUUID() {
-		return new Promise((resolve) => {
-			const checkUUID = () => {
-				const uuid = Settings.get("general.uuid", false);
-				if (uuid) {
-					resolve(true);
-				} else if (this.#UUIDRequestFailed) {
-					resolve(false);
-				} else {
-					// If still requesting, check again after a short delay
-					setTimeout(checkUUID, 50);
-				}
-			};
-			checkUUID();
-		});
-	}
-
-	/** Request a new UUID from the server.
-	 * @return string UUID
-	 */
-	async #requestNewUUID() {
-		logger.add("ENV: Generating new UUID.");
-
-		//Request a new UUID from the server
-		const content = {
-			api_version: 5,
-			app_version: this.data.appVersion,
-			action: "get_uuid",
-			country: i13n.getCountryCode(),
-			cid: await this.getCID(),
-		};
-		const s = await cryptoKeys.signData(content);
-		content.s = s;
-		content.pk = await cryptoKeys.getExportedPublicKey();
-		const options = {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(content),
-		};
-
-		let response = await fetch(VINE_HELPER_API_V5_URL, options);
-
-		// Parse the JSON response
-		let serverResponse = await response.json();
-
-		if (serverResponse["ok"] !== "ok") {
-			console.log(serverResponse);
-			throw new Error(serverResponse["error"]);
-		}
-
-		// Return the obtained UUID
-		return serverResponse["uuid"];
-	}
-
-	getAPIUrl() {
-		return VINE_HELPER_API_V5_URL;
 	}
 
 	getTierLevel(defaultStatus = "silver") {
@@ -299,31 +185,6 @@ class Environment {
 			this.#readVVPContext();
 		}
 		return this.#vvpContext?.voiceDetails[key];
-	}
-
-	async getCID(forceRecalculate = false) {
-		const countryCode = i13n.getCountryCode();
-		const customerId = this.getCustomerId();
-		if (!forceRecalculate && !customerId) {
-			return await Settings.get("general.cid", false);
-		}
-
-		// Create a one-way secure hash of the customer id
-		const encoder = new TextEncoder();
-		const data = encoder.encode(countryCode + customerId);
-		const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-
-		// Convert to hex string
-		const hashArray = Array.from(new Uint8Array(hashBuffer));
-		const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-
-		//Check if the value was saved
-		const oldCID = await Settings.get("general.cid", false);
-		if (oldCID !== hashHex) {
-			await Settings.set("general.cid", hashHex);
-		}
-
-		return hashHex;
 	}
 
 	#readQueue(defaultQueue = null) {
@@ -395,10 +256,6 @@ class Environment {
 	isMobileView() {
 		return document.querySelector("header#nav-main.nav-mobile") !== null;
 	}
-
-	//getWSSUrl() {
-	//	return "wss://api.vinehelper.ovh";
-	//}
 }
 
 export { Environment };

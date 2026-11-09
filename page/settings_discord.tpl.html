@@ -1,316 +1,117 @@
+<!-- Last compiled at 2026-11-04_2317 -->
+<!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
+<!-- https://toolsmyths.com -->
+<!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
 <div>
-	<fieldset>
-		<legend>
-			<label> Webhooks </label>
-		</legend>
-
-		<fieldset>
-			<legend>
-				<label for="discord.webhook.KWsMatch.active">
-					<input
-						type="checkbox"
-						name="discord.webhook.KWsMatch.active"
-						id="discordwebhookKWsMatchActive"
-						value="1"
-					/>
-					Highlight keywords
-				</label>
-			</legend>
-
-			<div class="setting-container">
-				<label for="discord.webhook.KWsMatch.url">
-					Send discord notif. when a highlight keyword is matched. <br />
-					Webhook URL: <br />
-					<input
-						type="text"
-						name="discord.webhook.KWsMatch.url"
-						id="discordWebhookKWsMatchUrl"
-						value=""
-						size="30"
-						maxlength="255"
-					/>
-				</label>
-			</div>
-			<fieldset>
-				<legend>
-					Advanced
-					<div class="vh-toolbar-icon vh-icon-premium">3</div>
-				</legend>
-				<div class="setting-container premium-feature-3">
-					<label for="discord.webhook.KWsMatch.method">
-						Method:
-						<select name="discord.webhook.KWsMatch.method" id="discordWebhookKWsMatchMethod">
-							<option value="POST">POST</option>
-							<option value="GET">GET</option>
-							<option value="PUT">PUT</option>
-						</select>
-					</label>
-				</div>
-				<div class="setting-container premium-feature-3">
-					<textarea name="discord.webhook.KWsMatch.content" id="discordWebhookKWsMatchContent"></textarea>
-					<div class="setting-summary">
-						<div class="vh-toolbar-icon vh-icon-request"></div>
-						Variables available:
-						<ul style="padding-inline-start: 10px">
-							<li>$QUEUE_NAME: Queue name (ie.: RFY, AI, AFA, ALL)</li>
-							<li>$TITLE: Amazon product's title</li>
-							<li>$IMG_URL: Amazon product's image URL</li>
-							<li>$ASIN: Amazon product's ASIN</li>
-							<li>$VH_URL: Vine Helper's open modal URL</li>
-							<li>$VINE_SEARCH_URL: Vine Search URL</li>
-							<li>$AMZ_URL: Amazon product's page URL</li>
-						</ul>
-					</div>
-				</div>
-			</fieldset>
-		</fieldset>
-
-		<fieldset>
-			<legend>
-				<label for="discord.webhook.AFA.active">
-					<input type="checkbox" name="discord.webhook.AFA.active" id="discordWebhookAFAActive" value="1" />
-					AFA items
-				</label>
-			</legend>
-
-			<div class="setting-container">
-				<label for="discord.webhook.AFA.url">
-					Send discord notif. when an AFA item drops. <br />
-					Webhook URL: <br />
-					<input
-						type="text"
-						name="discord.webhook.AFA.url"
-						id="discordWebhookAFAUrl"
-						value=""
-						size="30"
-						maxlength="255"
-					/>
-				</label>
-				<div class="setting-summary">
-					<div class="vh-toolbar-icon vh-icon-question"></div>
-					Discord's webhook URL to send the notification to.
-				</div>
-			</div>
-			<fieldset>
-				<legend>
-					Advanced
-					<div class="vh-toolbar-icon vh-icon-premium">3</div>
-				</legend>
-				<div class="setting-container premium-feature-3">
-					<label for="discord.webhook.AFA.method">
-						Method:
-						<select name="discord.webhook.AFA.method" id="discordWebhookAFAMethod">
-							<option value="POST">POST</option>
-							<option value="GET">GET</option>
-							<option value="PUT">PUT</option>
-						</select></label
-					>
-				</div>
-				<div class="setting-container premium-feature-3">
-					<textarea name="discord.webhook.AFA.content" id="discordWebhookAFAContent"></textarea>
-					<div class="setting-summary">
-						<div class="vh-toolbar-icon vh-icon-request"></div>
-						Variables available:
-						<ul style="padding-inline-start: 10px">
-							<li>$QUEUE_NAME: Queue name (ie.: RFY, AI, AFA, ALL)</li>
-							<li>$TITLE: Amazon product's title</li>
-							<li>$IMG_URL: Amazon product's image URL</li>
-							<li>$ASIN: Amazon product's ASIN</li>
-							<li>$VH_URL: Vine Helper's open modal URL</li>
-							<li>$VINE_SEARCH_URL: Vine Search URL</li>
-							<li>$AMZ_URL: Amazon product's page URL</li>
-						</ul>
-					</div>
-				</div>
-			</fieldset>
-		</fieldset>
-
-		<fieldset>
-			<legend>
-				<label for="discord.webhook.RFY.active">
-					<input type="checkbox" name="discord.webhook.RFY.active" id="discordWebhookRFYActive" value="1" />
-					RFY items
-				</label>
-			</legend>
-
-			<div class="setting-container">
-				<label for="discord.webhook.RFY.url">
-					Send discord notif. when an RFY item drops. <br />
-					Webhook URL: <br />
-					<input
-						type="text"
-						name="discord.webhook.RFY.url"
-						id="discordWebhookRFYUrl"
-						value=""
-						size="30"
-						maxlength="255"
-					/>
-				</label>
-				<div class="setting-summary">
-					<div class="vh-toolbar-icon vh-icon-question"></div>
-					Discord's webhook URL to send the notification to. Require Notifications > Monitor > RFY > Reload RFY page
-					when items are dropping. to be enabled.
-				</div>
-			</div>
-			<fieldset>
-				<legend>
-					Advanced
-					<div class="vh-toolbar-icon vh-icon-premium">3</div>
-				</legend>
-				<div class="setting-container premium-feature-3">
-					<label for="discord.webhook.RFY.method">
-						Method:
-						<select name="discord.webhook.RFY.method" id="discordWebhookRFYMethod">
-							<option value="POST">POST</option>
-							<option value="GET">GET</option>
-							<option value="PUT">PUT</option>
-						</select></label
-					>
-				</div>
-				<div class="setting-container premium-feature-3">
-					<textarea name="discord.webhook.RFY.content" id="discordWebhookRFYContent"></textarea>
-					<div class="setting-summary">
-						<div class="vh-toolbar-icon vh-icon-request"></div>
-						Variables available:
-						<ul style="padding-inline-start: 10px">
-							<li>$QUEUE_NAME: Queue name (ie.: RFY, AI, AFA, ALL)</li>
-							<li>$TITLE: Amazon product's title</li>
-							<li>$IMG_URL: Amazon product's image URL</li>
-							<li>$ASIN: Amazon product's ASIN</li>
-							<li>$VH_URL: Vine Helper's open modal URL</li>
-							<li>$VINE_SEARCH_URL: Vine Search URL</li>
-							<li>$AMZ_URL: Amazon product's page URL</li>
-						</ul>
-					</div>
-				</div>
-			</fieldset>
-		</fieldset>
-
-		<fieldset>
-			<legend>
-				<label for="discord.webhook.zeroETV.active">
-					<input
-						type="checkbox"
-						name="discord.webhook.zeroETV.active"
-						id="discordWebhookzeroETVActive"
-						value="1"
-					/>
-					Zero ETV items
-					<div class="vh-toolbar-icon vh-icon-premium">3</div>
-				</label>
-			</legend>
-
-			<div class="setting-container premium-feature-3">
-				<label for="discord.webhook.zeroETV.url">
-					Send discord notif. when a zero ETV item drops. <br />
-					Webhook URL: <br />
-					<input
-						type="text"
-						name="discord.webhook.zeroETV.url"
-						id="discordWebhookzeroETVUrl"
-						value=""
-						size="30"
-						maxlength="255"
-					/>
-				</label>
-				<div class="setting-summary">
-					<div class="vh-toolbar-icon vh-icon-question"></div>
-					Discord's webhook URL to send the notification to.
-				</div>
-			</div>
-			<fieldset>
-				<legend>Advanced</legend>
-				<div class="setting-container premium-feature-3">
-					<label for="discord.webhook.zeroETV.method">
-						Method:
-						<select name="discord.webhook.zeroETV.method" id="discordWebhookzeroETVMethod">
-							<option value="POST">POST</option>
-							<option value="GET">GET</option>
-							<option value="PUT">PUT</option>
-						</select></label
-					>
-				</div>
-				<div class="setting-container premium-feature-3">
-					<textarea name="discord.webhook.zeroETV.content" id="discordWebhookzeroETVContent"></textarea>
-					<div class="setting-summary">
-						<div class="vh-toolbar-icon vh-icon-request"></div>
-						Variables available:
-						<ul style="padding-inline-start: 10px">
-							<li>$QUEUE_NAME: Queue name (ie.: RFY, AI, AFA, ALL)</li>
-							<li>$TITLE: Amazon product's title</li>
-							<li>$IMG_URL: Amazon product's image URL</li>
-							<li>$ASIN: Amazon product's ASIN</li>
-							<li>$VH_URL: Vine Helper's open modal URL</li>
-							<li>$VINE_SEARCH_URL: Vine Search URL</li>
-							<li>$AMZ_URL: Amazon product's page URL</li>
-						</ul>
-					</div>
-				</div>
-			</fieldset>
-		</fieldset>
-	</fieldset>
-
 	<fieldset>
 		<legend>
 			<label for="discord.active">
 				<input type="checkbox" name="discord.active" id="discordactive" value="1" />
-				Share Items with Brenda (CA/JP/UK/US)
+				Send items to my Discord
 			</label>
 		</legend>
 
-		<div class="setting-container">
-			<div class="setting-summary">
-				<div class="vh-toolbar-icon vh-icon-question"></div>
-				Vine Helper seamlessly integrates with the (unofficial) Amazon Vine Discord server's Brenda bot. Upon
-				joining the server and linking your account, you gain the ability to share products with the bot to
-				recommend to users in your country.
-			</div>
-			<div class="setting-summary">
-				<div class="vh-toolbar-icon vh-icon-request"></div>
-				This feature exchanges data (API token, country, queue, asin, etv, etc.) with the Brenda API server for
-				Discord.
-			</div>
-		</div>
+		<p>
+			Messages are posted straight from the extension to <strong>your own</strong> Discord webhook. Nothing goes
+			through any other server. Only <code>discord.com</code> / <code>discordapp.com</code> webhook URLs are
+			accepted. Each item is sent only once per trigger (reloading the page will not send it again).
+		</p>
 
 		<div id="discordOptions">
-			<div id="discord-guid-link">
-				<fieldset>
-					<legend>Step 1. Join the Discord Server</legend>
-
-					Join the Discord server:
-					<a href="https://discord.gg/amazonvine" target="_blank">https://discord.gg/amazonvine</a>
-				</fieldset>
-
-				<fieldset>
-					<legend>Step 2. Obtain Your API-Token</legend>
-
-					<ul>
-						<li>
-							Go to any channel on the server and type the command:
-							<br /><span style="font-weight: bold">/api-token</span>
-						</li>
-						<li>A bot named Karen will reply with an API token.</li>
-						<li>Copy &amp; Paste the API Token into Step 3.</li>
-					</ul>
-				</fieldset>
-
-				<fieldset>
-					<legend>Step 3. Link Your API-Token</legend>
-
-					API Token:
-					<input type="text" id="discord.guid" value="" size="30" maxlength="50" />
-					<input type="button" id="saveGUID" value="Link" />
-				</fieldset>
+			<div class="setting-container" style="flex-direction: column; align-items: stretch">
+				<label for="discord.webhook.default.url">
+					Default webhook URL (used by every trigger below that has no URL of its own):
+				</label>
+				<input
+					type="password"
+					name="discord.webhook.default.url"
+					id="discordWebhookDefaultUrl"
+					style="width: 100%"
+					size="80"
+					placeholder="https://discord.com/api/webhooks/..."
+					autocomplete="off"
+				/>
+				<div class="setting-summary">
+					<div class="vh-toolbar-icon vh-icon-question"></div>
+					In Discord: Channel settings &gt; Integrations &gt; Webhooks &gt; New Webhook &gt; Copy Webhook URL.
+					The URL is hidden while typing; hover the field to reveal it.
+				</div>
+				<div id="discordUrlStatus-default" class="discord-url-status"></div>
 			</div>
-			<div id="discord-guid-unlink">
-				<fieldset>
-					<legend>Discord account linked!</legend>
 
-					API Token:
-					<div id="guid-txt"></div>
-					<input type="button" id="unlinkGUID" value="Unlink" />
-				</fieldset>
-			</div>
+			<p>
+				Message placeholders: <code>$QUEUE_NAME</code> <code>$TITLE</code> <code>$IMG_URL</code>
+				<code>$ASIN</code> <code>$VH_URL</code> <code>$VINE_SEARCH_URL</code> <code>$AMZ_URL</code>
+				<code>$KEYWORD</code> <code>$ETV</code>. The message must stay valid Discord webhook JSON.
+			</p>
+
+			<fieldset>
+				<legend>Keyword match</legend>
+				<div class="setting-container">
+					<label for="discord.webhook.KWsMatch.active"><input type="checkbox" name="discord.webhook.KWsMatch.active" value="1" /> Enabled</label>
+				</div>
+				<p>When an item title matches one of your <em>highlight</em> keywords (Keywords tab).</p>
+				<label for="discord.webhook.KWsMatch.url">Webhook URL (optional, overrides the default):</label>
+				<input type="password" name="discord.webhook.KWsMatch.url" size="80" autocomplete="off" />
+				<div id="discordUrlStatus-KWsMatch" class="discord-url-status"></div>
+				<label for="discord.webhook.KWsMatch.content">Message:</label>
+				<textarea name="discord.webhook.KWsMatch.content" rows="10"></textarea>
+			</fieldset>
+
+			<fieldset>
+				<legend>New item in AFA (Additional items for all)</legend>
+				<div class="setting-container">
+					<label for="discord.webhook.AFA.active"><input type="checkbox" name="discord.webhook.AFA.active" value="1" /> Enabled</label>
+				</div>
+				<p>Every item you see while browsing the AFA queue.</p>
+				<label for="discord.webhook.AFA.url">Webhook URL (optional, overrides the default):</label>
+				<input type="password" name="discord.webhook.AFA.url" size="80" autocomplete="off" />
+				<div id="discordUrlStatus-AFA" class="discord-url-status"></div>
+				<label for="discord.webhook.AFA.content">Message:</label>
+				<textarea name="discord.webhook.AFA.content" rows="10"></textarea>
+			</fieldset>
+
+			<fieldset>
+				<legend>New item in RFY (Recommended for you)</legend>
+				<div class="setting-container">
+					<label for="discord.webhook.RFY.active"><input type="checkbox" name="discord.webhook.RFY.active" value="1" /> Enabled</label>
+				</div>
+				<p>Every item you see while browsing the RFY queue.</p>
+				<label for="discord.webhook.RFY.url">Webhook URL (optional, overrides the default):</label>
+				<input type="password" name="discord.webhook.RFY.url" size="80" autocomplete="off" />
+				<div id="discordUrlStatus-RFY" class="discord-url-status"></div>
+				<label for="discord.webhook.RFY.content">Message:</label>
+				<textarea name="discord.webhook.RFY.content" rows="10"></textarea>
+			</fieldset>
+
+			<fieldset>
+				<legend>Zero ETV</legend>
+				<div class="setting-container">
+					<label for="discord.webhook.zeroETV.active"><input type="checkbox" name="discord.webhook.zeroETV.active" value="1" /> Enabled</label>
+				</div>
+				<p>
+					When an item's ETV is known to be $0. Without a community server, an ETV is only known after
+					<em>you</em> reveal it (open the item's details), so this fires then.
+				</p>
+				<label for="discord.webhook.zeroETV.url">Webhook URL (optional, overrides the default):</label>
+				<input type="password" name="discord.webhook.zeroETV.url" size="80" autocomplete="off" />
+				<div id="discordUrlStatus-zeroETV" class="discord-url-status"></div>
+				<label for="discord.webhook.zeroETV.content">Message:</label>
+				<textarea name="discord.webhook.zeroETV.content" rows="10"></textarea>
+			</fieldset>
+
+			<fieldset>
+				<legend>Manual button on each item</legend>
+				<div class="setting-container">
+					<label for="discord.webhook.manual.active"><input type="checkbox" name="discord.webhook.manual.active" value="1" /> Enabled</label>
+				</div>
+				<p>Adds a Discord button to every item's toolbar to send that item whenever you want.</p>
+				<label for="discord.webhook.manual.url">Webhook URL (optional, overrides the default):</label>
+				<input type="password" name="discord.webhook.manual.url" size="80" autocomplete="off" />
+				<div id="discordUrlStatus-manual" class="discord-url-status"></div>
+				<label for="discord.webhook.manual.content">Message:</label>
+				<textarea name="discord.webhook.manual.content" rows="10"></textarea>
+			</fieldset>
 		</div>
 	</fieldset>
 </div>

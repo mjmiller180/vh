@@ -1,3 +1,7 @@
+<!-- Last compiled at 2026-11-09_1130 -->
+<!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
+<!-- https://toolsmyths.com -->
+<!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
 <div>
 	<fieldset>
 		<legend>
@@ -233,6 +237,81 @@
 				Show Debug Info
 				<input type="text" name="keyBindings.debug" id="keyBindingsDebug" size="1" maxlength="1" value="" />
 			</label>
+		</div>
+	</fieldset>
+	<fieldset>
+		<legend>
+			<label for="smartSkip.enabled">
+				<input type="checkbox" name="smartSkip.enabled" value="1" />
+				SmartSkip (automatic page scanner)
+			</label>
+		</legend>
+		<p>
+			Press the start key on a Vine page and VineSmyths pages through the queue on a timer, stopping at the first
+			page with an item you have <strong>not pinned</strong> (items already hidden are ignored). Space pauses or
+			resumes, Escape stops and shows the totals. Pinning or hiding the items and pressing Space continues.
+			Pages are never turned faster than every 2 seconds. Click the status box to enlarge it.
+		</p>
+		<p>
+			<strong>Patrol</strong> (patrol key) loops over a range of pages again and again and stops when something new
+			shows up: use it when most items are already hidden. <strong>Jump keys</strong> start a normal session at a
+			page you choose.
+		</p>
+		<div class="ss-grid">
+			<span>Queue to scan</span>
+			<select name="smartSkip.startQueue" aria-label="Queue to scan">
+				<option value="encore">AI (Additional items)</option>
+				<option value="potluck">RFY (Recommended for you)</option>
+				<option value="last_chance">AFA (Available for all)</option>
+				<option value="all_items">All items</option>
+			</select>
+
+			<span>Start key</span>
+			<input type="text" name="keyBindings.smartSkipStart" size="6" maxlength="10" aria-label="Start key" />
+			<span>Pause / resume key (type "Space" for the space bar)</span>
+			<input type="text" name="keyBindings.smartSkipPause" size="6" maxlength="10" aria-label="Pause key" />
+			<span>Stop key</span>
+			<input type="text" name="keyBindings.smartSkipStop" size="6" maxlength="10" aria-label="Stop key" />
+			<span>Stop after this many pages</span>
+			<input type="text" name="smartSkip.maxPages" size="5" maxlength="5" aria-label="Page limit" />
+
+			<span class="ss-sub">Patrol</span>
+			<span>Patrol key</span>
+			<input type="text" name="keyBindings.smartSkipPatrol" size="6" maxlength="10" aria-label="Patrol key" />
+			<span>Patrol pages (first / last): each lap ends at the last page and starts again at the first</span>
+			<span class="ss-pair">
+				<input type="text" name="smartSkip.patrol.startPage" size="5" maxlength="4" aria-label="Patrol first page" />
+				<input type="text" name="smartSkip.patrol.lastPage" size="5" maxlength="4" aria-label="Patrol last page" />
+			</span>
+
+			<span class="ss-sub">Jump keys (start a session at a page)</span>
+			<span>Jump key 1 / page</span>
+			<span class="ss-pair">
+				<input type="text" name="keyBindings.smartSkipJump1" size="4" maxlength="10" aria-label="Jump key 1" />
+				<input type="text" name="smartSkip.jumpPage1" size="5" maxlength="4" aria-label="Jump page 1" />
+			</span>
+			<span>Jump key 2 / page</span>
+			<span class="ss-pair">
+				<input type="text" name="keyBindings.smartSkipJump2" size="4" maxlength="10" aria-label="Jump key 2" />
+				<input type="text" name="smartSkip.jumpPage2" size="5" maxlength="4" aria-label="Jump page 2" />
+			</span>
+			<span>Jump key 3 / page</span>
+			<span class="ss-pair">
+				<input type="text" name="keyBindings.smartSkipJump3" size="4" maxlength="10" aria-label="Jump key 3" />
+				<input type="text" name="smartSkip.jumpPage3" size="5" maxlength="4" aria-label="Jump page 3" />
+			</span>
+
+			<span class="ss-sub">Delay between pages (ms, never below 2000)</span>
+			<span>Tab in front (min / max)</span>
+			<span class="ss-pair">
+				<input type="text" name="smartSkip.delay.active.min" size="5" maxlength="5" aria-label="Front delay min" />
+				<input type="text" name="smartSkip.delay.active.max" size="5" maxlength="5" aria-label="Front delay max" />
+			</span>
+			<span>Tab in background (min / max)</span>
+			<span class="ss-pair">
+				<input type="text" name="smartSkip.delay.background.min" size="5" maxlength="5" aria-label="Background delay min" />
+				<input type="text" name="smartSkip.delay.background.max" size="5" maxlength="5" aria-label="Background delay max" />
+			</span>
 		</div>
 	</fieldset>
 </div>

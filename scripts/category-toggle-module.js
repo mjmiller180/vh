@@ -1,5 +1,9 @@
+// Last compiled at 2026-11-05_1508
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /**
- * Vine Helper - Category Toggle Button Module
+ * VineSmyths - Category Toggle Button Module
  * Replaces hover-based collapse with button toggle
  * @version 1.0
  */

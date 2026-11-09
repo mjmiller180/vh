@@ -1,19 +1,17 @@
 {
-
-
 	"manifest_version": 3,
-	"name": "Vine Helper",
+	"key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7YVov2s8ksebCT/wGzmwa5Eo0pMi9QebX8k00B/6AcxU9VPgK9K+1WF5jcHCtYiP23s6ViWPp1gEFnRjIGzn5Q6wmDG0ecmKS8gkMdLZO6eFXrR8mdYW2N+dGbyx7W1KzZGCS5Mh5LPeHsQT7Vc33wYjmAvAQ+2pjVemUR1lvgJEF1Oub58lCPnsnZn1wKIu4SYptw1pm9DjF7A0YpderScyviMnTqRSS9uyGcXI6dOiMA+frEDi/E44b4053NTkvhgkJpKLsXMyVzOU4++jY7om4RemMd3CM0lw4xzKhlTe4zAZ1lovyQYVuL6+o2sxa45IHmt2+ygESqjdTApDuQIDAQAB",
+	"name": "VineSmyths",
 	"description": "Improve the Amazon Vine experience.",
 	"version": "4.5",
 	"permissions": [
-		"alarms",
 		"contextMenus",
 		"storage",
 		"tabs",
-		"notifications"
+		"identity"
 	],
 	"content_security_policy": {
-		"extension_pages": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.vinehelper.ovh wss://api.vinehelper.ovh https://*.media-amazon.com https://api.llamastories.com https://*.amazon.com https://*.amazon.co.uk https://*.amazon.de https://*.amazon.fr https://*.amazon.es https://*.amazon.it https://*.amazon.co.jp https://*.amazon.com.au https://*.amazon.com.br https://*.amazon.com.mx https://*.amazon.sg https://*.amazon.ca; img-src 'self' https://*.media-amazon.com https://*.paypal.com https://*.paypalobjects.com;"
+		"extension_pages": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://discord.com https://discordapp.com https://sheets.googleapis.com https://www.googleapis.com https://lh3.googleusercontent.com https://lh4.googleusercontent.com https://lh5.googleusercontent.com https://lh6.googleusercontent.com; img-src 'self' data: https://*.media-amazon.com;"
 	},
 	"icons": {
 		"32": "resource/image/icon-32.png",
@@ -22,7 +20,7 @@
 	},
 	"action": {
 		"default_popup": "popup/homepage.html",
-		"default_title": "Amazon Vine Helper",
+		"default_title": "VineSmyths",
 		"default_icon": "resource/image/icon-48.png"
 	},
 	"options_ui": {
@@ -40,15 +38,15 @@
 		"*://*.amazon.com.au/*",
 		"*://*.amazon.com.br/*",
 		"*://*.amazon.com.mx/*",
-		"*://*.amazon.sg/*"
+		"*://*.amazon.sg/*",
+		"https://discord.com/api/webhooks/*",
+		"https://discordapp.com/api/webhooks/*"
 	],
 	"web_accessible_resources": [
 		{
 			"resources": [
 				"resource/image/*",
 				"resource/css/*",
-				"resource/sound/*",
-				"page/*",
 				"scripts/*"
 			],
 			"matches": [
@@ -84,8 +82,8 @@
 				"resource/css/vinehelper.css"
 			],
 			"js": [
-       			"scripts/bootloaderLoader.js",
-        		"scripts/category-toggle-module.js"
+				"scripts/bootloaderLoader.js",
+				"scripts/category-toggle-module.js"
 			],
 			"matches": [
 				"*://*.amazon.ca/vine/*",
@@ -131,50 +129,8 @@
 			"run_at": "document_start"
 		},
 		{
-			"css": [
-				"resource/css/vinehelper.css",
-				"resource/css/main.css"
-			],
 			"js": [
-				"scripts/review.js"
-			],
-			"matches": [
-				"*://*.amazon.ca/review/*",
-				"*://*.amazon.ca/*/review/*",
-				"*://*.amazon.it/review/*",
-				"*://*.amazon.de/review/*",
-				"*://*.amazon.de/*/review/*",
-				"*://*.amazon.es/review/*",
-				"*://*.amazon.fr/review/*",
-				"*://*.amazon.co.uk/review/*",
-				"*://*.amazon.co.jp/review/*",
-				"*://*.amazon.co.jp/*/review/*",
-				"*://*.amazon.com/review/*",
-				"*://*.amazon.com.au/review/*",
-				"*://*.amazon.com.br/review/*",
-				"*://*.amazon.com.mx/review/*",
-				"*://*.amazon.sg/review/*",
-				"*://*.amazon.ca/reviews/edit-review/edit*",
-				"*://*.amazon.ca/*/reviews/edit-review/edit*",
-				"*://*.amazon.it/reviews/edit-review/edit*",
-				"*://*.amazon.de/reviews/edit-review/edit*",
-				"*://*.amazon.de/*/reviews/edit-review/edit*",
-				"*://*.amazon.es/reviews/edit-review/edit*",
-				"*://*.amazon.fr/reviews/edit-review/edit*",
-				"*://*.amazon.co.uk/reviews/edit-review/edit*",
-				"*://*.amazon.co.jp/reviews/edit-review/edit*",
-				"*://*.amazon.co.jp/*/reviews/edit-review/edit*",
-				"*://*.amazon.com/reviews/edit-review/edit*",
-				"*://*.amazon.com.au/reviews/edit-review/edit*",
-				"*://*.amazon.com.br/reviews/edit-review/edit*",
-				"*://*.amazon.com.mx/reviews/edit-review/edit*",
-				"*://*.amazon.sg/reviews/edit-review/edit*"
-			],
-			"run_at": "document_end"
-		},
-		{
-			"js": [
-				"scripts/checkoutMonitoringLoader.js"
+				"scripts/skipPrimeAd.js"
 			],
 			"matches": [
 				"*://*.amazon.ca/checkout/p/*",
@@ -203,6 +159,67 @@
 				"*://*.amazon.es/gp/buy/thankyou/*"
 			],
 			"run_at": "document_end"
+		},
+		{
+			"js": [
+				"scripts/reviewLoader.js"
+			],
+			"matches": [
+				"*://*.amazon.ca/review/review-your-purchases*",
+				"*://*.amazon.ca/review/create-review*",
+				"*://*.amazon.ca/reviews/edit-review/*",
+				"*://*.amazon.it/review/review-your-purchases*",
+				"*://*.amazon.it/review/create-review*",
+				"*://*.amazon.it/reviews/edit-review/*",
+				"*://*.amazon.es/review/review-your-purchases*",
+				"*://*.amazon.es/review/create-review*",
+				"*://*.amazon.es/reviews/edit-review/*",
+				"*://*.amazon.de/review/review-your-purchases*",
+				"*://*.amazon.de/review/create-review*",
+				"*://*.amazon.de/reviews/edit-review/*",
+				"*://*.amazon.fr/review/review-your-purchases*",
+				"*://*.amazon.fr/review/create-review*",
+				"*://*.amazon.fr/reviews/edit-review/*",
+				"*://*.amazon.co.uk/review/review-your-purchases*",
+				"*://*.amazon.co.uk/review/create-review*",
+				"*://*.amazon.co.uk/reviews/edit-review/*",
+				"*://*.amazon.co.jp/review/review-your-purchases*",
+				"*://*.amazon.co.jp/review/create-review*",
+				"*://*.amazon.co.jp/reviews/edit-review/*",
+				"*://*.amazon.com/review/review-your-purchases*",
+				"*://*.amazon.com/review/create-review*",
+				"*://*.amazon.com/reviews/edit-review/*",
+				"*://*.amazon.com.au/review/review-your-purchases*",
+				"*://*.amazon.com.au/review/create-review*",
+				"*://*.amazon.com.au/reviews/edit-review/*",
+				"*://*.amazon.com.br/review/review-your-purchases*",
+				"*://*.amazon.com.br/review/create-review*",
+				"*://*.amazon.com.br/reviews/edit-review/*",
+				"*://*.amazon.com.mx/review/review-your-purchases*",
+				"*://*.amazon.com.mx/review/create-review*",
+				"*://*.amazon.com.mx/reviews/edit-review/*",
+				"*://*.amazon.sg/review/review-your-purchases*",
+				"*://*.amazon.sg/review/create-review*",
+				"*://*.amazon.sg/reviews/edit-review/*"
+			],
+			"run_at": "document_end"
+		},
+		{
+			"js": [
+				"scripts/checkoutLoader.js"
+			],
+			"matches": [
+				"*://www.amazon.com/checkout/p/*",
+				"*://www.amazon.com/gp/buy/thankyou/*"
+			],
+			"run_at": "document_end"
 		}
-	]
+	],
+	"oauth2": {
+		"client_id": "379060378844-81g67ttss8cmq39sieebp4oju2f5fj7t.apps.googleusercontent.com",
+		"scopes": [
+			"https://www.googleapis.com/auth/spreadsheets",
+			"https://www.googleapis.com/auth/drive.readonly"
+		]
+	}
 }

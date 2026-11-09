@@ -1,47 +1,73 @@
+// Last compiled at 2026-11-09_1130
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 import { SettingsMgr } from "/scripts/core/services/SettingsMgrCompat.js";
 const Settings = new SettingsMgr();
-
-import { Environment } from "/scripts/core/services/Environment.js";
-const env = new Environment();
 
 import { Internationalization } from "/scripts/core/services/Internationalization.js";
 const i13n = new Internationalization();
 
-import { HiddenListMgr } from "/scripts/core/services/HiddenListMgr.js";
-var HiddenList = new HiddenListMgr();
+import { validateWebhookUrl } from "/scripts/core/utils/WebhookUtil.js";
+import { pickFolder, requestFolderPermission } from "/scripts/background/FolderSync.js";
+import { recordListChange, requestSync } from "/scripts/core/services/SyncState.js";
+import { normaliseListMap, restoreLocalOnly } from "/scripts/core/utils/SyncMerge.js";
 
-import { DeviceFingerprintMgr } from "/scripts/core/services/DeviceFingerprintMgr.js";
-var fingerprintMgr = new DeviceFingerprintMgr(Settings);
-
-import { DeviceMgr } from "/scripts/core/services/DeviceMgr.js";
-var deviceMgr = new DeviceMgr(Settings);
-
-import { CryptoKeys } from "/scripts/core/utils/CryptoKeys.js";
-var cryptoKeys = new CryptoKeys();
+/**
+ * Replace a stored hidden/pinned list from the settings page (import / delete-all) the way the folder sync
+ * expects: what disappeared gets a removal record, what appeared loses any older one. Without this the
+ * next sync would quietly restore the old list from the shared file.
+ */
+async function replaceStoredList(kind, storageKey, incoming) {
+	const prev = Object.keys(normaliseListMap((await chrome.storage.local.get(storageKey))[storageKey], kind));
+	const next = normaliseListMap(incoming, kind);
+	const nextKeys = Object.keys(next);
+	const nextSet = new Set(nextKeys);
+	await recordListChange(
+		kind,
+		prev.filter((a) => !nextSet.has(a)),
+		nextKeys
+	);
+	await chrome.storage.local.set({ [storageKey]: next });
+	requestSync(0);
+}
 
 import { compileKeywordObjects } from "/scripts/core/utils/KeywordCompiler.js";
 
 import { isSafari } from "/scripts/core/utils/BrowserDetection.js";
 
-//If "refreshSettings" is received, reload the settings
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+//If "refreshSettings" is received, reload the settings and redraw.
+//NOT an async function and never answers: an async listener returns a Promise, which Chromium treats as an
+//immediate reply of `undefined`, stealing the answer meant for the service worker (e.g. the folder sync's
+//result) whenever a settings tab or the toolbar popup happens to be open.
+chrome.runtime.onMessage.addListener((request) => {
 	if (request.type == "refreshSettings") {
-		await Settings.refresh();
-		if (sendResponse) {
-			sendResponse({ success: true });
-		}
-		await initiateSettings(false); //Redraw the settings page
+		Settings.refresh()
+			.then(() => initiateSettings(false)) //Redraw the settings page
+			.catch((e) => console.error("[Settings] refresh failed", e));
 	}
+	return false;
 });
-async function drawDiscord() {
+function drawDiscord() {
 	//Show or hide the discord options
-	document.querySelector("#discordOptions").style.display = Settings.get("discord.active") ? "block" : "none";
+	const opts = document.querySelector("#discordOptions");
+	if (opts) opts.style.display = Settings.get("discord.active") ? "block" : "none";
 
-	if (Settings.get("discord.active")) {
-		let showLink = Settings.get("discord.guid", false) === null;
-
-		document.querySelector("#discord-guid-link").style.display = showLink ? "block" : "none";
-		document.querySelector("#discord-guid-unlink").style.display = showLink ? "none" : "block";
+	//Show whether each webhook URL is acceptable (only discord.com webhooks are)
+	const types = ["default", "KWsMatch", "AFA", "RFY", "zeroETV", "manual"];
+	for (const t of types) {
+		const input = document.querySelector(`input[name='discord.webhook.${t}.url']`);
+		const out = document.getElementById(`discordUrlStatus-${t}`);
+		if (!input || !out) continue;
+		const v = input.value.trim();
+		if (v === "") {
+			out.textContent = t === "default" ? "No default URL set." : "";
+			out.style.color = "";
+		} else {
+			const r = validateWebhookUrl(v);
+			out.textContent = r.ok ? "URL looks valid." : "URL not accepted: " + r.reason;
+			out.style.color = r.ok ? "#2a7d2a" : "#c33";
+		}
 	}
 }
 
@@ -53,158 +79,6 @@ async function initiateSettings(firstRun = false) {
 	if (navigator.userAgent.includes("Firefox") && typeof window.popupView !== "undefined") {
 		document.querySelectorAll("input[type='color']").forEach(function (item) {
 			item.type = "text";
-		});
-	}
-
-	//Handle premium feature access
-	[1, 2, 3].forEach((tier) => {
-		if (!Settings.isPremiumUser(tier)) {
-			document
-				.querySelectorAll(
-					`.premium-feature-${tier} input, .premium-feature-${tier} select, .premium-feature-${tier} button, .premium-feature-${tier} textarea`
-				)
-				.forEach((item) => {
-					item.disabled = true;
-				});
-		}
-	});
-
-	const tierLevel = Settings.get("general.patreon.tier");
-
-	const tierCharacters = {
-		0: {
-			name: "Commoner",
-			image: "character-tier-0.png",
-			description:
-				"The Commoner weaves through the bustling market, blending with the crowd. Keen-eyed and shrewd, they know every deal, every shortcut, and every hidden gem.",
-		},
-		1: {
-			name: "Omni Curator",
-			image: "character-tier-1.png",
-			description:
-				"The Omni Curator shops with masterful precision, crafting lists like enchanted scrolls. Every item chosen holds purpose, every purchase a step toward perfection.",
-		},
-		2: {
-			name: "Gearmancer",
-			image: "character-tier-2.png",
-			description:
-				"The Gearmancer strides through the market, armed with precision tools for every task. No gadget is too rare, no mechanism beyond their mastery.",
-		},
-		3: {
-			name: "Antiquarian Scout",
-			image: "character-tier-3.png",
-			description:
-				"The Antiquarian Scout navigates the market with wisdom, one of the rare few granted access to the hidden archives where secrets of past wares reside.",
-		},
-	};
-	document.getElementById("premiumTier").textContent = tierCharacters[tierLevel].name;
-	document.getElementById("premiumCharacter").src = chrome.runtime.getURL(
-		"resource/image/" + tierCharacters[tierLevel].image
-	);
-	document.getElementById("patreonCharacterDescription").textContent = tierCharacters[tierLevel].description;
-
-	if (tierLevel >= 3) {
-		document.getElementById("patreonLevelbarTier3").classList.add("filled3");
-	}
-	if (tierLevel >= 2) {
-		document.getElementById("patreonLevelbarTier2").classList.add("filled2");
-	}
-	if (tierLevel >= 1) {
-		document.getElementById("patreonLevelbarTier1").classList.add("filled1");
-	}
-	if (tierLevel >= 0) {
-		document.getElementById("patreonLevelbarTier0").classList.add("filled0");
-	}
-
-	//Handle removing push notifications for safari
-	try {
-		if (!isSafari()) {
-			chrome.permissions.contains({ permissions: ["notifications"] }, (result) => {
-				if (!result) {
-					document.querySelector("#notification.pushNotifications").disabled = true;
-					document.querySelector("#notification.pushNotificationsAFA").disabled = true;
-				}
-			});
-		}
-	} catch (err) {
-		//Do nothing.
-	}
-
-	//Show the usage time in days and hours
-	const minutesUsed = Settings.get("metrics.minutesUsed");
-	const days = Math.floor(minutesUsed / 1440);
-	const hours = Math.floor((minutesUsed % 1440) / 60);
-	const minutes = minutesUsed % 60;
-	document.getElementById("usageTime").textContent =
-		days + " day(s) and " + hours + " hour(s) and " + minutes + " minute(s)";
-
-	//Get the user's stats from the API
-	if (Settings.get("general.uuid", false)) {
-		const content = {
-			api_version: 5,
-			app_version: env.data.appVersion,
-			action: "get_user_stats",
-			country: i13n.getCountryCode(),
-			uuid: Settings.get("general.uuid", false),
-			fid: Settings.get("general.fingerprint.id", false),
-			cid: await env.getCID(),
-		};
-		const s = await cryptoKeys.signData(content);
-		content.s = s;
-		content.pk = await cryptoKeys.getExportedPublicKey();
-		fetch(env.getAPIUrl(), {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(content),
-		}).then(async function (response) {
-			const data = await response.json();
-			document.getElementById("itemsFound").textContent =
-				data.items_found == undefined ? "N/A" : data.items_found;
-			document.getElementById("itemsFoundRank").textContent =
-				data.items_found_rank == undefined ? "N/A" : data.items_found_rank + rankSuffix(data.items_found_rank);
-			document.getElementById("etvFound").textContent = data.etv_found == undefined ? "N/A" : data.etv_found;
-			document.getElementById("etvFoundRank").textContent =
-				data.etv_found_rank == undefined ? "N/A" : data.etv_found_rank + rankSuffix(data.etv_found_rank);
-
-			// Build device list safely using DOM methods
-			const deviceList = document.getElementById("devicesLinkedToUUID");
-			deviceList.replaceChildren(); // Clear existing content
-
-			data.devices.forEach((device) => {
-				const listItem = document.createElement("li");
-				listItem.className = "device-item";
-				listItem.dataset.id = device.id;
-
-				// Add device name
-				listItem.appendChild(document.createTextNode(device.name + " ("));
-
-				// Add unlink link
-				const unlinkLink = document.createElement("a");
-				unlinkLink.href = "#";
-				unlinkLink.className = "delete_device";
-				unlinkLink.dataset.id = device.id;
-				unlinkLink.dataset.name = device.name;
-				unlinkLink.textContent = "unlink";
-				listItem.appendChild(unlinkLink);
-
-				listItem.appendChild(document.createTextNode(")"));
-				deviceList.appendChild(listItem);
-			});
-
-			document.querySelectorAll(".delete_device").forEach((item) => {
-				item.onclick = async function (e) {
-					e.preventDefault();
-					const deviceName = item.dataset.name;
-					if (confirm("Unlink device " + deviceName + " from this UUID?")) {
-						await fingerprintMgr.deleteDevice(item.dataset.id);
-						//Remove the item from the list
-						const deviceItem = document.querySelector(`.device-item[data-id="${item.dataset.id}"]`);
-						if (deviceItem) {
-							deviceItem.remove();
-						}
-					}
-				};
-			});
 		});
 	}
 
@@ -229,24 +103,7 @@ async function initiateSettings(firstRun = false) {
 				elements.forEach((element) => {
 					// Skip the checkbox itself in the legend
 					if (element !== checkbox) {
-						// Check if element or its parent has a premium-feature class
-						let premiumParent = element.closest(
-							".premium-feature-1, .premium-feature-2, .premium-feature-3"
-						);
-						let shouldDisable = !isChecked;
-
-						if (premiumParent) {
-							// Extract tier number from the class (e.g., "premium-feature-2" -> 2)
-							const tierMatch = premiumParent.className.match(/premium-feature-([123])/);
-							if (tierMatch) {
-								const tier = parseInt(tierMatch[1], 10);
-								// If user doesn't have access to this tier, keep it disabled
-								if (!Settings.isPremiumUser(tier)) {
-									shouldDisable = true;
-								}
-							}
-						}
-
+						const shouldDisable = !isChecked;
 						element.disabled = shouldDisable;
 					}
 				});
@@ -305,7 +162,6 @@ async function initiateSettings(firstRun = false) {
 	manageCheckboxSetting("general.blindLoading");
 	manageCheckboxSetting("general.skipPrimeAd");
 	manageCheckboxSetting("general.syncSettings");
-	manageColorPicker("general.bookmarkColor");
 	manageCheckboxSetting("general.highlightColor.active");
 	manageColorPicker("general.highlightColor.color");
 	manageCheckboxSetting("general.highlightColor.ignore0ETVhighlight");
@@ -317,298 +173,64 @@ async function initiateSettings(firstRun = false) {
 	manageColorPicker("general.toolbarBackgroundColor");
 	manageSlider("general.ETV.modifier");
 
-	//## TAB - DEBUG
-	manageCheckboxSetting("general.debugTabTitle");
-	manageCheckboxSetting("general.debugPlaceholders");
-	manageCheckboxSetting("general.debugTitleDisplay");
-	manageCheckboxSetting("general.debugMemory");
-	manageCheckboxSetting("general.debugMemoryAutoSnapshot");
-	manageCheckboxSetting("general.debugKeywords", false);
-	manageCheckboxSetting("general.debugBulkOperations", false);
-	manageCheckboxSetting("general.debugWebsocket", false);
-	manageCheckboxSetting("general.debugServercom", false);
-	manageCheckboxSetting("general.debugServiceWorker", false);
-	manageCheckboxSetting("general.debugSettings", false);
-	manageCheckboxSetting("general.debugStorage", false);
-	manageCheckboxSetting("general.debugSound", false);
-	manageCheckboxSetting("general.debugCoordination", false);
-	manageCheckboxSetting("general.debugDuplicates", false);
-	manageCheckboxSetting("general.debugVisibility", false);
-	manageCheckboxSetting("general.debugItemProcessing", false);
-	manageCheckboxSetting("general.debugTileCounter", false);
-
-	//##TAB - NOTIFICATIONS
-
-	manageCheckboxSetting("notification.active");
-	manageCheckboxSetting("notification.pushNotifications");
-	manageCheckboxSetting("notification.pushNotificationsAFA");
-	manageCheckboxSetting("notification.monitor.listView");
-	manageCheckboxSetting("notification.monitor.displayPrice");
-	manageCheckboxSetting("notification.monitor.placeholders");
-	manageCheckboxSetting("notification.monitor.carousel.active");
-	manageCheckboxSetting("notification.hideList");
-	manageCheckboxSetting("notification.monitor.hideGoldNotificationsForSilverUser");
-	manageCheckboxSetting("notification.monitor.hideDuplicateThumbnail");
-	manageCheckboxSetting("notification.monitor.hideAddsToHiddenList");
-	manageCheckboxSetting("notification.reduce");
-	manageCheckboxSetting("notification.monitor.zeroETV.colorActive");
-	manageCheckboxSetting("notification.monitor.highlight.colorActive");
-	manageCheckboxSetting("notification.monitor.rfy.colorActive");
-	manageCheckboxSetting("notification.monitor.unknownETV.colorActive");
-	manageCheckboxSetting("notification.monitor.highlight.ignore0ETVhighlight");
-	manageCheckboxSetting("notification.monitor.highlight.ignoreUnknownETVhighlight");
-	manageRadio("notification.monitor.openLinksInNewTab");
-	manageRadio("notification.connectionMode");
-	manageCheckboxSetting("notification.monitor.preventUnload");
-	manageCheckboxSetting("notification.monitor.24hrsFormat");
-	manageCheckboxSetting("notification.monitor.bump0ETV");
-	manageCheckboxSetting("notification.monitor.mouseoverPause");
-	manageCheckboxSetting("notification.monitor.pauseOverlay");
-	manageCheckboxSetting("notification.RFYReload.active");
-	manageTimeSetting("notification.autoload.hourStart");
-	manageTimeSetting("notification.autoload.hourEnd");
-	manageSlider("notification.monitor.ETV.modifier");
-
-	//Sliders
-	manageSlider("notification.monitor.highlight.volume");
-	manageSlider("notification.monitor.regular.volume");
-	manageSlider("notification.monitor.zeroETV.volume");
-	manageSlider("notification.monitor.rfy.volume");
-	manageSelectBox("notification.soundCooldownDelay");
-	manageSlider("notification.autoload.speedBoost");
-
-	//Select boxes
-	manageSelectBox("general.hiddenItemsCacheSize");
-	manageSelectBox("general.verbosePaginationStartPadding");
-	manageSelectBox("notification.monitor.regular.sound");
-	manageSelectBox("notification.monitor.highlight.sound");
-	manageSelectBox("notification.monitor.zeroETV.sound");
-	manageSelectBox("notification.monitor.rfy.sound");
-
-	//Play buttons
-	managePlayButton(
-		"playScreenNotification",
-		"notification.screen.regular.sound",
-		"notification.screen.regular.volume"
-	);
-	managePlayButton(
-		"playMonitorHighlightNotification",
-		"notification.monitor.highlight.sound",
-		"notification.monitor.highlight.volume"
-	);
-	managePlayButton(
-		"playMonitorZeroETVNotification",
-		"notification.monitor.zeroETV.sound",
-		"notification.monitor.zeroETV.volume"
-	);
-	managePlayButton("playMonitorRFYNotification", "notification.monitor.rfy.sound", "notification.monitor.rfy.volume");
-	managePlayButton(
-		"playMonitorRegularNotification",
-		"notification.monitor.regular.sound",
-		"notification.monitor.regular.volume"
-	);
-
-	manageColorPicker("notification.monitor.highlight.color");
-	manageColorPicker("notification.monitor.zeroETV.color");
-	manageColorPicker("notification.monitor.rfy.color");
-	manageColorPicker("notification.monitor.unknownETV.color");
-
 	// Display on screen notifications settings
 	manageCheckboxSetting("notification.screen.active");
 	manageCheckboxSetting("notification.screen.thumbnail");
 	manageInputText("notification.screen.position");
-	manageSelectBox("notification.screen.regular.sound");
-	manageSlider("notification.screen.regular.volume");
+	manageSelectBox("general.hiddenItemsCacheSize");
+	manageSelectBox("general.verbosePaginationStartPadding");
+	manageSlider("general.ETV.modifier");
 
 	//##TAB - SYSTEM
-	manageCheckboxSetting("hiddenTab.remote");
-	manageCheckboxSetting("pinnedTab.remote");
-	manageCheckboxSetting("general.versionInfoPopup", false);
-	manageCheckboxSetting("general.GDPRPopup", false);
-
-	//Factory reset
-	document.getElementById("factoryReset").addEventListener("click", async function () {
+	document.getElementById("factoryReset")?.addEventListener("click", async function () {
 		if (
 			await confirmPrompt(
-				"SAVE YOUR UUID OR YOU WILL LOOSE YOUR REMOTE STORED ITEMS !\n\nReset all Vine Helper settings & local storage to default?"
+				"Reset all VineSmyths settings & local storage to default?\n\nThis deletes your settings, hidden items, pinned items, and the review phrases, templates and drafts on this computer.\n\nIf folder sync is set up, the next sync will bring your settings and lists BACK from the shared file (this computer is treated as a fresh install). To really start over, press 'Stop syncing' on the Sync tab first."
 			)
 		) {
 			await chrome.storage.local.clear();
 			alert(
-				"All settings were deleted. RELOAD AMAZON VINE to restaure default settings.\nDO NOT EDIT OPTIONS before you reloaded an amazon vine page."
+				"All settings were deleted. RELOAD AMAZON VINE to restore default settings.\nDO NOT EDIT OPTIONS before you reload a Vine page."
 			);
 		}
 	});
-	document.getElementById("hiddenItemReset").addEventListener("click", async function () {
-		if (await confirmPrompt("Delete all locally stored hidden items from Vine Helper?")) {
-			chrome.storage.local.set({ hiddenItems: [] });
-			alert("Hidden items in local storage emptied.");
-		}
-		if (await confirmPrompt("Delete all remotely stored hidden items from Vine Helper?")) {
-			const content = {
-				api_version: 5,
-				app_version: env.data.appVersion,
-				action: "save_hidden_list",
-				country: Settings.get("general.country", false),
-				uuid: Settings.get("general.uuid", false),
-				cid: await env.getCID(),
-				items: "DELETE_ALL",
-			};
-			const s = await cryptoKeys.signData(content);
-			content.s = s;
-			content.pk = await cryptoKeys.getExportedPublicKey();
-			//Post an AJAX request to the 3rd party server, passing along the JSON array of all the products on the page
-			fetch(env.getAPIUrl(), {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(content),
-			}).then(async function (response) {
-				alert("Hidden items in remote storage emptied.");
-			});
+	document.getElementById("hiddenItemReset")?.addEventListener("click", async function () {
+		if (
+			await confirmPrompt(
+				"Delete ALL hidden items?\n\nIf folder sync is set up, they are removed from the shared file and from your other computers too."
+			)
+		) {
+			await replaceStoredList("hidden", "hiddenItems", {});
+			alert("Hidden items emptied.");
 		}
 	});
-	document.getElementById("fetchHiddenItems").addEventListener("click", async function () {
-		const content = {
-			api_version: 5,
-			app_version: env.data.appVersion,
-			action: "load_hidden_list",
-			country: Settings.get("general.country", false),
-			uuid: Settings.get("general.uuid", false),
-			cid: await env.getCID(),
-		};
-		const s = await cryptoKeys.signData(content);
-		content.s = s;
-		content.pk = await cryptoKeys.getExportedPublicKey();
-		//Post an AJAX request to the 3rd party server, passing along the JSON array of all the products on the page
-		fetch(env.getAPIUrl(), {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(content),
-		})
-			.then((data) => data.json())
-			.then(async function (data) {
-				for (let i = 0; i < data.items.length; i++) {
-					const asin = data.items[i];
-					await HiddenList.addItem(asin, false, false);
 
-					//Save at every chunk of ~1000 items to avoid storage space overflow
-					//That way the garbage collector can work if needed.
-					if (i % 1000 == 0) {
-						await HiddenList.saveList(false); //Do not remote save
-					}
-				}
-				await HiddenList.saveList(false); //Do not remote save
-				alert(data.items.length + " hidden item(s) have been imported.");
-			});
-	});
+	//##TAB - SYNC
+	initSyncTab();
 
-	function dynamicPassword(id) {
-		const key = CSS.escape(id);
-		document.querySelector(`#${key}`).onmouseenter = () => {
-			document.querySelector(`#${key}`).type = "text";
-		};
-		document.querySelector(`#${key}`).onmouseleave = () => {
-			document.querySelector(`#${key}`).type = "password";
-		};
-	}
-
-	//UUID/deviceId:
-	dynamicPassword("generaluuid");
-	document.getElementById(`generaluuid`).value = Settings.get("general.uuid", false);
-
-	document.querySelector("#saveUUID").onclick = async function () {
-		document.querySelector("#saveUUID").disabled = true;
-		let key = CSS.escape("generaluuid");
-		//Post a fetch request to confirm if the UUID is valid
-		const uuid = document.querySelector("#" + key).value;
-
-		try {
-			await fingerprintMgr.updateUUID(uuid);
-			alert("New UUID saved. Reload a vine page to reload your privileges.");
-		} catch (error) {
-			alert("Error saving UUID. Make sure the UUID is valid and try again.\nError:\n " + error.message);
-		}
-		document.querySelector("#saveUUID").disabled = false;
-	};
-
-	manageInputText("general.deviceName");
-	document.querySelector("#generateDeviceName").onclick = async function () {
-		const key = CSS.escape("general.deviceName");
-		const deviceName = await deviceMgr.generateDeviceName(false);
-		document.querySelector("#" + key).value = deviceName;
-	};
-	document.querySelector("#saveDeviceName").onclick = async function () {
-		try {
-			let key = CSS.escape("generaluuid");
-			const uuid = document.querySelector("#" + key).value;
-
-			document.querySelector("#saveDeviceName").disabled = true;
-			let deviceNameKey = CSS.escape("general.deviceName");
-			let deviceName = document.querySelector("#" + deviceNameKey).value;
-			await fingerprintMgr.updateDeviceName(uuid, deviceName);
-			document.querySelector("#saveDeviceName").disabled = false;
-		} catch (error) {
-			alert(error);
-			document.querySelector("#saveDeviceName").disabled = false;
-		}
-	};
+	//##TAB - GOOGLE
+	manageInputText("google.sheet.id");
+	manageInputText("google.sheet.tab");
+	manageCheckboxSetting("google.sheet.enabled");
+	initGoogleTab();
 
 	//##TAB - DISCORD - WEBHOOKS:
-	manageCheckboxSetting("discord.webhook.KWsMatch.active");
-	manageInputText("discord.webhook.KWsMatch.url");
-	manageSelectBox("discord.webhook.KWsMatch.method");
-	manageTextarea("discord.webhook.KWsMatch.content");
-	manageCheckboxSetting("discord.webhook.AFA.active");
-	manageInputText("discord.webhook.AFA.url");
-	manageSelectBox("discord.webhook.AFA.method");
-	manageTextarea("discord.webhook.AFA.content");
-	manageCheckboxSetting("discord.webhook.RFY.active");
-	manageInputText("discord.webhook.RFY.url");
-	manageSelectBox("discord.webhook.RFY.method");
-	manageTextarea("discord.webhook.RFY.content");
-	manageCheckboxSetting("discord.webhook.zeroETV.active");
-	manageInputText("discord.webhook.zeroETV.url");
-	manageSelectBox("discord.webhook.zeroETV.method");
-	manageTextarea("discord.webhook.zeroETV.content");
-
-	//##TAB - DISCORD - BRENDA:
-	manageCheckboxSetting("discord.active"); //Handled manually
-
-	const chkDiscord = document.querySelector(`#discordactive`);
-	if (chkDiscord) {
-		chkDiscord.addEventListener("change", function () {
-			setTimeout(() => drawDiscord(), 1);
-		});
+	manageCheckboxSetting("discord.active");
+	manageInputText("discord.webhook.default.url");
+	for (const t of ["KWsMatch", "AFA", "RFY", "zeroETV", "manual"]) {
+		manageCheckboxSetting(`discord.webhook.${t}.active`);
+		manageInputText(`discord.webhook.${t}.url`);
+		manageTextarea(`discord.webhook.${t}.content`);
 	}
-
-	document.querySelector("#saveGUID").onclick = async function () {
-		document.querySelector("#saveGUID").disabled = true;
-		let key = CSS.escape("discord.guid");
-		//Post a fetch request to the Brenda API from the AmazonVine Discord server
-		//We want to check if the guid is valid.
-		let url = "https://api.llamastories.com/brenda/user/" + document.querySelector("#" + key).value;
-		const response = await fetch(url, { method: "GET" });
-		if (response.status == 200) {
-			await Settings.set("discord.guid", document.querySelector(`#${key}`).value);
-
-			document.querySelector("#guid-txt").textContent = Settings.get("discord.guid", false);
-			document.querySelector("#discord-guid-link").style.display = "none";
-			document.querySelector("#discord-guid-unlink").style.display = "block";
-		} else {
-			document.querySelector(`#${key}`).value = "";
-			alert("invalid API Token.");
-		}
-		document.querySelector("#saveGUID").disabled = false;
-	};
-	document.querySelector("#unlinkGUID").onclick = async function () {
-		Settings.set("discord.guid", null);
-
-		document.querySelector("#discord-guid-link").style.display = "block";
-		document.querySelector("#discord-guid-unlink").style.display = "none";
-	};
-	if (Settings.get("discord.guid", false)) {
-		document.querySelector("#guid-txt").textContent = Settings.get("discord.guid");
-	}
+	//URLs are hidden unless hovered; re-validate whenever one changes.
+	document.querySelectorAll("#discordOptions input[type='password']").forEach((input) => {
+		input.onmouseenter = () => (input.type = "text");
+		input.onmouseleave = () => (input.type = "password");
+		input.addEventListener("input", drawDiscord);
+		input.addEventListener("change", drawDiscord);
+	});
+	document.querySelector("#discordactive")?.addEventListener("change", () => setTimeout(drawDiscord, 1));
+	drawDiscord();
 
 	//##TAB - KEYWORDS
 	manageCheckboxSetting("general.highlightKWFirst");
@@ -671,6 +293,23 @@ async function initiateSettings(firstRun = false) {
 	manageInputText("keyBindings.hideAllNext");
 	manageInputText("keyBindings.debug");
 	manageInputText("keyBindings.firstPage");
+	manageInputText("keyBindings.smartSkipStart");
+	manageInputText("keyBindings.smartSkipPause");
+	manageInputText("keyBindings.smartSkipStop");
+	manageInputText("keyBindings.smartSkipPatrol");
+	manageInputText("smartSkip.patrol.startPage");
+	manageInputText("smartSkip.patrol.lastPage");
+	for (const n of [1, 2, 3]) {
+		manageInputText(`keyBindings.smartSkipJump${n}`);
+		manageInputText(`smartSkip.jumpPage${n}`);
+	}
+	manageCheckboxSetting("smartSkip.enabled");
+	manageSelectBox("smartSkip.startQueue");
+	manageInputText("smartSkip.maxPages");
+	manageInputText("smartSkip.delay.active.min");
+	manageInputText("smartSkip.delay.active.max");
+	manageInputText("smartSkip.delay.background.min");
+	manageInputText("smartSkip.delay.background.max");
 
 	//##TAB - STYLES
 
@@ -691,60 +330,6 @@ async function initiateSettings(firstRun = false) {
 	manageTextarea("general.customCSS");
 
 	//##TAB - ?
-
-	if (!isSafari()) {
-		//Copy buttons
-		const copyBTCBtn = document.getElementById("copyBTC");
-		if (copyBTCBtn && !copyBTCBtn._vineHelperClickHandler) {
-			copyBTCBtn._vineHelperClickHandler = function () {
-				navigator.clipboard
-					.writeText("bc1q0f82vk79u7hzxcrqe6q2levzvhdrqe72fm5w8z")
-					.then(() => {
-						// Alert the user that the text has been copied
-						alert("BTC address copied to clipboard: ");
-					})
-					.catch((err) => {
-						console.error("Failed to copy: ", err);
-					});
-			};
-			copyBTCBtn.addEventListener("click", copyBTCBtn._vineHelperClickHandler);
-		}
-
-		const copyETHBtn = document.getElementById("copyETH");
-		if (copyETHBtn && !copyETHBtn._vineHelperClickHandler) {
-			copyETHBtn._vineHelperClickHandler = function () {
-				navigator.clipboard
-					.writeText("0xF5b68799b43C358E0A54482f0D8445DFBEA9BDF1")
-					.then(() => {
-						// Alert the user that the text has been copied
-						alert("ETH address copied to clipboard");
-					})
-					.catch((err) => {
-						console.error("Failed to copy: ", err);
-					});
-			};
-			copyETHBtn.addEventListener("click", copyETHBtn._vineHelperClickHandler);
-		}
-
-		//Patreon login link:
-		document.getElementById("PatreonLogin").href =
-			"https://www.patreon.com/oauth2/authorize" +
-			"?response_type=code" +
-			"&client_id=AqsjZu6eHaLtO3y8bj0VPydtRCNNV2n-5aQoWVKil4IPNb3qoxkT75VQMhSALTcO" +
-			"&redirect_uri=" +
-			encodeURIComponent(env.getAPIUrl() + "/patreon-login") +
-			//"&scope=pledges-to-me" +
-			"&state=" +
-			Settings.get("general.uuid", false);
-
-		//Patreon load page link:
-		if (Settings.get("general.country") == null) {
-			document.getElementById("RefreshVinePage").style.display = "none";
-		} else {
-			document.getElementById("RefreshVinePage").href =
-				`https://www.amazon.${i13n.getDomainTLD()}/vine/vine-items?queue=encore`;
-		}
-	}
 
 	//Make the save button follow the scroll in the keyword tab
 	const highlightKeywordsTable = document.querySelector("#general\\.highlightKeywords table");
@@ -796,7 +381,13 @@ async function initiateSettings(firstRun = false) {
 					if (!json.settings) {
 						throw new Error("Format Invalid");
 					}
-					await chrome.storage.local.set({ settings: json.settings });
+					const current = (await chrome.storage.local.get("settings")).settings;
+					await chrome.storage.local.set({
+						settings: restoreLocalOnly(json.settings, current), //keep this device's keys/country/counters
+						settingsModifiedAt: Date.now(), //an import is a real edit: it must win the next sync
+					});
+					chrome.runtime.sendMessage({ type: "refreshSettings" }, () => void chrome.runtime.lastError);
+					requestSync(0);
 					return true; //Hide the popup
 				} catch (err) {
 					alert("JSON data incomplete or invalid.");
@@ -833,7 +424,7 @@ async function initiateSettings(firstRun = false) {
 					if (!json.hiddenItems) {
 						throw new Error("Format Invalid");
 					}
-					await chrome.storage.local.set({ hiddenItems: json.hiddenItems });
+					await replaceStoredList("hidden", "hiddenItems", json.hiddenItems);
 					return true; //Hide the popup
 				} catch (err) {
 					alert("JSON data incomplete or invalid.");
@@ -867,7 +458,7 @@ async function initiateSettings(firstRun = false) {
 					if (!json.pinnedItems) {
 						throw new Error("Format Invalid");
 					}
-					await chrome.storage.local.set({ pinnedItems: json.pinnedItems });
+					await replaceStoredList("pinned", "pinnedItems", json.pinnedItems);
 					return true; //Hide the popup
 				} catch (err) {
 					alert("JSON data incomplete or invalid.");
@@ -888,7 +479,6 @@ async function initiateSettings(firstRun = false) {
 		bulkExportJSONpinnedBtn.addEventListener("click", bulkExportJSONpinnedBtn._vineHelperClickHandler);
 	}
 
-	initDualRangeSlider();
 }
 
 //Determine if a query selector is visible in the scrolled area
@@ -1007,114 +597,14 @@ function keywordsTypeToSettingKey(type) {
 	return null;
 }
 
-async function remoteSaveList(keywordType) {
-	const settingKey = keywordsTypeToSettingKey(keywordType);
-	const keyE = CSS.escape(settingKey);
-	const btnSave = document.querySelector(`#${keyE} input[name="save"]`);
-	if (btnSave && (await confirmPrompt("Save highlight keywords first?"))) {
-		btnSave.click();
-	}
-	if (await confirmPrompt("Overwrite remote stored keywords with the saved list?")) {
-		const content = {
-			api_version: 5,
-			app_version: env.data.appVersion,
-			action: "save_keywords",
-			country: Settings.get("general.country", false),
-			uuid: Settings.get("general.uuid", false),
-			cid: await env.getCID(),
-			keywords_type: keywordType,
-			keywords: Settings.get(settingKey),
-		};
-		const s = await cryptoKeys.signData(content);
-		content.s = s;
-		content.pk = await cryptoKeys.getExportedPublicKey();
-		//Post an AJAX request to the 3rd party server, passing along the JSON array of all the products on the page
-		fetch(env.getAPIUrl(), {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(content),
-		}).then(async function (response) {
-			alert("List saved remotely");
-		});
-	}
-}
-async function remoteLoadList(keywordsType) {
-	if (await confirmPrompt("Load remote list and overwrite local list?")) {
-		const content = {
-			api_version: 5,
-			app_version: env.data.appVersion,
-			action: "get_keywords",
-			country: Settings.get("general.country", false),
-			uuid: Settings.get("general.uuid", false),
-			cid: await env.getCID(),
-			keywords: keywordsType,
-		};
-		const s = await cryptoKeys.signData(content);
-		content.s = s;
-		content.pk = await cryptoKeys.getExportedPublicKey();
-		//Post an AJAX request to the 3rd party server, passing along the JSON array of all the products on the page
-		fetch(env.getAPIUrl(), {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(content),
-		})
-			.then((response) => response.json())
-			.then(async function (data) {
-				let key;
-				let textList = data.keywords_type == "blur";
-				key = keywordsTypeToSettingKey(data.keywords_type);
-
-				let keyE = CSS.escape(key);
-				if (textList) {
-					const obj = document.querySelector(`textarea[name='${keyE}']`);
-					obj.value = data.keywords.join(", ");
-
-					//Save the new content
-					const event = new Event("change");
-					obj.dispatchEvent(event);
-				} else {
-					data.keywords.sort((a, b) => {
-						if (a.contains.toLowerCase() < b.contains.toLowerCase()) return -1;
-						if (a.contains.toLowerCase() > b.contains.toLowerCase()) return 1;
-						return 0;
-					});
-
-					//Remove all the existing lines
-					const rows = document.querySelectorAll(`#${keyE} table>tr`);
-					const firstRow = rows[0];
-					rows.forEach((row, index) => {
-						if (index > 0) row.remove();
-					});
-
-					//Add new lines for the remote content
-					for (let i = 0; i < data.keywords.length; i++) {
-						if (typeof data.keywords[i] == "string") {
-							//Load the old data format
-							manageKeywordsAddLine(key, data.keywords[i], "", "", "");
-						} else if (typeof data.keywords[i] == "object") {
-							//Load the new data format
-							manageKeywordsAddLine(
-								key,
-								data.keywords[i].contains,
-								data.keywords[i].without,
-								data.keywords[i].etv_min,
-								data.keywords[i].etv_max
-							);
-						}
-					}
-				}
-			});
-	}
-}
-
 //CSK: Comma Separated Keywords
 function manageTextareaCSK(key) {
 	const val = Settings.get(key);
 	const keywordType = keywordsTypeToSettingKey(key);
 	const obj = document.querySelector(`textarea[name='${key}']`);
 	if (obj == null) {
-		alert("Textarea name='" + key + "' does not exist");
-		throw new Error("Textarea name='" + key + "' does not exist");
+		console.log("Textarea name='" + key + "' does not exist");
+		return;
 	}
 	obj.value = val === undefined ? "" : val.join(", ");
 	obj.addEventListener("change", async function () {
@@ -1130,13 +620,6 @@ function manageTextareaCSK(key) {
 		Settings.set(key, arr);
 	});
 
-	//Bind buttons
-	document.getElementById(`save${keywordType}Keywords`).addEventListener("click", async () => {
-		remoteSaveList(keywordType);
-	});
-	document.getElementById(`load${keywordType}Keywords`).addEventListener("click", async () => {
-		remoteLoadList(keywordType);
-	});
 }
 
 function keywordsToJSON(key) {
@@ -1247,13 +730,6 @@ function manageKeywords(key) {
 		}
 	}
 
-	//Bind buttons
-	document.getElementById(`save${keywordType}Keywords`).addEventListener("click", async () => {
-		remoteSaveList(keywordType);
-	});
-	document.getElementById(`load${keywordType}Keywords`).addEventListener("click", async () => {
-		remoteLoadList(keywordType);
-	});
 
 	document.getElementById(`bulkDelete${keywordType}keywords`).addEventListener("click", async () => {
 		if (await confirmPrompt("Delete all?")) {
@@ -1449,7 +925,8 @@ function manageTextarea(key) {
 	const val = Settings.get(key);
 	const obj = document.querySelector(`textarea[name='${key}']`);
 	if (obj == null) {
-		throw new Error("Textarea name='" + key + "' does not exist");
+		console.log("Textarea name='" + key + "' does not exist");
+		return;
 	}
 	obj.value = val;
 	// Store event listener reference to prevent duplicates
@@ -1463,9 +940,11 @@ function manageTextarea(key) {
 
 function manageInputText(key) {
 	const val = Settings.get(key);
-	const obj = document.querySelector(`label[for='${key}'] input`);
+	// Find the field by its name; fall back to the older "input inside <label for=key>" layout.
+	const obj = document.querySelector(`input[name='${CSS.escape(key)}']`) || document.querySelector(`label[for='${key}'] input`);
 	if (obj == null) {
-		throw new Error("Item input name='" + key + "' does not exist");
+		console.log("Item input name='" + key + "' does not exist");
+		return;
 	}
 	obj.value = val == null ? "" : val;
 
@@ -1482,7 +961,8 @@ function manageTimeSetting(key) {
 	const val = Settings.get(key);
 	const obj = document.querySelector(`input[name='${key}']`);
 	if (obj == null) {
-		throw new Error("Time input name='" + key + "' does not exist");
+		console.log("Time input name='" + key + "' does not exist");
+		return;
 	}
 	obj.value = val == null ? "03:00" : val;
 
@@ -1500,7 +980,8 @@ function manageColorPicker(key) {
 	const keyE = CSS.escape(key);
 	const obj = document.querySelector(`input[name='${keyE}']`);
 	if (obj == null) {
-		throw new Error("Color picker input name='" + key + "' does not exist");
+		console.log("Color picker input name='" + key + "' does not exist");
+		return;
 	}
 	obj.value = val == null ? "" : val;
 
@@ -1517,7 +998,8 @@ function manageSlider(key) {
 	const val = Settings.get(key);
 	const volumeObj = document.querySelector(`label[for='${key}'] input`);
 	if (volumeObj == null) {
-		throw new Error("Slider input name='" + key + "' does not exist");
+		console.log("Slider input name='" + key + "' does not exist");
+		return;
 	}
 	volumeObj.value = Number(val == null ? 0 : val);
 	const keyE = CSS.escape(key);
@@ -1571,7 +1053,12 @@ function managePlayButton(btnId, selectName, volumeName) {
 function manageSelectBox(key) {
 	const val = Settings.get(key);
 	const keyE = CSS.escape(key);
-	const selectObj = document.querySelector(`label[for='${keyE}'] select`);
+	// by name first (the SmartSkip rows are not wrapped in a label), then the older "select inside <label for=key>" layout
+	const selectObj = document.querySelector(`select[name='${keyE}']`) || document.querySelector(`label[for='${keyE}'] select`);
+	if (selectObj == null) {
+		console.log("Select name='" + key + "' does not exist");
+		return;
+	}
 
 	for (let i = 0; i < selectObj.options.length; i++) {
 		if (selectObj.options[i].value == val) {
@@ -1642,16 +1129,171 @@ function manageCheckboxSetting(key, def = null) {
 	}.bind(keyE);
 }
 
-//Return the suffix for the rank (st, nd, rd, th)
-function rankSuffix(number) {
-	if (number % 10 == 1 && number % 100 != 11) {
-		return "st";
-	} else if (number % 10 == 2 && number % 100 != 12) {
-		return "nd";
-	} else if (number % 10 == 3 && number % 100 != 13) {
-		return "rd";
+//##TAB - GOOGLE: sign in, test the connection, preview what would be written (all through the service worker)
+function initGoogleTab() {
+	const $ = (id) => document.getElementById(id);
+	if (!$("googleSignIn")) return;
+	const ask = (msg) => new Promise((resolve) => chrome.runtime.sendMessage(msg, (res) => resolve(res)));
+	const show = (status, result = "") => {
+		$("googleStatus").textContent = status;
+		$("googleResult").textContent = result;
+	};
+	const explain = (res) => {
+		if (!res) return "No answer from the extension's background page.";
+		if (res.reason === "signin") return "Not signed in to Google yet: press \"1. Sign in to Google\".";
+		if (res.reason === "not-configured") return "Enter the spreadsheet URL (or ID) and the tab name first.";
+		if (res.reason === "disabled") return "Automatic adding is switched off.";
+		return "Failed: " + (res.error || "unknown error") + (res.status ? ` (HTTP ${res.status})` : "");
+	};
+	// what is typed right now (it is only saved when the field loses focus): used by the read-only buttons
+	const typedConfig = () => ({
+		id: document.querySelector("input[name='google.sheet.id']")?.value || "",
+		tab: document.querySelector("input[name='google.sheet.tab']")?.value || "",
+	});
+	const settle = () => Promise.resolve();
+
+	if (typeof window.popupView !== "undefined") {
+		for (const id of ["googleSignIn", "googleTest", "googlePreview"]) $(id).disabled = true;
+		show("Open the full settings page (not the toolbar popup) to sign in and test: Google's window cannot open from the popup.");
+		return;
 	}
-	return "th";
+
+	$("googleSignIn").onclick = async () => {
+		show("Opening Google's sign-in window...");
+		const res = await ask({ type: "googleSignIn" });
+		show(res?.ok ? "Signed in." : explain(res));
+	};
+
+	$("googleTest").onclick = async () => {
+		show("Reading the sheet (nothing is written)...");
+		await settle();
+		const res = await ask({ type: "googleTest", config: typedConfig() });
+		if (!res?.ok) return show(explain(res));
+		show(
+			`Connected. ${res.orders} order(s) already on the sheet. Header row ${res.headerRow}, last data row ${res.lastDataRow}.`,
+			"Columns found: " + res.columns.join(", ")
+		);
+	};
+
+	$("googlePreview").onclick = async () => {
+		show("Building a sample row (nothing is written)...");
+		await settle();
+		const sample = {
+			orderNumber: "000-0000000-0000000",
+			orderDate: new Date().toISOString().slice(0, 10),
+			asin: "B000000000",
+			title: "VineSmyths preview order",
+			imageUrl: "https://m.media-amazon.com/images/I/31Vs7ybz1SL._SS210_.jpg",
+			etv: 12.34,
+		};
+		const res = await ask({ type: "googleAddOrders", orders: [sample], dryRun: true, config: typedConfig() });
+		if (!res?.ok) return show(explain(res));
+		show(`Preview only: ${res.added} row would be added, ${res.skipped} skipped. Nothing was written.`, JSON.stringify(res.requests, null, 1).slice(0, 6000));
+	};
+}
+
+function formatTime(ms) {
+	return ms ? new Date(ms).toLocaleString() : "never";
+}
+
+//##TAB - SYNC: choose the shared (Google Drive) folder and trigger a sync
+function initSyncTab() {
+	const $ = (id) => document.getElementById(id);
+	if (!$("syncChooseFolder")) return;
+
+	const ask = (msg) => new Promise((resolve) => chrome.runtime.sendMessage(msg, (res) => resolve(res)));
+
+	async function refresh() {
+		const st = (await ask({ type: "folderSyncStatus" })) || {};
+		$("syncFolderName").textContent = st.configured ? st.folderName : "not set";
+		const permText = {
+			granted: "granted",
+			prompt: "needs permission (press Sync now)",
+			denied: "denied (choose the folder again)",
+		};
+		$("syncPermission").textContent = st.configured ? permText[st.permission] || String(st.permission) : "-";
+		$("syncLastSync").textContent = formatTime(st.lastSync);
+		$("syncError").textContent = st.lastError || "";
+		$("syncNowButton").disabled = !st.configured;
+		$("syncForgetFolder").disabled = !st.configured;
+	}
+
+	function describe(res) {
+		if (!res) return "No answer from the extension's background page.";
+		if (res.ok) {
+			const parts = [];
+			if (res.pulled) parts.push("updated this computer from the folder");
+			if (res.pushed) parts.push("updated the folder");
+			if (!parts.length) parts.push("already in sync");
+			return `Done: ${parts.join(" and ")}. (${res.hidden} hidden, ${res.pinned} pinned)`;
+		}
+		if (res.reason === "not-configured") return "Choose a folder first.";
+		if (res.reason === "permission") return "Chrome needs your permission to use the folder again.";
+		return "Sync failed: " + (res.error || res.reason);
+	}
+
+	const syncNow = async () => {
+		$("syncResult").textContent = "Syncing...";
+		const res = await ask({ type: "folderSync", reason: "manual" });
+		$("syncResult").textContent = describe(res);
+		await refresh();
+	};
+	const forgetFolder = async () => {
+		const { handleStore } = await import("/scripts/background/FolderSync.js");
+		await handleStore.clear();
+		$("syncResult").textContent = "Stopped syncing. The file in the folder was left untouched.";
+		await refresh();
+	};
+
+	if (typeof window.popupView !== "undefined") {
+		// Only the actions that open a native Chrome window (the folder picker, the "allow access again" prompt) need the
+		// full settings page: the toolbar popup closes the moment such a window takes focus, which would cancel the
+		// action half way. Syncing with the folder already chosen and stopping the sync show no window, so they work here.
+		$("syncChooseFolder").textContent = "Choose folder (opens full settings)...";
+		$("syncChooseFolder").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("page/settings.html") });
+		$("syncNowButton").onclick = async () => {
+			const st = (await ask({ type: "folderSyncStatus" })) || {};
+			if (st.permission !== "granted") {
+				$("syncResult").textContent = "Chrome needs your permission for the folder again: open the full settings page and press Sync now there.";
+				return;
+			}
+			await syncNow();
+		};
+		$("syncForgetFolder").onclick = forgetFolder;
+		refresh();
+		return;
+	}
+
+	$("syncChooseFolder").onclick = async () => {
+		try {
+			await pickFolder();
+		} catch (e) {
+			if (e.name !== "AbortError") $("syncResult").textContent = "Could not use that folder: " + e.message;
+			return;
+		}
+		$("syncResult").textContent = "Syncing...";
+		const res = await ask({ type: "folderSync", reason: "choose" });
+		$("syncResult").textContent = describe(res);
+		await refresh();
+	};
+
+	$("syncNowButton").onclick = async () => {
+		$("syncResult").textContent = "Syncing...";
+		//Re-grant access if Chrome dropped it (needs this click as the user gesture)
+		const perm = await requestFolderPermission();
+		if (perm !== "granted") {
+			$("syncResult").textContent = "Folder access was not granted.";
+			await refresh();
+			return;
+		}
+		const res = await ask({ type: "folderSync", reason: "manual" });
+		$("syncResult").textContent = describe(res);
+		await refresh();
+	};
+
+	$("syncForgetFolder").onclick = forgetFolder;
+
+	refresh();
 }
 
 function confirmPrompt(message) {
@@ -1766,152 +1408,5 @@ function confirmPrompt(message) {
 	});
 }
 
-// Dual range slider
-function initDualRangeSlider() {
-	function controlFromInput(fromSlider, fromInput, toInput, controlSlider) {
-		let [from, to] = getParsed(fromInput, toInput);
-		const min = parseInt(fromInput.min, 10);
-		const max = parseInt(fromInput.max, 10);
-		if (from < min) {
-			fromInput.value = min;
-			from = min;
-		}
-		if (from > max) {
-			fromInput.value = max;
-			from = max;
-		}
-		if (from > to) {
-			fromSlider.value = to;
-			fromInput.value = to;
-		} else {
-			fromSlider.value = from;
-		}
-		fillSlider(fromInput, toInput, "#C6C6C6", "#25daa5", controlSlider);
-		saveDualRangeSlider(from, to);
-	}
-
-	function controlToInput(toSlider, fromInput, toInput, controlSlider) {
-		let [from, to] = getParsed(fromInput, toInput);
-		const min = parseInt(toInput.min, 10);
-		const max = parseInt(toInput.max, 10);
-		if (to < min) {
-			toInput.value = min;
-			to = min;
-		}
-		if (to > max) {
-			toInput.value = max;
-			to = max;
-		}
-		setToggleAccessible(toInput);
-		if (from <= to) {
-			toSlider.value = to;
-			toInput.value = to;
-		} else {
-			toInput.value = from;
-		}
-		fillSlider(fromInput, toInput, "#C6C6C6", "#25daa5", controlSlider);
-		saveDualRangeSlider(from, to);
-	}
-
-	function controlFromSlider(fromSlider, toSlider, fromInput) {
-		const [from, to] = getParsed(fromSlider, toSlider);
-		const value = parseInt(fromSlider.value, 10);
-		const min = parseInt(fromInput.min, 10);
-		const max = parseInt(fromInput.max, 10);
-		if (from > to) {
-			fromSlider.value = to;
-			fromInput.value = to;
-		} else {
-			if (value < min) {
-				fromSlider.value = min;
-			} else if (value > max) {
-				fromSlider.value = max;
-			} else {
-				fromInput.value = from;
-			}
-		}
-		fillSlider(fromSlider, toSlider, "#C6C6C6", "#25daa5", toSlider);
-		saveDualRangeSlider(from, to);
-	}
-
-	function controlToSlider(fromSlider, toSlider, toInput) {
-		const [from, to] = getParsed(fromSlider, toSlider);
-		const value = parseInt(toSlider.value, 10);
-		const min = parseInt(toInput.min, 10);
-		const max = parseInt(toInput.max, 10);
-		setToggleAccessible(toSlider);
-		if (from <= to) {
-			if (value < min) {
-				toSlider.value = min;
-			} else if (value > max) {
-				toSlider.value = max;
-			} else {
-				toSlider.value = to;
-				toInput.value = to;
-			}
-		} else {
-			toInput.value = from;
-			toSlider.value = from;
-		}
-		fillSlider(fromSlider, toSlider, "#C6C6C6", "#25daa5", toSlider);
-		saveDualRangeSlider(from, to);
-	}
-
-	function getParsed(currentFrom, currentTo) {
-		const from = parseInt(currentFrom.value, 10);
-		const to = parseInt(currentTo.value, 10);
-		return [from, to];
-	}
-
-	function fillSlider(from, to, sliderColor, rangeColor, controlSlider) {
-		const rangeDistance = to.max - to.min;
-		const fromPosition = from.value - to.min;
-		const toPosition = to.value - to.min;
-		controlSlider.style.background = `linear-gradient(
-      to right,
-      ${sliderColor} 0%,
-      ${sliderColor} ${(fromPosition / rangeDistance) * 100}%,
-      ${rangeColor} ${(fromPosition / rangeDistance) * 100}%,
-      ${rangeColor} ${(toPosition / rangeDistance) * 100}%, 
-      ${sliderColor} ${(toPosition / rangeDistance) * 100}%, 
-      ${sliderColor} 100%)`;
-	}
-
-	function setToggleAccessible(currentTarget) {
-		const toSlider = document.querySelector("#toSlider");
-		if (Number(currentTarget.value) <= 0) {
-			toSlider.style.zIndex = 2;
-		} else {
-			toSlider.style.zIndex = 0;
-		}
-	}
-
-	function saveDualRangeSlider(from, to) {
-		Settings.set("notification.autoload.min", from);
-		Settings.set("notification.autoload.max", to);
-	}
-
-	function loadDualRangeSlider() {
-		const from = Settings.get("notification.autoload.min") || 5;
-		const to = Settings.get("notification.autoload.max") || 10;
-		document.querySelector("#fromInput").value = from;
-		document.querySelector("#toInput").value = to;
-		controlFromInput(fromSlider, fromInput, toInput, toSlider);
-		controlToInput(toSlider, fromInput, toInput, toSlider);
-	}
-
-	const fromSlider = document.querySelector("#fromSlider");
-	const toSlider = document.querySelector("#toSlider");
-	const fromInput = document.querySelector("#fromInput");
-	const toInput = document.querySelector("#toInput");
-	fillSlider(fromSlider, toSlider, "#C6C6C6", "#25daa5", toSlider);
-	setToggleAccessible(toSlider);
-
-	fromSlider.oninput = () => controlFromSlider(fromSlider, toSlider, fromInput);
-	toSlider.oninput = () => controlToSlider(fromSlider, toSlider, toInput);
-	fromInput.oninput = () => controlFromInput(fromSlider, fromInput, toInput, toSlider);
-	toInput.oninput = () => controlToInput(toSlider, fromInput, toInput, toSlider);
-	loadDualRangeSlider();
-}
 
 export { initiateSettings };

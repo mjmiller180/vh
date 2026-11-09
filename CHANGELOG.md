@@ -1,6 +1,66 @@
-# Changelog - Vine Helper 3.8.7 Modifications
+<!-- Last compiled at 2026-11-09_1130 -->
+<!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
+<!-- https://toolsmyths.com -->
+<!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
 
-All notable changes to the Vine Helper 3.8.7 extension will be documented in this file.
+# Changelog
+
+## [VineSmyths 4.5] - 2026-11
+
+### Added
+- SmartSkip patrol mode (key t, loops over a configurable page range, counts laps, shows the last found ASIN), jump keys 1/2/3 (start at configurable pages), click-to-enlarge status box. These were in the later versions of the original script (3.4 - 3.5.3) but not in the 3.1 that was first integrated.
+- Toolbar popup: "Sync now" and "Stop syncing" work in the popup; only choosing a folder opens the full settings page.
+- Saved searches in the Vine header (Save Search / Remove Search button, chips two per column), kept in the settings so they sync.
+- SmartSkip: automatic page scanner (start k, pause Space, stop Escape) that stops at the first unpinned item, built into
+  the extension (uses the pinned list and the Available grid directly, status box without innerHTML, toasts instead of alert).
+- Google Sheet DASHBOARD sync (Settings -> Google): new orders from the Vine **Orders** page (title, ASIN, picture, order
+  date, ETV, order number), review status / quality score / review link from the **Reviews** pages, "send all pages"
+  buttons, star rating + date + status recorded when a review is submitted from the form. Tested against a fake Sheets API.
+- Review title and text are recorded on Submit (columns REVIEW TITLE / REVIEW TEXT, skipped if absent); the whole width of the tab is read, so columns beyond Z work.
+- Delivery date from the checkout / "Order placed" pages is remembered and written to DELIVERY DATE when the order row is added.
+- Review form tools (replace the Tampermonkey "Amazon Review Toolkit"; written from scratch): formatting toolbar, saved
+  phrases and templates, automatic drafts, paste / drag and drop of pictures, optional "Add from Google Drive…" picker
+  (read only, needs the extra Drive permission).
+
+### Fixed
+- Settings: the SmartSkip box no longer overflows (label / value rows), the toolbar popup no longer scrolls sideways, and the header has no logo (title left, settings button right).
+- SmartSkip showed its status box and a second (white) popup for the same event. There is only the status box now: it says what to do when items are found, and shows the totals for 30 seconds when a session ends.
+- Independent review of the sheet/review/Drive code: reviews of a re-ordered ASIN could land on the older order's row; rows set
+  by hand got score/stars/date overwritten; ETV link used a rich-text link on a number cell (now `=HYPERLINK`); non-US
+  pages produced wrong amounts/dates (sync is amazon.com only); same-day orders were added newest first; styling converted
+  typed `m²` / full-width text; Submit within 0.7 s lost the draft's "submitted" mark; thumbnail requests are limited to
+  Google's lh3-lh6 image hosts.
+- On-screen messages could be silently dropped when sent before the notification container existed; the notifier now waits for it.
+
+### Renamed
+- Renamed again: **VineSmyths** (VS). The sync file is `vinesmyths-sync.json`; identifiers introduced since the first rename (`vt-` CSS classes, `vt.*` storage keys) became `vs-` / `vs.*`. The extension ID (manifest `key`) is unchanged.
+- The extension is now **VineSmyths**, a separate extension. User-visible names, the sync file (`vinesmyths-sync.json`) and the
+  docs were renamed; internal identifiers (CSS classes, storage keys, file names) are unchanged so saved data keeps working.
+- Attributions that no licence requires were removed (About tab, source comments); the required notices are in `NOTICE`.
+- Every source file carries the project copyright header (`npm run stamp`, checked by `npm run check`).
+
+### Removed
+- All communication with api.vinehelper.ovh (HTTPS + WebSocket), api.llamastories.com (Brenda) and PayPal.
+- UUID / device fingerprint / hashed customer id / request signing, news, reviews tools, Item Explorer,
+  notification monitor, checkout recorder, variants, price + carousel, bookmark / first-seen, Patreon gating,
+  sounds, confetti, chart.js, socket.io, splide, Premium + Debug settings tabs.
+- `alarms` and `notifications` permissions; the CSP now allows only `self` + discord.com for connections.
+
+### Added
+- Discord webhooks to your own server (keyword / AFA / RFY / zero ETV / manual), each switchable.
+- Folder sync (settings + hidden/pinned lists) through a Google Drive for desktop folder.
+- Blur keywords on the normal Vine page (previously only worked in the monitor).
+- `tests/` (unit + end-to-end), `tools/` (reference + no-external guards), README.
+
+### Changed
+- Every feature that remains works without a Patreon tier (`isPremiumUser()` is always true).
+- Service worker rewritten: context menu, Discord POST, folder sync.
+
+---
+
+## Earlier notes (analysis phase)
+
+Notes from the analysis phase, kept for history.
 
 ## [Initial State] - 2026-01-24
 

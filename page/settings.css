@@ -1,3 +1,7 @@
+/* Last compiled at 2026-11-09_1130 */
+/* Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. */
+/* https://toolsmyths.com */
+/* SPDX-License-Identifier: LicenseRef-Proprietary */
 /* #################################### */
 /* HEADER */
 /* #################################### */
@@ -431,4 +435,54 @@ input.dualslider[type="range"] {
 		height: 120px !important;
 		font-size: 10px !important;
 	}
+}
+
+/* Header: title on the left, (popup only) settings button on the right; no logo */
+.header-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin: 0 0 10px 0;
+	gap: 10px;
+}
+.header-row h1.header-title {
+	margin: 0;
+	font-size: 1.6em;
+	line-height: 1.2;
+}
+.header-row div.buttons-header {
+	width: auto !important;
+	margin: 0;
+}
+
+/* SmartSkip settings: label | value rows that always fit the box (no horizontal overflow) */
+.ss-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) max-content;
+	gap: 6px 12px;
+	align-items: center;
+	margin-top: 10px;
+}
+.ss-grid > span {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.ss-grid .ss-sub {
+	grid-column: 1 / -1;
+	font-weight: bold;
+	margin-top: 8px;
+	border-bottom: 1px solid #ccc;
+}
+.ss-grid input[type="text"] {
+	box-sizing: border-box;
+	width: 5.5em;
+}
+.ss-grid select {
+	width: 11em;
+	max-width: 100%;
+}
+.ss-grid .ss-pair {
+	display: flex;
+	gap: 6px;
+	justify-content: flex-end;
 }

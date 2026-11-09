@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-05_1508
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /*global chrome*/
 
 import { Logger } from "/scripts/core/utils/Logger.js";
@@ -9,11 +13,7 @@ const Settings = new SettingsMgr();
 import { ScreenNotifier, ScreenNotification } from "/scripts/ui/components/ScreenNotifier.js";
 var Notifications = new ScreenNotifier();
 
-import { Internationalization } from "/scripts/core/services/Internationalization.js";
-const i13n = new Internationalization();
-
-import { Environment } from "/scripts/core/services/Environment.js";
-var env = new Environment();
+import { recordListChange, requestSync } from "/scripts/core/services/SyncState.js";
 
 import { CryptoKeys } from "/scripts/core/utils/CryptoKeys.js";
 var cryptoKeys = new CryptoKeys();
@@ -23,6 +23,8 @@ import { isSafari } from "/scripts/core/utils/BrowserDetection.js";
 class HiddenListMgr {
 	static #instance = null;
 	listLoaded;
+	#removedSinceSave = new Set(); //Explicit un-hides not yet recorded for the folder sync
+	#addedSinceSave = new Set();
 
 	constructor() {
 		if (HiddenListMgr.#instance) {
@@ -33,7 +35,6 @@ class HiddenListMgr {
 		HiddenListMgr.#instance = this;
 
 		this.mapHidden = new Map();
-		this.arrChanges = [];
 		this.listLoaded = false;
 		this.broadcast = new BroadcastChannel("VineHelper");
 
@@ -94,8 +95,12 @@ class HiddenListMgr {
 
 		this.mapHidden.delete(asin);
 
-		//The server may not be in sync with the local list, and will deal with duplicate.
-		this.updateArrChange({ asin: asin, hidden: false });
+		//`broadcast` is true for the user's own actions and false when replaying another tab's action
+		//(that tab records it itself). Bulk paths pass save=false and call saveList() once at the end.
+		if (broadcast) {
+			this.#removedSinceSave.add(asin);
+			this.#addedSinceSave.delete(asin);
+		}
 
 		if (save) this.saveList();
 
@@ -110,8 +115,10 @@ class HiddenListMgr {
 
 		if (!(await this.isHidden(asin))) this.mapHidden.set(asin, Date.now());
 
-		//The server may not be in sync with the local list, and will deal with duplicate.
-		this.updateArrChange({ asin: asin, hidden: true });
+		if (broadcast) {
+			this.#addedSinceSave.add(asin);
+			this.#removedSinceSave.delete(asin);
+		}
 
 		if (save) this.saveList();
 
@@ -121,8 +128,15 @@ class HiddenListMgr {
 		}
 	}
 
-	async saveList(remoteSave = true) {
+	async saveList() {
 		let storableVal = Object.fromEntries(this.mapHidden);
+
+		//Tell the folder sync about explicit hides / un-hides (but not about garbage collection)
+		const removed = [...this.#removedSinceSave];
+		const added = [...this.#addedSinceSave];
+		this.#removedSinceSave.clear();
+		this.#addedSinceSave.clear();
+		await recordListChange("hidden", removed, added);
 
 		if (isSafari()) {
 			//Send instructions to the service worker to save the list to local storage
@@ -133,11 +147,11 @@ class HiddenListMgr {
 				if (chrome.runtime.lastError) {
 					const error = chrome.runtime.lastError;
 					if (error.message === "QUOTA_BYTES quota exceeded") {
-						alert(`Vine Helper local storage quota exceeded! Hidden items will be trimmed to make space.`);
+						alert(`VineSmyths local storage quota exceeded! Hidden items will be trimmed to make space.`);
 						this.garbageCollection();
 					} else {
 						alert(
-							`Vine Helper encountered an error while trying to save your hidden items. Please report the following details: ${e.name}, ${e.message}`
+							`VineSmyths encountered an error while trying to save your hidden items. Please report the following details: ${e.name}, ${e.message}`
 						);
 						return;
 					}
@@ -145,10 +159,7 @@ class HiddenListMgr {
 			});
 		}
 
-		if (remoteSave && Settings.get("hiddenTab.remote")) {
-			await this.notifyServerOfHiddenItem();
-			this.arrChanges = [];
-		}
+		requestSync(); //Folder sync (no-op unless a folder was chosen in the settings)
 	}
 
 	async isHidden(asin) {
@@ -160,48 +171,6 @@ class HiddenListMgr {
 			throw new Error("Asin not defined");
 		}
 		return this.mapHidden.has(asin);
-	}
-
-	isChange(asin) {
-		for (const id in this.arrChanges) {
-			if (this.arrChanges[id].asin == asin) {
-				return id;
-			}
-		}
-		return false;
-	}
-
-	updateArrChange(obj) {
-		let itemId = this.isChange(obj.asin);
-		if (itemId == false) this.arrChanges.push(obj);
-		else this.arrChanges[itemId] = obj;
-	}
-
-	/**
-	 * Send new items on the server to be added or removed from the hidden list.
-	 */
-	async notifyServerOfHiddenItem() {
-		logger.add("Saving hidden item(s) remotely...");
-
-		const content = {
-			api_version: 5,
-			app_version: env.data.appVersion,
-			action: "save_hidden_list",
-			country: i13n.getCountryCode(),
-			uuid: Settings.get("general.uuid", false),
-			cid: await env.getCID(),
-			items: this.arrChanges,
-		};
-		const s = await cryptoKeys.signData(content);
-		content.s = s;
-		content.pk = await cryptoKeys.getExportedPublicKey();
-
-		//Post an AJAX request to the 3rd party server, passing along the JSON array of all the products on the page
-		fetch(env.getAPIUrl(), {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(content),
-		});
 	}
 
 	async garbageCollection() {
@@ -285,7 +254,7 @@ class HiddenListMgr {
 					itemDeleted++;
 				}
 
-				await this.saveList(false);
+				await this.saveList();
 				bytes = await getStorageSizeFull();
 			}
 

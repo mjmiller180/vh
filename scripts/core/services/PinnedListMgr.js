@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-05_1508
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /*global chrome*/
 
 import { Logger } from "/scripts/core/utils/Logger.js";
@@ -6,11 +10,7 @@ var logger = new Logger();
 import { SettingsMgr } from "/scripts/core/services/SettingsMgrCompat.js";
 const Settings = new SettingsMgr();
 
-import { Internationalization } from "/scripts/core/services/Internationalization.js";
-const i13n = new Internationalization();
-
-import { Environment } from "/scripts/core/services/Environment.js";
-const env = new Environment();
+import { recordListChange, requestSync } from "/scripts/core/services/SyncState.js";
 
 import { CryptoKeys } from "/scripts/core/utils/CryptoKeys.js";
 const cryptoKeys = new CryptoKeys();
@@ -23,6 +23,8 @@ class PinnedListMgr {
 	static #instance = null;
 
 	listLoaded;
+	#removedSinceSave = new Set(); //Explicit un-pins not yet recorded for the folder sync
+	#addedSinceSave = new Set();
 
 	constructor() {
 		if (PinnedListMgr.#instance) {
@@ -34,7 +36,6 @@ class PinnedListMgr {
 
 		this.mapPin = new Map();
 		this.listLoaded = false;
-		this.arrChanges = [];
 		this.broadcast = new BroadcastChannel("VineHelper");
 		this.broadcastObservers = [];
 
@@ -131,8 +132,10 @@ class PinnedListMgr {
 
 		this.mapPin.delete(asin);
 
-		//The server may not be in sync with the local list, and will deal with duplicate.
-		this.updateArrChange({ asin: asin, pinned: false });
+		if (broadcast) {
+			this.#removedSinceSave.add(asin);
+			this.#addedSinceSave.delete(asin);
+		}
 
 		if (save) this.saveList();
 
@@ -167,17 +170,10 @@ class PinnedListMgr {
 			is_pre_release: is_pre_release,
 		});
 
-		//The server may not be in sync with the local list, and will deal with duplicate.
-		this.updateArrChange({
-			asin: asin,
-			pinned: true,
-			queue: queue,
-			title: title,
-			thumbnail: img_url,
-			is_parent_asin: is_parent_asin,
-			enrollment_guid: enrollment_guid,
-			is_pre_release: is_pre_release,
-		});
+		if (broadcast) {
+			this.#addedSinceSave.add(asin);
+			this.#removedSinceSave.delete(asin);
+		}
 
 		if (save) this.saveList();
 
@@ -198,8 +194,14 @@ class PinnedListMgr {
 		}
 	}
 
-	async saveList(remoteSave = true) {
+	async saveList() {
 		let storableVal = Object.fromEntries(this.mapPin);
+
+		const removed = [...this.#removedSinceSave];
+		const added = [...this.#addedSinceSave];
+		this.#removedSinceSave.clear();
+		this.#addedSinceSave.clear();
+		await recordListChange("pinned", removed, added);
 
 		if (isSafari()) {
 			//Send instructions to the service worker to save the list to local storage
@@ -210,11 +212,11 @@ class PinnedListMgr {
 				if (chrome.runtime.lastError) {
 					const error = chrome.runtime.lastError;
 					if (error.message === "QUOTA_BYTES quota exceeded") {
-						alert(`Vine Helper local storage quota exceeded! Hidden items will be trimmed to make space.`);
+						alert(`VineSmyths local storage quota exceeded! Hidden items will be trimmed to make space.`);
 						HiddenList.garbageCollection();
 					} else {
 						alert(
-							`Vine Helper encountered an error while trying to save your pinned items. Please report the following details: ${e.name}, ${e.message}`
+							`VineSmyths encountered an error while trying to save your pinned items. Please report the following details: ${e.name}, ${e.message}`
 						);
 						return;
 					}
@@ -222,56 +224,13 @@ class PinnedListMgr {
 			});
 		}
 
-		if (remoteSave && Settings.isPremiumUser(1) && Settings.get("pinnedTab.remote") && this.arrChanges.length > 0) {
-			await this.notifyServerOfChangedItem();
-			this.arrChanges = [];
-		}
-	}
-
-	/**
-	 * Send new items on the server to be added or removed from the changed list.
-	 */
-	async notifyServerOfChangedItem() {
-		const content = {
-			api_version: 5,
-			app_version: env.data.appVersion,
-			action: "save_pinned_list",
-			country: i13n.getCountryCode(),
-			uuid: Settings.get("general.uuid", false),
-			cid: await env.getCID(),
-			items: this.arrChanges,
-		};
-		const s = await cryptoKeys.signData(content);
-		content.s = s;
-		content.pk = await cryptoKeys.getExportedPublicKey();
-
-		//Post an AJAX request to the 3rd party server, passing along the JSON array of all the products on the page
-		fetch(env.getAPIUrl(), {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(content),
-		});
+		requestSync(); //Folder sync (no-op unless a folder was chosen in the settings)
 	}
 
 	isPinned(asin) {
 		if (asin == undefined) throw new Exception("Asin not defined");
 
 		return this.mapPin.has(asin);
-	}
-
-	isChange(asin) {
-		for (const id in this.arrChanges) {
-			if (this.arrChanges[id].asin == asin) {
-				return id;
-			}
-		}
-		return false;
-	}
-
-	updateArrChange(obj) {
-		let itemId = this.isChange(obj.asin);
-		if (itemId == false) this.arrChanges.push(obj);
-		else this.arrChanges[itemId] = obj;
 	}
 
 	async getList() {

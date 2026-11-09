@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /**
  * Enhanced Settings Factory with Keyword Compilation Service
  * This class is used exclusively by the service worker.

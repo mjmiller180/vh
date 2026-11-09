@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-04_2317
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 (function () {
 	//In the notification monitor, block the MutationObservers from holding references to the DOM nodes.
 	if (window.location.href.match(/^[^#]+#monitor$/) != null) {

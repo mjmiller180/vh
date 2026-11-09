@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-09_1130
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /**
  * Settings Manager with Dependency Injection
  *
@@ -10,6 +14,8 @@
 
 // Use relative import for better testability
 import { Logger } from "../utils/Logger.js";
+import { requestSync } from "./SyncState.js";
+import { isLocalOnlySetting } from "../utils/SyncMerge.js";
 
 export class SettingsMgrDI {
 	#storageAdapter;
@@ -41,9 +47,10 @@ export class SettingsMgrDI {
 		}
 	}
 
-	// Return true if the user has a valid premium membership on Patreon
-	isPremiumUser(tier = 2) {
-		return parseInt(this.get("general.patreon.tier")) >= tier;
+	// Historical: features used to be gated behind a paid tier checked against a remote server.
+	// Every feature that remains in this build works locally, so nothing is gated any more.
+	isPremiumUser() {
+		return true;
 	}
 
 	async waitForLoad() {
@@ -76,9 +83,20 @@ export class SettingsMgrDI {
 
 	async set(settingPath, value, broadcastChanges = true) {
 		// Don't go through the hassle of updating the value if it did not change
-		if (this.get(settingPath, false) == value) {
+		const stored = this.get(settingPath, false);
+		if (stored == value) {
 			return false;
 		}
+
+		// Only a real user edit moves settingsModifiedAt (the folder sync uses it to decide whose settings
+		// are newer). Device-local values and just writing a default value down do not count.
+		const defaultValue = this.#getFromObject(this.#defaultSettings, settingPath);
+		// ("absent" already means false/empty, so writing false/null/"" to a key that does not exist is the same thing)
+		const isDefaultMaterialisation =
+			stored === undefined &&
+			(JSON.stringify(defaultValue) === JSON.stringify(value) ||
+				(defaultValue === undefined && (value === false || value === null || value === "")));
+		const isUserEdit = !isLocalOnlySetting(settingPath) && !isDefaultMaterialisation;
 
 		const pathArray = settingPath.split(".");
 		const lastKey = pathArray.pop();
@@ -96,15 +114,25 @@ export class SettingsMgrDI {
 		current[lastKey] = value;
 
 		//console.log(`[${performance.now().toFixed(3)}] SettingsMgr: Setting ${settingPath} to ${value}`);
-		await this.#save(broadcastChanges);
+		await this.#save(broadcastChanges, isUserEdit ? Date.now() : undefined);
 
 		return true;
 	}
 
-	async #save(broadcastChanges = true) {
+	/**
+	 * @param {boolean} broadcastChanges
+	 * @param {number|undefined} stamp  value for settingsModifiedAt, written in the SAME storage write as the
+	 *   settings (so a sync can never see new settings with an old timestamp). undefined = leave it alone.
+	 */
+	async #save(broadcastChanges = true, stamp = undefined) {
 		try {
-			await this.#storageAdapter.set("settings", this.#settings);
-			//console.log(`[${performance.now().toFixed(3)}] SettingsMgr: Settings saved to storage`);
+			const items = { settings: this.#settings };
+			if (stamp !== undefined) items.settingsModifiedAt = stamp;
+			if (typeof this.#storageAdapter.setMultiple === "function") {
+				await this.#storageAdapter.setMultiple(items);
+			} else {
+				for (const [k, v] of Object.entries(items)) await this.#storageAdapter.set(k, v);
+			}
 		} catch (e) {
 			// Enhanced error handling for Safari and other browsers
 			const isQuotaError =
@@ -119,7 +147,7 @@ export class SettingsMgrDI {
 
 				try {
 					await this.#storageAdapter.set("hiddenItems", []);
-					await this.#save();
+					await this.#save(true, stamp);
 				} catch (retryError) {
 					this.#logger.add(`SettingsMgr: Storage quota cleanup failed: ${retryError.message}`);
 					return false;
@@ -131,6 +159,8 @@ export class SettingsMgrDI {
 				return false;
 			}
 		}
+
+		if (stamp !== undefined) requestSync(); //Folder sync (no-op unless a folder was chosen in the settings)
 
 		//Send a message to the service worker to notify all tabs to refresh the settings
 
@@ -173,7 +203,7 @@ export class SettingsMgrDI {
 				console.log("SettingsMgr: Failed to clear storage:", error);
 			}
 			this.#settings = { ...this.#defaultSettings };
-			await this.#save();
+			await this.#save(true, 0); //Pristine: any other device's real settings are newer than this
 		} else {
 			this.#settings = { ...settings };
 		}
@@ -197,17 +227,39 @@ export class SettingsMgrDI {
 			}
 		}
 
-		if (hasCompiledKeywords) {
-			this.#logger.add("SettingsMgr: Removed legacy compiled keywords from storage");
-			console.log("SettingsMgr: Removed legacy compiled keywords from storage");
-			await this.#save();
+		// Drop what only existed to talk to remote servers. Keeping the old
+		// uuid / fingerprint / customer-id hash around is pointless (and would be copied to other devices).
+		const legacyPaths = [
+			"general.uuid",
+			"general.uuidError",
+			"general.fingerprint",
+			"general.cid",
+			"general.patreon",
+			"general.deviceName",
+			"discord.guid",
+		];
+		let purgedLegacy = false;
+		for (const path of legacyPaths) {
+			const keys = path.split(".");
+			const last = keys.pop();
+			let cur = this.#settings;
+			for (const k of keys) cur = cur?.[k];
+			if (cur && Object.prototype.hasOwnProperty.call(cur, last)) {
+				delete cur[last];
+				purgedLegacy = true;
+			}
+		}
+
+		if (hasCompiledKeywords || purgedLegacy) {
+			this.#logger.add("SettingsMgr: Removed legacy keys from storage");
+			await this.#save(true, undefined); //Housekeeping: not a user edit, timestamp untouched
 		}
 	}
 
 	#getDefaultSettings() {
 		this.#defaultSettings = {
 			unavailableTab: {
-				active: true,
+				active: false, //Needed a remote server (order statistics): nothing to show any more
 			},
 
 			general: {
@@ -227,7 +279,7 @@ export class SettingsMgrDI {
 				discoveryFirst: true,
 				displayETV: true,
 				displayPrice: false,
-				displayFirstSeen: true,
+				displayFirstSeen: false,
 				displayFullTitleTooltip: false,
 				displayModalETV: false,
 				displayVariantIcon: false,
@@ -413,9 +465,57 @@ export class SettingsMgrDI {
 				hideAll: "h",
 				nextPage: "n",
 				pauseFeed: "f",
+				smartSkipStart: "k",
+				smartSkipPause: "Space",
+				smartSkipStop: "Escape",
+				smartSkipPatrol: "t",
+				smartSkipJump1: "1",
+				smartSkipJump2: "2",
+				smartSkipJump3: "3",
 				previousPage: "p",
 				RFYPage: "r",
 				showAll: "s",
+			},
+
+			// Google Sheet that receives the orders (see scripts/background/google/)
+			google: {
+				sheet: {
+					enabled: false,
+					id: "", //spreadsheet URL or ID
+					tab: "DASHBOARD",
+				},
+				// Pictures for reviews, read from the owner's Google Drive (read only)
+				drive: {
+					enabled: false,
+					folder: "", //folder URL or ID to start in; empty = newest pictures anywhere in Drive
+				},
+			},
+
+			// Saved Vine searches (addresses like /vine/vine-items?search=dog), shown in the header
+			savedSearches: {
+				items: [],
+			},
+
+			// Tools on Amazon's review form (see scripts/review/)
+			reviewTools: {
+				enabled: true,
+			},
+
+			// SmartSkip: automatic paging that stops at the first unpinned item (see SmartSkip.js)
+			smartSkip: {
+				enabled: true,
+				startQueue: "encore",
+				maxPages: 300,
+				// patrol: loop over pages startPage..lastPage again and again (1-25 by default)
+				patrol: { startPage: 1, lastPage: 25 },
+				// the jump keys start a normal session at these pages
+				jumpPage1: 100,
+				jumpPage2: 200,
+				jumpPage3: 300,
+				delay: {
+					active: { min: 2500, max: 4000 },
+					background: { min: 3500, max: 3500 },
+				},
 			},
 
 			hiddenTab: {
@@ -428,15 +528,15 @@ export class SettingsMgrDI {
 				remote: false,
 			},
 
+			// Discord webhooks to the user's own server. Placeholders usable in the messages:
+			// $QUEUE_NAME $TITLE $IMG_URL $ASIN $VH_URL $VINE_SEARCH_URL $AMZ_URL $KEYWORD $ETV
 			discord: {
-				active: false,
-				guid: null,
-
+				active: false, //Master switch
 				webhook: {
+					default: { url: "" }, //Used by every trigger that has no URL of its own
 					KWsMatch: {
 						active: false,
 						url: "",
-						method: "POST",
 						content: `{
 "content": "New item in $QUEUE_NAME!",
 "embeds": [{
@@ -451,7 +551,6 @@ export class SettingsMgrDI {
 					AFA: {
 						active: false,
 						url: "",
-						method: "POST",
 						content: `{
 "content": "New item in $QUEUE_NAME!",
 "embeds": [{
@@ -466,7 +565,6 @@ export class SettingsMgrDI {
 					RFY: {
 						active: false,
 						url: "",
-						method: "POST",
 						content: `{
 "content": "New item in $QUEUE_NAME!",
 "embeds": [{
@@ -481,9 +579,22 @@ export class SettingsMgrDI {
 					zeroETV: {
 						active: false,
 						url: "",
-						method: "POST",
 						content: `{
 "content": "0 ETV item in $QUEUE_NAME!",
+"embeds": [{
+	"title": "$TITLE",
+	"url": "$VH_URL",
+	"thumbnail":  {
+		"url": "$IMG_URL"
+	}
+}]
+}`,
+					},
+					manual: {
+						active: false,
+						url: "",
+						content: `{
+"content": "$QUEUE_NAME item",
 "embeds": [{
 	"title": "$TITLE",
 	"url": "$VH_URL",

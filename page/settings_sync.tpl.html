@@ -1,0 +1,44 @@
+<!-- Last compiled at 2026-11-05_1508 -->
+<!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
+<!-- https://toolsmyths.com -->
+<!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
+<div>
+	<fieldset>
+		<legend>Sync with a folder (Google Drive)</legend>
+		<p>
+			Keeps your <strong>settings</strong>, <strong>hidden items</strong> and <strong>pinned items</strong> in
+			one file, <code>vinesmyths-sync.json</code>, inside a folder you choose. Pick a folder inside your
+			<em>Google Drive for desktop</em> (e.g. <code>G:\My Drive\Amz Vine\Sync</code>) and every computer pointing
+			at that folder stays in step. The extension only reads and writes that one file; Google Drive's own app
+			does the uploading. No other server is involved.
+		</p>
+		<p>
+			Merging: hide/pin/un-hide/un-pin on any computer is combined (the most recent action on an item wins).
+			For settings, the computer that changed them last wins (keep your computers' clocks roughly correct).
+			A brand-new computer takes the file's settings. Device-specific values (country, usage counter,
+			encryption keys) are never shared.
+		</p>
+		<p>
+			<strong>The file includes your Discord webhook URLs</strong>, so keep the folder private.
+		</p>
+
+		<div class="setting-container">
+			<strong>Folder:</strong> <span id="syncFolderName">not set</span><br />
+			<strong>Access:</strong> <span id="syncPermission">-</span><br />
+			<strong>Last sync:</strong> <span id="syncLastSync">never</span><br />
+			<span id="syncError" style="color: #c33"></span>
+		</div>
+
+		<button id="syncChooseFolder">Choose folder...</button>
+		<button id="syncNowButton" disabled>Sync now</button>
+		<button id="syncForgetFolder" disabled>Stop syncing</button>
+		<div id="syncResult" style="margin-top: 8px"></div>
+
+		<p>
+			<em>
+				Chrome may ask you to allow access again after a browser restart. If the Access line says "needs
+				permission", press <strong>Sync now</strong> once (this page must be open for Chrome to show its prompt).
+			</em>
+		</p>
+	</fieldset>
+</div>

@@ -1,5 +1,9 @@
+// Last compiled at 2026-11-05_1508
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 /**
- * Simple Dependency Injection Container for VineHelper
+ * Simple Dependency Injection Container for VineSmyths
  *
  * This container provides a lightweight DI solution that:
  * - Supports singleton and transient lifetimes

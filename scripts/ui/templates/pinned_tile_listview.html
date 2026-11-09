@@ -1,3 +1,7 @@
+<!-- Last compiled at 2026-11-04_2317 -->
+<!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
+<!-- https://toolsmyths.com -->
+<!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
 <div id="vh-pin-{{$id}}" class="vvp-item-tile pinned vh-listview">
 	<div class="vh-img-container" style="width: 100px">
 		<img src="{{$img_url}}" />
@@ -17,16 +21,6 @@
 				>
 					<div class="vh-toolbar-icon vh-icon-search"></div>
 				</a>
-				{{if PINNEDTAB_REMOTE}}
-				<a
-					href="#"
-					class="vh-floating-icon pinned-reload-link"
-					title="Refresh all items' info from the database"
-					onclick="return false;"
-				>
-					<div class="vh-toolbar-icon vh-icon-reload"></div>
-				</a>
-				{{endif}}
 			</div>
 		</div>
 		<a href="https://amazon.{{$domain}}/dp/{{$asin}}" class="a-link-normal" target="_blank">{{$description}}</a>

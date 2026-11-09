@@ -1,0 +1,73 @@
+<!-- Last compiled at 2026-11-05_1543 -->
+<!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
+<!-- https://toolsmyths.com -->
+<!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
+<div>
+	<fieldset>
+		<legend>Google Sheet for orders</legend>
+		<p>
+			VineSmyths can add your orders to a Google Sheet (the DASHBOARD tab of your "Reviews" workbook): date, order
+			number, picture, status ORDERED, title, ETV. Rows are added in the first empty row with the same formatting and
+			dropdowns as the row above, only the columns it knows are written, and an order number already on the sheet is
+			never added twice. <strong>Try it on a copy of your sheet first.</strong>
+		</p>
+
+		<div class="setting-container" style="flex-direction: column; align-items: stretch">
+			<label for="google.sheet.id">Spreadsheet (paste its URL or ID):</label>
+			<input type="text" name="google.sheet.id" style="width: 100%" placeholder="paste the sheet's web address or its ID" />
+		</div>
+		<div class="setting-container">
+			<label for="google.sheet.tab">
+				Tab name:
+				<input type="text" name="google.sheet.tab" size="20" />
+			</label>
+		</div>
+		<div class="setting-container">
+			<label for="google.sheet.enabled">
+				<input type="checkbox" name="google.sheet.enabled" value="1" />
+				Add new orders to the sheet automatically (turn on only after the preview looks right)
+			</label>
+		</div>
+
+		<button id="googleSignIn">1. Sign in to Google</button>
+		<button id="googleTest">2. Test connection (reads only)</button>
+		<button id="googlePreview">3. Preview a sample order (writes nothing)</button>
+		<div id="googleStatus" style="margin-top: 8px"></div>
+		<pre id="googleResult" style="max-height: 320px; overflow: auto; white-space: pre-wrap"></pre>
+	</fieldset>
+
+	<fieldset>
+		<legend>Pictures from Google Drive (for reviews)</legend>
+		<p>
+			Adds an "Add from Google Drive…" button to Amazon's review form. It shows your newest pictures (or the folder
+			below) with small previews; the ones you tick are attached to the review. VineSmyths only <em>reads</em> Drive,
+			and only when you open that window. It needs the extra "view your Drive files" permission: after switching
+			this on, press <strong>Sign in to Google</strong> above again so Google can ask you.
+		</p>
+		<div class="setting-container">
+			<label for="google.drive.enabled">
+				<input type="checkbox" name="google.drive.enabled" value="1" />
+				Allow VineSmyths to read pictures from my Google Drive
+			</label>
+		</div>
+		<div class="setting-container" style="flex-direction: column; align-items: stretch">
+			<label for="google.drive.folder">Start in this folder (optional, paste its web address or ID):</label>
+			<input type="text" name="google.drive.folder" style="width: 100%" placeholder="empty = newest pictures anywhere in Drive" />
+		</div>
+	</fieldset>
+
+	<fieldset>
+		<legend>Review form tools</legend>
+		<p>
+			On Amazon's "write a review" page: a formatting toolbar, saved phrases and templates, an automatic draft of your
+			title and text, and pasting or dropping pictures into Amazon's upload box. When you press Submit, the star
+			rating, today's date and the status also go to your sheet (if the sheet link above is switched on).
+		</p>
+		<div class="setting-container">
+			<label for="reviewTools.enabled">
+				<input type="checkbox" name="reviewTools.enabled" value="1" />
+				Show the tools on review pages (reload the review page after changing this)
+			</label>
+		</div>
+	</fieldset>
+</div>

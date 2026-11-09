@@ -1,3 +1,7 @@
+// Last compiled at 2026-11-05_0035
+// Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
+// https://toolsmyths.com
+// SPDX-License-Identifier: LicenseRef-Proprietary
 import { Template } from "/scripts/core/utils/Template.js";
 var Tpl = new Template();
 
@@ -76,23 +80,25 @@ class ScreenNotifier {
 
 		this.#noteCounter = 0;
 		this.#lastSoundPlayedAt = Date.now();
-		this.#init();
+		this.#ready = this.#init();
 	}
 
+	#ready = null;
+
 	/**
-	 * This method can be called multiple times to ensure a container is created as early as possible.
+	 * Creates the container once the page is parsed. pushNotification() waits for this, so a message sent
+	 * before the container exists is delayed instead of being silently dropped.
 	 */
 	async #init() {
-		//If the container does not exist, create it and append it to the body.
-		if (document.readyState === "loading") {
-			document.addEventListener("DOMContentLoaded", async () => {
-				if (document.getElementById("vh-notifications-container") === null) {
-					// Load the container
-					this.#injectContainer();
-				}
-			});
-		} else {
-			this.#injectContainer();
+		try {
+			if (document.readyState === "loading") {
+				await new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once: true }));
+			}
+			if (document.getElementById("vh-notifications-container") === null) {
+				await this.#injectContainer();
+			}
+		} catch (e) {
+			console.error("[ScreenNotifier] could not create the container:", e);
 		}
 	}
 
@@ -109,6 +115,7 @@ class ScreenNotifier {
 		document.body.append(notificationContainer);
 	}
 	async pushNotification(note) {
+		await this.#ready; //(the container exists from here on)
 		note.id = this.#noteCounter++;
 
 		//Render the notification and insert it into the container
