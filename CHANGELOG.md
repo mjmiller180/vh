@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-09_1721 -->
+<!-- Last compiled at 2026-11-09_1758 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -8,7 +8,7 @@
 ## [VineSmyths 4.5] - 2026-11
 
 ### Added
-- **Auto-hide / Highlight panel in the Product Details dialog**: click words of the title (Ctrl+click = a phrase in the order clicked, "+ phrase" for more than one), or "Hide this brand", add "…but not if the title also contains", see in plain English and as an editable expression what the rule is, how many items on the page it would hide, which pinned items stay visible, then add it. Plurals are handled, rules of the same group are merged into one (at most 10 alternatives / 350 characters per rule), conflicts with highlight (or hide) rules must be settled by you (keep the other rule, or let the new rule win by editing the other one), and every addition has an Undo. Same panel for the highlight list.
+- **Auto-hide / Highlight panel in the Product Details dialog** (button "Hide / Highlight" at the top of the dialog; "Request product" is switched off while the panel is open): click words of the title (Ctrl+click = a phrase in the order clicked, "+ phrase" for more than one), or "Hide this brand", add "…but not if the title also contains", see in plain English and as an editable expression what the rule is, how many items on the page it would hide, which pinned items stay visible, then add it. Plurals are handled, rules of the same group are merged into one (at most 10 alternatives / 350 characters per rule), conflicts with highlight (or hide) rules must be settled by you (keep the other rule, or let the new rule win by editing the other one), and every addition has an Undo. Same panel for the highlight list.
 - Keywords tab: a **Group** column (sorted by group); groups are kept on Save, Import JSON and Export JSON and are what the panel uses to put new words into the right rule.
 - Pinning an item overrides the auto-hide keywords for that item only.
 - SmartSkip starts from the current page when you press Hide All + Next Page (as the original script did); setting in the Keyboard tab.
