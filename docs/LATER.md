@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-09_1434 -->
+<!-- Last compiled at 2026-11-09_1439 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -6,6 +6,11 @@
 # Possibly later
 
 Ideas that were discussed and deliberately not built yet. Nothing here is promised; they are kept so they are not lost.
+
+## Not wanted
+
+* **Other Amazon marketplaces.** The order / review sync stays amazon.com only (other sites use D/M/YYYY dates and
+  "16,99 €" amounts). Not needed.
 
 ## On hold (owner's decision)
 
@@ -22,7 +27,6 @@ Ideas that were discussed and deliberately not built yet. Nothing here is promis
 * **Review date / star rating for reviews not submitted through the extension.** The Reviews list pages show neither.
 * **Phrases and templates across computers.** They are kept in one browser only; they could ride along with the folder sync.
 * **ETV changes after the row was added.** Existing rows are not updated.
-* **Other Amazon marketplaces.** The order / review sync reads amazon.com only (D/M/YYYY dates, "16,99 €" amounts).
 * **Review submitted from the form for a re-ordered ASIN or a row whose title has no product link.** Nothing is written
   (the form only knows the ASIN); the next Reviews-page sync fills the row.
 * **Refused submissions.** If Amazon refuses a review on submit, the stars and date are still recorded; detecting success
