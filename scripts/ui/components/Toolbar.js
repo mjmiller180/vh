@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-09_1710
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -458,7 +458,8 @@ class Toolbar {
 		if (checkHideList) {
 			//Check if the item should be hidden
 			const hideKeywords = Settings.get("general.hideKeywords");
-			if (Settings.get("hiddenTab.active") && hideKeywords?.length > 0) {
+			// Pinning an item overrides the hide keywords, for that item only.
+			if (Settings.get("hiddenTab.active") && hideKeywords?.length > 0 && !this.#tile.isPinned()) {
 				// Use pre-compiled keywords for matching
 				match = findMatch(this.#tile.getTitle(), this.#compiledHideKeywords, etv1, etv2);
 				if (match) {

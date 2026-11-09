@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1130
+// Last compiled at 2026-11-09_1647
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -9,6 +9,7 @@
  *   start key   begin a session (opens page 1 of the configured queue)
  *   patrol key  begin a PATROL: loop over pages start..last again and again, stopping when something new shows up
  *   jump keys   begin a session at a chosen page (default 100 / 200 / 300)
+ *   Hide All + Next Page (the extension's own key) also starts SmartSkip from the page you are on (setting, default on)
  *   Space       pause / resume (resume re-checks the current page)
  *   Escape      stop and show the session totals
  *   previous    "brake": stop scanning but keep the session
@@ -147,7 +148,17 @@ class SmartSkip {
 			if (keyMatches(e.key, this.#key("smartSkipStart"))) return this.#start({});
 			for (const n of [1, 2, 3]) if (keyMatches(e.key, this.#key(`smartSkipJump${n}`))) return this.#start({ page: this.#jumpPage(n) });
 		}
-		if (!state) return;
+		if (!state) {
+			// "Hide All + Next Page" on a queue page starts SmartSkip right here: the extension's own handler hides the page and
+			// turns to the next one, and the next page is the first one SmartSkip looks at.
+			if (!e.repeat && Settings.get("smartSkip.startOnHideAllNext") !== false && keyMatches(e.key, this.#key("hideAllNext")) && env.data.vineBrowsingListing && !env.data.vineSearch) {
+				this.#clearTimer();
+				this.#final = null;
+				this.#save(newSession());
+				this.#draw();
+			}
+			return;
+		}
 		if (keyMatches(e.key, this.#key("smartSkipPause"))) {
 			// Space must still activate a focused button / link (toolbar, Amazon modal), and holding it must not flap.
 			if (el && el.closest && el.closest("button, a, [role='button']")) return;

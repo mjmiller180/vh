@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1226
+// Last compiled at 2026-11-09_1721
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -59,6 +59,9 @@ import { SheetSync } from "/scripts/core/services/SheetSync.js";
 const sheetSync = new SheetSync();
 import { SavedSearches } from "/scripts/core/services/SavedSearches.js";
 const savedSearches = new SavedSearches();
+
+import { AutoHidePanel } from "/scripts/keywords/AutoHidePanel.js";
+const autoHidePanel = new AutoHidePanel();
 var pagination = new Pagination();
 import { PinnedListMgr } from "/scripts/core/services/PinnedListMgr.js";
 var PinnedList = new PinnedListMgr();
@@ -237,6 +240,7 @@ async function init() {
 	}
 	smartSkip.install(); //SmartSkip keyboard shortcuts
 	savedSearches.install(); //Saved searches in the header (after the sync above, so they are up to date)
+	autoHidePanel.install(); //Auto-hide / highlight keyword panel in the Product Details dialog
 	await initCreateTabs(); //Create the 4 grids/tabs
 	logger.add("BOOT: Waiting for environment to load");
 	await env.waitForLoad(); // Ensure environment is loaded before creating toolbars

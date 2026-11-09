@@ -1,4 +1,4 @@
-/* Last compiled at 2026-11-09_1130 */
+/* Last compiled at 2026-11-09_1647 */
 /* Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. */
 /* https://toolsmyths.com */
 /* SPDX-License-Identifier: LicenseRef-Proprietary */
@@ -466,6 +466,11 @@ input.dualslider[type="range"] {
 .ss-grid > span {
 	min-width: 0;
 	overflow-wrap: anywhere;
+}
+.ss-grid .ss-wide {
+	grid-column: 1 / -1;
+	margin: 0;
+	padding: 0;
 }
 .ss-grid .ss-sub {
 	grid-column: 1 / -1;

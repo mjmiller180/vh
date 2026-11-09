@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1130
+// Last compiled at 2026-11-09_1710
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -33,6 +33,7 @@ async function replaceStoredList(kind, storageKey, incoming) {
 }
 
 import { compileKeywordObjects } from "/scripts/core/utils/KeywordCompiler.js";
+import { sortKeywordList } from "/scripts/keywords/KeywordRules.js";
 
 import { isSafari } from "/scripts/core/utils/BrowserDetection.js";
 
@@ -304,6 +305,7 @@ async function initiateSettings(firstRun = false) {
 		manageInputText(`smartSkip.jumpPage${n}`);
 	}
 	manageCheckboxSetting("smartSkip.enabled");
+	manageCheckboxSetting("smartSkip.startOnHideAllNext");
 	manageSelectBox("smartSkip.startQueue");
 	manageInputText("smartSkip.maxPages");
 	manageInputText("smartSkip.delay.active.min");
@@ -627,6 +629,7 @@ function keywordsToJSON(key) {
 	let arrContent = [];
 	const lines = document.querySelectorAll(`#${keyE} table>tr`);
 	for (let i = 1; i < lines.length; i++) {
+		const group = (lines[i].querySelector(`td input[name="group"]`)?.value ?? "").trim();
 		const contains = lines[i].querySelector(`td input[name="contains"]`).value.trim();
 		const without = lines[i].querySelector(`td input[name="without"]`).value.trim();
 		const etv_min = lines[i].querySelector(`td input[name="etv_min"]`).value.trim();
@@ -655,6 +658,7 @@ function keywordsToJSON(key) {
 			without: without,
 			etv_min: etv_min,
 			etv_max: etv_max,
+			...(group ? { group } : {}),
 		});
 	}
 	return arrContent;
@@ -699,13 +703,9 @@ function manageKeywords(key) {
 		btnSave.addEventListener("click", btnSave._vineHelperClickHandler);
 	}
 
-	//Sort the list
+	//Sort the list: by group, then by rule (ungrouped last)
 	if (typeof val[0] == "object") {
-		val.sort((a, b) => {
-			if (a.contains.toLowerCase() < b.contains.toLowerCase()) return -1;
-			if (a.contains.toLowerCase() > b.contains.toLowerCase()) return 1;
-			return 0;
-		});
+		val.splice(0, val.length, ...sortKeywordList(val));
 	}
 
 	//Clear the list
@@ -726,7 +726,7 @@ function manageKeywords(key) {
 			manageKeywordsAddLine(key, val[i], "", "", "");
 		} else if (typeof val[i] == "object") {
 			//Load the new data format
-			manageKeywordsAddLine(key, val[i].contains, val[i].without, val[i].etv_min, val[i].etv_max);
+			manageKeywordsAddLine(key, val[i].contains, val[i].without, val[i].etv_min, val[i].etv_max, val[i].group);
 		}
 	}
 
@@ -763,7 +763,7 @@ function manageKeywords(key) {
 			try {
 				const json = JSON.parse(data);
 				for (let i = 0; i < json.length; i++) {
-					manageKeywordsAddLine(key, json[i].contains, json[i].without, json[i].etv_min, json[i].etv_max);
+					manageKeywordsAddLine(key, json[i].contains, json[i].without, json[i].etv_min, json[i].etv_max, json[i].group);
 				}
 				return true; //Hide the popup
 			} catch (err) {
@@ -864,11 +864,29 @@ function manageRadio(key) {
 		});
 	});
 }
-function manageKeywordsAddLine(key, contains, without, etv_min, etv_max) {
+function manageKeywordsAddLine(key, contains, without, etv_min, etv_max, group = "") {
 	const keyE = CSS.escape(key);
 	const table = document.querySelector(`#${keyE} table`);
 	const tr = document.createElement("tr");
 	table.append(tr);
+
+	const tdG = document.createElement("td");
+	tr.append(tdG);
+	const inputG = document.createElement("input");
+	inputG.type = "text";
+	inputG.style.width = "92%";
+	inputG.name = "group";
+	inputG.value = group ?? "";
+	inputG.placeholder = "(none)";
+	inputG.setAttribute("list", `${key}.groups`);
+	tdG.append(inputG);
+	let datalist = document.getElementById(`${key}.groups`);
+	if (!datalist) {
+		datalist = document.createElement("datalist");
+		datalist.id = `${key}.groups`;
+		document.body.append(datalist);
+	}
+	if (group && ![...datalist.options].some((o) => o.value === group)) datalist.append(new Option(group));
 
 	const td1 = document.createElement("td");
 	tr.append(td1);
