@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1647
+// Last compiled at 2026-11-14_1807
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -280,9 +280,15 @@ async function test(name, fn) {
 		await page.keyboard.press("k");
 		await waitFor(async () => (await state(page))?.skips === 1);
 		const box = page.locator("#vs-smartskip");
+		const vp = page.viewportSize();
+		const small = await box.boundingBox();
+		assert.ok(small.x < 20 && small.x + small.width < vp.width / 2, "small box sits in the bottom-left corner: " + JSON.stringify(small));
+		assert.ok(small.y + small.height > vp.height - 20, "small box sits at the bottom: " + JSON.stringify(small));
 		await box.click();
 		await waitFor(async () => /translate/.test((await box.getAttribute("style")) || ""));
-		assert.ok((await box.boundingBox()).width > 400, "enlarged");
+		const big = await box.boundingBox();
+		assert.ok(big.width > 400, "enlarged");
+		assert.ok(Math.abs(big.x + big.width / 2 - vp.width / 2) < 3, "enlarged box is centred: " + JSON.stringify(big));
 		await page.locator("#vs-smartskip .vs-close").click();
 		await waitFor(async () => !/translate/.test((await box.getAttribute("style")) || ""));
 		assert.ok((await box.boundingBox()).width < 300, "small again");

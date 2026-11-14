@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1647
+// Last compiled at 2026-11-14_1807
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -314,8 +314,8 @@ class SmartSkip {
 	}
 	#styleBox() {
 		const base =
-			"position:fixed;bottom:10px;right:10px;background:rgba(0,0,0,0.95);color:white;padding:12px;border-radius:8px;z-index:9999;font-family:monospace;font-size:12px;line-height:1.4;box-shadow:0 4px 15px rgba(0,0,0,0.7);border:1px solid #444;min-width:180px;cursor:pointer;";
-		const big = "bottom:50%;right:50%;transform:translate(50%,50%);font-size:24px;padding:30px;min-width:450px;cursor:default;";
+			"position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,0.95);color:white;padding:12px;border-radius:8px;z-index:9999;font-family:monospace;font-size:12px;line-height:1.4;box-shadow:0 4px 15px rgba(0,0,0,0.7);border:1px solid #444;min-width:180px;cursor:pointer;";
+		const big = "bottom:50%;left:50%;transform:translate(-50%,50%);font-size:24px;padding:30px;min-width:450px;cursor:default;";
 		this.#box.style.cssText = base + (this.#enlarged ? big : "");
 	}
 
