@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-14_1807
+// Last compiled at 2026-11-15_1608
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -48,9 +48,13 @@ import {
 	pageOfUrl,
 	urlWithPage,
 	patrolAction,
+	DEFAULT_BOX_POSITION,
+	parseBoxPosition,
+	clampBoxPosition,
 } from "/scripts/core/utils/SmartSkipLogic.js";
 
 const STORAGE_KEY = "vs.smartskip";
+const POSITION_KEY = "vs.smartskip.position"; // localStorage: where the status box was left, remembered between sessions
 const isTabActive = () => !document.hidden && document.hasFocus();
 
 class SmartSkip {
@@ -61,6 +65,7 @@ class SmartSkip {
 	#box = null;
 	#installed = false;
 	#enlarged = false; //the status box shown big in the middle of the page
+	#justDragged = false; //the click that ends a drag of the box
 	#final = null; //how the last session ended, shown in the status box for a while: {title, lines, until}
 	#pageReady = false; //true once this page's tiles are processed (onPageReady has run)
 
@@ -273,6 +278,12 @@ class SmartSkip {
 	#announce() {
 		// the status box says FOUND NEW ITEMS (and what to do); a background tab also gets a pulsing title
 		this.#startTitlePulse("NEW ITEM FOUND!");
+		// and the Chrome window's taskbar button flashes (does nothing while that window is the one in front)
+		if (Settings.get("smartSkip.flashTaskbar") !== false) {
+			try {
+				chrome.runtime.sendMessage({ type: "smartSkipAttention" });
+			} catch (e) {}
+		}
 	}
 
 	#terminate(title) {
@@ -312,11 +323,68 @@ class SmartSkip {
 		this.#styleBox();
 		this.#draw();
 	}
+	#position() {
+		let saved = null;
+		try {
+			saved = parseBoxPosition(localStorage.getItem(POSITION_KEY));
+		} catch (e) {}
+		return saved || DEFAULT_BOX_POSITION;
+	}
 	#styleBox() {
+		const pos = this.#position();
 		const base =
-			"position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,0.95);color:white;padding:12px;border-radius:8px;z-index:9999;font-family:monospace;font-size:12px;line-height:1.4;box-shadow:0 4px 15px rgba(0,0,0,0.7);border:1px solid #444;min-width:180px;cursor:pointer;";
+			`position:fixed;bottom:${pos.bottom}px;left:${pos.left}px;background:rgba(0,0,0,0.95);color:white;padding:12px;border-radius:8px;z-index:9999;font-family:monospace;font-size:12px;line-height:1.4;box-shadow:0 4px 15px rgba(0,0,0,0.7);border:1px solid #444;min-width:180px;cursor:pointer;`;
 		const big = "bottom:50%;left:50%;transform:translate(-50%,50%);font-size:24px;padding:30px;min-width:450px;cursor:default;";
 		this.#box.style.cssText = base + (this.#enlarged ? big : "");
+		if (!this.#enlarged) this.#keepOnScreen();
+	}
+	/** A smaller window than last time must not leave the box off screen. */
+	#keepOnScreen() {
+		if (!this.#box || this.#box.style.display === "none") return;
+		const r = this.#box.getBoundingClientRect();
+		if (!r.width) return;
+		const pos = this.#position();
+		const c = clampBoxPosition(pos, window.innerWidth, window.innerHeight, r.width, r.height);
+		if (c.left !== pos.left || c.bottom !== pos.bottom) {
+			this.#box.style.left = c.left + "px";
+			this.#box.style.bottom = c.bottom + "px";
+		}
+	}
+
+	/** Drag the box by its title bar. Listens on the box itself because the title is redrawn every second. */
+	#installDrag() {
+		let drag = null;
+		this.#box.addEventListener("pointerdown", (e) => {
+			if (e.button !== 0 || this.#enlarged || !e.target.closest || !e.target.closest(".vs-title")) return;
+			const r = this.#box.getBoundingClientRect();
+			drag = { dx: e.clientX - r.left, dy: e.clientY - r.bottom, x0: e.clientX, y0: e.clientY, moved: false };
+			try {
+				this.#box.setPointerCapture(e.pointerId);
+			} catch (err) {}
+		});
+		this.#box.addEventListener("pointermove", (e) => {
+			if (!drag) return;
+			if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 4) return; // a click, not a drag
+			drag.moved = true;
+			const r = this.#box.getBoundingClientRect();
+			const c = clampBoxPosition({ left: e.clientX - drag.dx, bottom: window.innerHeight - (e.clientY - drag.dy) }, window.innerWidth, window.innerHeight, r.width, r.height);
+			this.#box.style.left = c.left + "px";
+			this.#box.style.bottom = c.bottom + "px";
+		});
+		const end = () => {
+			if (!drag) return;
+			if (drag.moved) {
+				this.#justDragged = true; // the click that ends a drag must not enlarge the box
+				setTimeout(() => (this.#justDragged = false), 0);
+				try {
+					localStorage.setItem(POSITION_KEY, JSON.stringify({ left: parseInt(this.#box.style.left, 10), bottom: parseInt(this.#box.style.bottom, 10) }));
+				} catch (err) {}
+			}
+			drag = null;
+		};
+		this.#box.addEventListener("pointerup", end);
+		this.#box.addEventListener("pointercancel", end);
+		window.addEventListener("resize", () => this.#keepOnScreen());
 	}
 
 	#draw() {
@@ -333,7 +401,9 @@ class SmartSkip {
 			this.#box = document.createElement("div");
 			this.#box.id = "vs-smartskip";
 			this.#styleBox();
+			this.#installDrag();
 			this.#box.addEventListener("click", (e) => {
+				if (this.#justDragged) return;
 				if (e.target.closest && e.target.closest(".vs-close")) {
 					e.stopPropagation();
 					return this.#setEnlarged(false);
@@ -349,7 +419,9 @@ class SmartSkip {
 			return d;
 		};
 		const head = () => {
-			const h = line(`SmartSkip [${isTabActive() ? "ACTIVE" : "BG"}]`, "color:cyan;font-weight:bold;border-bottom:1px solid #444;margin-bottom:5px;padding-bottom:3px;");
+			const h = line(`SmartSkip [${isTabActive() ? "ACTIVE" : "BG"}]`, "color:cyan;font-weight:bold;border-bottom:1px solid #444;margin-bottom:5px;padding-bottom:3px;" + (this.#enlarged ? "" : "cursor:move;user-select:none;touch-action:none;"));
+			h.className = "vs-title";
+			if (!this.#enlarged) h.title = "Drag to move";
 			if (this.#enlarged) {
 				const x = line("[X]", "position:absolute;top:8px;right:14px;color:#ff4444;cursor:pointer;font-weight:bold;");
 				x.className = "vs-close";

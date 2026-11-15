@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1130
+// Last compiled at 2026-11-15_1558
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -159,4 +159,26 @@ export function startUrl(tld, queue, page = 1) {
 	const safeTld = /^[a-z]{2,3}(\.[a-z]{2,3})?$/.test(String(tld)) ? tld : "com";
 	const safeQueue = QUEUES.includes(queue) ? queue : "encore";
 	return `https://www.amazon.${safeTld}/vine/vine-items?queue=${safeQueue}&pn=&cn=&page=${pageNumber(page, 1)}`;
+}
+
+// ---------------------------------------------------------------- status box position (dragged by its title bar)
+export const DEFAULT_BOX_POSITION = { left: 10, bottom: 10 }; // px from the bottom-left corner of the window
+
+/** The remembered position from storage, or null when it is missing or junk. */
+export function parseBoxPosition(json) {
+	try {
+		const o = JSON.parse(json);
+		if (o && Number.isFinite(o.left) && Number.isFinite(o.bottom)) return { left: Math.round(o.left), bottom: Math.round(o.bottom) };
+	} catch (e) {}
+	return null;
+}
+
+/** Keeps the whole box inside the window (a smaller window or a different screen than last time must not hide it). */
+export function clampBoxPosition(pos, viewW, viewH, boxW, boxH) {
+	const maxLeft = Math.max(0, viewW - boxW);
+	const maxBottom = Math.max(0, viewH - boxH);
+	return {
+		left: Math.min(Math.max(0, Math.round(pos.left)), maxLeft),
+		bottom: Math.min(Math.max(0, Math.round(pos.bottom)), maxBottom),
+	};
 }

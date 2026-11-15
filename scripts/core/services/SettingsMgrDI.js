@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1647
+// Last compiled at 2026-11-15_1608
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -505,6 +505,7 @@ export class SettingsMgrDI {
 			smartSkip: {
 				enabled: true,
 				startOnHideAllNext: true, // Hide All + Next Page also starts SmartSkip from the current page
+				flashTaskbar: true, // when it finds something, flash the Chrome window's taskbar button
 				startQueue: "encore",
 				maxPages: 300,
 				// patrol: loop over pages startPage..lastPage again and again (1-25 by default)

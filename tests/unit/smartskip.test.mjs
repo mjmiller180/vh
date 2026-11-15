@@ -1,11 +1,11 @@
-// Last compiled at 2026-11-09_1130
+// Last compiled at 2026-11-15_1558
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
 // SmartSkip decision logic (pure functions).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MIN_DELAY_MS, DEFAULT_MAX_PAGES, HARD_MAX_PAGES, normaliseMaxPages, clampRange, pickDelay, formatDuration, decidePage, newSession, parseState, keyMatches, startUrl, normalisePatrol, normaliseJumpPage, pageOfUrl, urlWithPage, patrolAction, DEFAULT_PATROL, DEFAULT_JUMP_PAGES } from "../../scripts/core/utils/SmartSkipLogic.js";
+import { MIN_DELAY_MS, DEFAULT_MAX_PAGES, HARD_MAX_PAGES, normaliseMaxPages, clampRange, pickDelay, formatDuration, decidePage, newSession, parseState, keyMatches, startUrl, normalisePatrol, normaliseJumpPage, pageOfUrl, urlWithPage, patrolAction, DEFAULT_PATROL, DEFAULT_JUMP_PAGES, DEFAULT_BOX_POSITION, parseBoxPosition, clampBoxPosition } from "../../scripts/core/utils/SmartSkipLogic.js";
 
 test("delays: parsed from strings, never below the safety floor, max never below min", () => {
 	assert.deepEqual(clampRange("2500", "4000", { min: 2500, max: 4000 }), { min: 2500, max: 4000 });
@@ -136,4 +136,14 @@ test("session state: patrol fields survive storage, junk is cleaned", () => {
 	assert.equal(parseState(JSON.stringify({ status: "running", lastFound: "b0abc12345" })).lastFound, "B0ABC12345");
 	// sessions stored by the version before patrol still load
 	assert.equal(parseState(JSON.stringify({ status: "found", seen: 3, skips: 2, found: 1, consecutive: 0, startedAt: 5 })).laps, 1);
+});
+
+test("box position: parsed from storage, junk is ignored, always kept inside the window", () => {
+	assert.deepEqual(DEFAULT_BOX_POSITION, { left: 10, bottom: 10 });
+	assert.deepEqual(parseBoxPosition('{"left":120.4,"bottom":33}'), { left: 120, bottom: 33 });
+	for (const junk of [null, "", "x", "{}", '{"left":"a","bottom":1}', '{"left":1}', "[1,2]"]) assert.equal(parseBoxPosition(junk), null, String(junk));
+	assert.deepEqual(clampBoxPosition({ left: 50, bottom: 60 }, 1000, 800, 200, 100), { left: 50, bottom: 60 });
+	assert.deepEqual(clampBoxPosition({ left: -20, bottom: -5 }, 1000, 800, 200, 100), { left: 0, bottom: 0 });
+	assert.deepEqual(clampBoxPosition({ left: 5000, bottom: 5000 }, 1000, 800, 200, 100), { left: 800, bottom: 700 });
+	assert.deepEqual(clampBoxPosition({ left: 50, bottom: 50 }, 100, 100, 200, 200), { left: 0, bottom: 0 }, "box bigger than the window");
 });
