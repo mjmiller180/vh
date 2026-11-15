@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-15_1558
+// Last compiled at 2026-11-15_1608
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -278,6 +278,12 @@ class SmartSkip {
 	#announce() {
 		// the status box says FOUND NEW ITEMS (and what to do); a background tab also gets a pulsing title
 		this.#startTitlePulse("NEW ITEM FOUND!");
+		// and the Chrome window's taskbar button flashes (does nothing while that window is the one in front)
+		if (Settings.get("smartSkip.flashTaskbar") !== false) {
+			try {
+				chrome.runtime.sendMessage({ type: "smartSkipAttention" });
+			} catch (e) {}
+		}
 	}
 
 	#terminate(title) {

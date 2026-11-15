@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-15_1558 -->
+<!-- Last compiled at 2026-11-15_1608 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -41,6 +41,8 @@ lap count), and carries on with Space. A lap also ends early when the queue has 
 (**1 / 2 / 3**) start a normal SmartSkip session at pages 100 / 200 / 300 (configurable) instead of page 1. Click the status
 box to enlarge it into the middle of the page ([X] makes it small again). Drag the box by its title bar to move it
 (it starts in the bottom-left corner and stays where you leave it, also in later sessions).
+When something is found the tab title pulses and the Chrome window's **taskbar button flashes** (a setting, on by default; it
+works from any Chrome profile and does nothing while that window is already in front).
 The queue, keys, delays (never below 2 seconds), and a page limit are configurable. The session lives in the tab only and
 nothing is sent anywhere. Automated paging is outside what Amazon's Vine terms expect from normal use, so treat it as a
 convenience you run at your own risk and keep the delays generous.

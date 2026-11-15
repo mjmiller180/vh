@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1508
+// Last compiled at 2026-11-15_1608
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -87,6 +87,20 @@ async function runGoogle(action) {
 //#####################################################
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+	if (message.type === "smartSkipAttention") {
+		// SmartSkip found something: flash this Chrome window's taskbar button (no effect while the window is in front)
+		const windowId = sender.tab?.windowId;
+		if (windowId !== undefined) {
+			chrome.windows.update(windowId, { drawAttention: true }).then(
+				() => sendResponse({ ok: true }),
+				(e) => sendResponse({ ok: false, error: String(e) })
+			);
+			return true;
+		}
+		sendResponse({ ok: false });
+		return false;
+	}
+
 	if (message.type === "discordSend") {
 		sendWebhook(message.url, message.body).then(sendResponse);
 		return true; // async response

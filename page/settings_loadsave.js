@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1710
+// Last compiled at 2026-11-15_1608
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -306,6 +306,7 @@ async function initiateSettings(firstRun = false) {
 	}
 	manageCheckboxSetting("smartSkip.enabled");
 	manageCheckboxSetting("smartSkip.startOnHideAllNext");
+	manageCheckboxSetting("smartSkip.flashTaskbar");
 	manageSelectBox("smartSkip.startQueue");
 	manageInputText("smartSkip.maxPages");
 	manageInputText("smartSkip.delay.active.min");

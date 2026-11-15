@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-15_1558
+// Last compiled at 2026-11-15_1608
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -325,6 +325,41 @@ async function test(name, fn) {
 		await page.locator("#vs-smartskip .vs-close").click();
 		await stopSession(page);
 		await page.evaluate(() => localStorage.removeItem("vs.smartskip.position"));
+	});
+
+	await test("finding items flashes the window's taskbar button (drawAttention), unless the setting is off", async () => {
+		const spy = async () => {
+			await sw.evaluate(() => {
+				self.__attn = [];
+				if (!self.__origUpdate) self.__origUpdate = chrome.windows.update.bind(chrome.windows);
+				chrome.windows.update = (id, info) => {
+					self.__attn.push(info);
+					return self.__origUpdate(id, info);
+				};
+			});
+		};
+		const calls = () => sw.evaluate(() => self.__attn);
+		await spy();
+		await pin([1, 2]);
+		await setSettings({ "smartSkip.flashTaskbar": true });
+		await page.goto("https://www.amazon.com/vine/vine-items" + url(1));
+		await ready(page);
+		await page.keyboard.press("k");
+		await waitFor(async () => (await state(page))?.status === "found", 30000); // page 3 has unpinned items
+		await waitFor(async () => (await calls()).length >= 1, 5000);
+		assert.deepEqual((await calls())[0], { drawAttention: true });
+		await stopSession(page);
+
+		await setSettings({ "smartSkip.flashTaskbar": false });
+		await spy();
+		await page.goto("https://www.amazon.com/vine/vine-items" + url(1));
+		await ready(page);
+		await page.keyboard.press("k");
+		await waitFor(async () => (await state(page))?.status === "found", 30000);
+		await page.waitForTimeout(1500);
+		assert.equal((await calls()).length, 0, "switched off: no taskbar flash");
+		await stopSession(page);
+		await setSettings({ "smartSkip.flashTaskbar": true });
 	});
 
 	await test("the session never leaves the tab: no third-party requests", async () => {
