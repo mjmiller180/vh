@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-14_1807
+// Last compiled at 2026-11-15_1558
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -293,6 +293,38 @@ async function test(name, fn) {
 		await waitFor(async () => !/translate/.test((await box.getAttribute("style")) || ""));
 		assert.ok((await box.boundingBox()).width < 300, "small again");
 		await stopSession(page);
+	});
+
+	await test("the status box can be dragged by its title bar, stays where it was left (also on the next page) and a drag does not enlarge it", async () => {
+		await pin([1, 2, 3, 4, 5]);
+		await page.evaluate(() => localStorage.removeItem("vs.smartskip.position"));
+		await page.goto("https://www.amazon.com/vine/vine-items" + url(1));
+		await ready(page);
+		await page.keyboard.press("k");
+		await waitFor(async () => (await state(page))?.skips === 1);
+		const box = page.locator("#vs-smartskip");
+		const vp = page.viewportSize();
+		const before = await box.boundingBox();
+		assert.ok(before.x < 20 && before.y + before.height > vp.height - 20, "default: bottom-left " + JSON.stringify(before));
+		const title = await page.locator("#vs-smartskip .vs-title").boundingBox();
+		await page.mouse.move(title.x + 20, title.y + 8);
+		await page.mouse.down();
+		await page.mouse.move(title.x + 220, title.y - 150, { steps: 8 });
+		await page.mouse.up();
+		const moved = await box.boundingBox();
+		assert.ok(Math.abs(moved.x - (before.x + 200)) < 6 && Math.abs(moved.y - (before.y - 158)) < 12, `moved: ${JSON.stringify(before)} -> ${JSON.stringify(moved)}`);
+		assert.ok(moved.width < 300, "dragging did not enlarge the box");
+		// a page later (the session carries on) the box is where it was left
+		await waitFor(async () => /page=[2-5]/.test(page.url()), 20000);
+		await page.locator("#vs-smartskip").waitFor();
+		const next = await box.boundingBox();
+		assert.ok(Math.abs(next.x - moved.x) < 3 && Math.abs(next.y - moved.y) < 3, `kept: ${JSON.stringify(moved)} -> ${JSON.stringify(next)}`);
+		// a plain click on the title still enlarges
+		await page.locator("#vs-smartskip .vs-title").click();
+		await waitFor(async () => (await box.boundingBox()).width > 400);
+		await page.locator("#vs-smartskip .vs-close").click();
+		await stopSession(page);
+		await page.evaluate(() => localStorage.removeItem("vs.smartskip.position"));
 	});
 
 	await test("the session never leaves the tab: no third-party requests", async () => {
