@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1508
+// Last compiled at 2026-11-21_1828
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -20,6 +20,7 @@ var i13n = new Internationalization();
 import { TileSizer } from "/scripts/ui/controllers/TileSizer.js";
 var tileSizer = new TileSizer();
 
+import { cleanSourceUrl } from "/scripts/core/utils/SourceUrl.js";
 import { Item } from "/scripts/core/models/Item.js";
 
 import { unescapeHTML } from "/scripts/core/utils/StringHelper.js";
@@ -272,6 +273,14 @@ class Page {
 
 		if (unavailable) {
 			this.#disableItem(content);
+		}
+
+		//The queue page the item was pinned from (older pins do not have one: no icon)
+		const sourceLink = document.querySelector("#vh-pin-" + asin + " .vh-source-link");
+		if (sourceLink) {
+			const sourceUrl = cleanSourceUrl(item.data.source_url);
+			if (sourceUrl) sourceLink.href = sourceUrl;
+			else sourceLink.remove();
 		}
 
 		//Bind the click event for the unpin button

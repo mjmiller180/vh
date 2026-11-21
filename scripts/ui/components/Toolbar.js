@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1710
+// Last compiled at 2026-11-21_1828
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -17,6 +17,7 @@ var dialogMgr = new ModalMgr();
 import { Internationalization } from "/scripts/core/services/Internationalization.js";
 var i13n = new Internationalization();
 
+import { cleanSourceUrl } from "/scripts/core/utils/SourceUrl.js";
 import { Item } from "/scripts/core/models/Item.js";
 
 import { PinnedListMgr } from "/scripts/core/services/PinnedListMgr.js";
@@ -254,6 +255,7 @@ class Toolbar {
 									img_url: thumbnail,
 									is_parent_asin: is_parent_asin,
 									enrollment_guid: enrollment_guid,
+									source_url: cleanSourceUrl(window.location.href), //the queue page it was pinned from
 								});
 								PinnedList.addItem(item);
 								await this.getTile().getGrid().getPage().addPinnedTile(item);

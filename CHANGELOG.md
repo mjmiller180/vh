@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-15_1608 -->
+<!-- Last compiled at 2026-11-21_1828 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -8,6 +8,7 @@
 ## [VineSmyths 4.5] - 2026-11
 
 ### Added
+- **Pins remember the queue page they were pinned from.** Every pinned item in the Pinned tab has a new-tab icon in its header that opens that page, so you can look for the item in the queue (a pinned item that is still in the queue shows with its red pin) and page back and forth a few pages: if it is gone from the queue it is most likely no longer in enrollment. Only addresses of Vine items pages are accepted (also from a sync); pins made before this update have no icon.
 - SmartSkip makes the Chrome window's **taskbar button flash** when it finds new items (setting in the Keyboard tab, on by default), in addition to the pulsing tab title. It works from any Chrome profile; it does nothing while that window is already in front.
 - The SmartSkip status box can be moved: drag it by its title bar. It starts in the bottom-left corner and the last position is remembered (on this computer only, not synced).
 - **Auto-hide / Highlight panel in the Product Details dialog** (button "Hide / Highlight" at the top of the dialog; "Request product" is switched off while the panel is open): click words of the title (Ctrl+click = a phrase in the order clicked, "+ phrase" for more than one), or "Hide this brand", add "…but not if the title also contains", see in plain English and as an editable expression what the rule is, how many items on the page it would hide, which pinned items stay visible, then add it. Plurals are handled, rules of the same group are merged into one (at most 10 alternatives / 350 characters per rule), conflicts with highlight (or hide) rules must be settled by you (keep the other rule, or let the new rule win by editing the other one), and every addition has an Undo. Same panel for the highlight list.

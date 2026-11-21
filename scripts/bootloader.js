@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1721
+// Last compiled at 2026-11-21_1828
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -47,6 +47,7 @@ import { HookMgr } from "/scripts/core/utils/HookMgr.js";
 var hookMgr = new HookMgr();
 
 import { Item } from "/scripts/core/models/Item.js";
+import { cleanSourceUrl } from "/scripts/core/utils/SourceUrl.js";
 import { ModalMgr } from "/scripts/ui/controllers/ModalMgr.js";
 var DialogMgr = new ModalMgr();
 
@@ -705,6 +706,7 @@ async function loadPinnedList() {
 				enrollment_guid: value.enrollment_guid,
 				unavailable: value.unavailable,
 				is_pre_release: value.is_pre_release ? true : false,
+				source_url: cleanSourceUrl(value.source_url),
 			});
 			page.addPinnedTile(item);
 		});

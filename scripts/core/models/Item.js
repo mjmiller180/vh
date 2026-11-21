@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1508
+// Last compiled at 2026-11-21_1828
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -67,6 +67,7 @@ class Item {
 		this.data.variants = coreAttributes.variants; //Variants of the item (?useful?)
 		this.data.variant_asin = coreAttributes.variant_asin; //If we are trying to open a variant ASIN, this extra field will be added to the item as both the parent and the variant ASIN are needed.
 		this.data.additional_img = coreAttributes.additional_img || []; //Additional images for the item
+		this.data.source_url = coreAttributes.source_url || null; //The queue page the item was pinned from
 	}
 
 	//Setters
