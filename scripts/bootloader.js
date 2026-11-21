@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1721
+// Last compiled at 2026-11-21_1848
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -47,6 +47,7 @@ import { HookMgr } from "/scripts/core/utils/HookMgr.js";
 var hookMgr = new HookMgr();
 
 import { Item } from "/scripts/core/models/Item.js";
+import { cleanSourceUrl } from "/scripts/core/utils/SourceUrl.js";
 import { ModalMgr } from "/scripts/ui/controllers/ModalMgr.js";
 var DialogMgr = new ModalMgr();
 
@@ -687,8 +688,12 @@ async function loadPinnedList() {
 	//Populate the Pinned tab
 	if (Settings.get("pinnedTab.active")) {
 		logger.add("GRID: Loading locally stored pinned list");
-		let mapPin = new Map();
-		mapPin = await PinnedList.getList();
+		let mapPin = await PinnedList.getList();
+		//Pinned items that show on this page: remember this page as where they were seen (new data, or a different page than before)
+		const onPage = [...mapPin.keys()].filter((asin) => page.getTileByASIN(asin));
+		if (onPage.length && (await PinnedList.updateSourceUrls(onPage, window.location.href)).length) {
+			mapPin = await PinnedList.getList(); //reloaded by the update
+		}
 		//Sort the map by date_added descending
 		mapPin = new Map([...mapPin].sort((a, b) => a[1].date_added - b[1].date_added));
 		mapPin.forEach(async (value, key) => {
@@ -705,6 +710,7 @@ async function loadPinnedList() {
 				enrollment_guid: value.enrollment_guid,
 				unavailable: value.unavailable,
 				is_pre_release: value.is_pre_release ? true : false,
+				source_url: cleanSourceUrl(value.source_url),
 			});
 			page.addPinnedTile(item);
 		});

@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-04_2317
+// Last compiled at 2026-11-21_1848
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -134,4 +134,15 @@ test("normaliseListMap understands object, JSON string, [[asin,value]] pairs and
 	assert.deepEqual(normaliseListMap([{ asin: "A", date: "2024-01-01" }], "hidden"), { A: "2024-01-01" });
 	assert.deepEqual(normaliseListMap([{ asin: "P", title: "t", thumbnail: "u" }], "pinned"), { P: { title: "t", thumbnail: "u" } });
 	for (const junk of [null, undefined, "not json", 42, true]) assert.deepEqual(normaliseListMap(junk, "hidden"), {});
+});
+
+test("pinned: same pin time on both computers, the copy whose source page was updated last wins (in both directions)", () => {
+	const pin = (src, seen) => ({ date_added: NOW - D, title: "x", source_url: src, source_seen_at: seen });
+	const a = S({ pinnedItems: { P1: pin("https://www.amazon.com/vine/vine-items?page=2", NOW - 2 * D) } });
+	const b = S({ pinnedItems: { P1: pin("https://www.amazon.com/vine/vine-items?page=9", NOW - 1000) } });
+	assert.equal(mergeState(a, b, NOW).state.pinnedItems.P1.source_url, "https://www.amazon.com/vine/vine-items?page=9");
+	assert.equal(mergeState(b, a, NOW).state.pinnedItems.P1.source_url, "https://www.amazon.com/vine/vine-items?page=9");
+	// an old copy without any page loses to one that has it
+	const old = S({ pinnedItems: { P1: { date_added: NOW - D, title: "x" } } });
+	assert.equal(mergeState(old, b, NOW).state.pinnedItems.P1.source_url, "https://www.amazon.com/vine/vine-items?page=9");
 });

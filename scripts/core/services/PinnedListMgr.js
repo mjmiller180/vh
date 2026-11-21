@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1508
+// Last compiled at 2026-11-21_1848
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -15,6 +15,7 @@ import { recordListChange, requestSync } from "/scripts/core/services/SyncState.
 import { CryptoKeys } from "/scripts/core/utils/CryptoKeys.js";
 const cryptoKeys = new CryptoKeys();
 
+import { cleanSourceUrl } from "/scripts/core/utils/SourceUrl.js";
 import { Item } from "/scripts/core/models/Item.js";
 
 import { isSafari } from "/scripts/core/utils/BrowserDetection.js";
@@ -58,6 +59,7 @@ class PinnedListMgr {
 						is_parent_asin: data.is_parent_asin,
 						enrollment_guid: data.enrollment_guid,
 						is_pre_release: data.is_pre_release,
+						source_url: cleanSourceUrl(data.source_url),
 					});
 					this.addItem(item, false, false);
 
@@ -151,6 +153,7 @@ class PinnedListMgr {
 		}
 
 		let { asin, queue, title, img_url, is_parent_asin, enrollment_guid, is_pre_release } = item.data;
+		const source_url = cleanSourceUrl(item.data.source_url);
 		if (!queue) {
 			queue = "encore"; //Not really a good fix but if there is no known queue, assume it's AI.
 		}
@@ -168,6 +171,7 @@ class PinnedListMgr {
 			is_parent_asin: is_parent_asin,
 			enrollment_guid: enrollment_guid,
 			is_pre_release: is_pre_release,
+			...(source_url ? { source_url, source_seen_at: Date.now() } : {}),
 		});
 
 		if (broadcast) {
@@ -189,9 +193,32 @@ class PinnedListMgr {
 					is_parent_asin: is_parent_asin,
 					enrollment_guid: enrollment_guid,
 					is_pre_release: is_pre_release,
+					source_url: source_url,
 				})
 			);
 		}
+	}
+
+	/**
+	 * Pinned items were just seen on this queue page: remember the page for the ones that have no page yet or a different one.
+	 * date_added (the pin time) is left alone; source_seen_at says which copy is newest when two computers are merged.
+	 * @param {string[]} asins pinned items that are on the page now
+	 * @returns {Promise<string[]>} the asins that were updated
+	 */
+	async updateSourceUrls(asins, href) {
+		const url = cleanSourceUrl(href);
+		if (!url || !asins.length) return [];
+		await this.loadFromLocalStorage(); //Load the list in case it was altered in a different tab
+		const now = Date.now();
+		const changed = [];
+		for (const asin of asins) {
+			const entry = this.mapPin.get(asin);
+			if (!entry || cleanSourceUrl(entry.source_url) === url) continue;
+			this.mapPin.set(asin, { ...entry, source_url: url, source_seen_at: now });
+			changed.push(asin);
+		}
+		if (changed.length) await this.saveList();
+		return changed;
 	}
 
 	async saveList() {

@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-05_1508
+// Last compiled at 2026-11-21_1848
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -137,7 +137,7 @@ export function normaliseListMap(v, kind) {
 	return typeof v === "object" ? v : {};
 }
 
-function mergeList(localItems, remoteItems, localRem, remoteRem, getTs, now, ttl) {
+function mergeList(localItems, remoteItems, localRem, remoteRem, getTs, now, ttl, getTie = () => 0) {
 	const items = {};
 	const removed = {};
 	const asins = new Set([
@@ -155,7 +155,8 @@ function mergeList(localItems, remoteItems, localRem, remoteRem, getTs, now, ttl
 
 		let best;
 		let bestTs;
-		if (lTs !== undefined && (rTs === undefined || lTs >= rTs)) {
+		// same time stamp: the copy that was updated last (getTie) wins, otherwise this computer's
+		if (lTs !== undefined && (rTs === undefined || lTs > rTs || (lTs === rTs && getTie(l) >= getTie(r)))) {
 			best = l;
 			bestTs = lTs;
 		} else if (rTs !== undefined) {
@@ -202,7 +203,8 @@ export function mergeState(local, remote, now = Date.now()) {
 		remote.tombstones?.pinned,
 		(obj) => toTimestamp(obj?.date_added),
 		now,
-		0
+		0,
+		(obj) => toTimestamp(obj?.source_seen_at) // a pin's source page is updated without changing date_added
 	);
 
 	// ---- settings (whole object, last writer wins)
