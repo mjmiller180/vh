@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-21_1828
+// Last compiled at 2026-11-21_1848
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -276,12 +276,7 @@ class Page {
 		}
 
 		//The queue page the item was pinned from (older pins do not have one: no icon)
-		const sourceLink = document.querySelector("#vh-pin-" + asin + " .vh-source-link");
-		if (sourceLink) {
-			const sourceUrl = cleanSourceUrl(item.data.source_url);
-			if (sourceUrl) sourceLink.href = sourceUrl;
-			else sourceLink.remove();
-		}
+		this.setPinnedSource(asin, item.data.source_url);
 
 		//Bind the click event for the unpin button
 		document.querySelector("#vh-pin-" + asin + " .unpin-link").onclick = (e) => {
@@ -290,6 +285,15 @@ class Page {
 			this.removePinnedTile(asin);
 			// updateTileCounts() is already called by tile.setPinned(false) in removePinnedTile
 		};
+	}
+
+	/** Show (or hide, when there is none) the "open the page it was pinned from" icon of a pinned tile. */
+	setPinnedSource(asin, href) {
+		const link = document.querySelector("#vh-pin-" + CSS.escape(asin) + " .vh-source-link");
+		if (!link) return;
+		const url = cleanSourceUrl(href);
+		if (url) link.href = url;
+		link.style.display = url ? "" : "none";
 	}
 
 	async #disableItem(notif) {

@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-21_1828
+// Last compiled at 2026-11-21_1848
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -7,8 +7,9 @@ const assert = require("node:assert/strict");
 const { launch } = require("./lib.cjs");
 
 const PX = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-function vinePage() {
-	const tiles = [1, 2, 3, 4]
+function vinePage(url) {
+	const items = (new URL(url).searchParams.get("items") || "1,2,3,4").split(",").map(Number);
+	const tiles = items
 		.map(
 			(i) =>
 				`<div class="vvp-item-tile"><div class="vvp-item-tile-content"><img src="${PX}" alt=""><div class="vvp-item-product-title-container"><a class="a-link-normal" href="/dp/B0SRC00${i}00"><span class="a-truncate"><span class="a-truncate-full a-offscreen">Source item ${i}</span><span class="a-truncate-cut" aria-hidden="true">Source item ${i}</span></span></a></div><span class="a-button a-button-primary vvp-details-btn"><span class="a-button-inner"><input data-asin="B0SRC00${i}00" data-is-parent-asin="false" data-is-pre-release="false" data-recommendation-id="amzn1.vine.rec#B0SRC00${i}00#vine.enrollment.a1b2c3d4-0001-4000-8000-00000000000${i}" data-recommendation-type="VINE_FOR_ALL" class="a-button-input" type="submit"><span class="a-button-text">See details</span></span></span></div></div>`
@@ -75,32 +76,45 @@ async function test(name, fn) {
 		await page.close();
 	});
 
-	await test("it is still there after a reload, and a pin from another page keeps its own page", async () => {
-		const page = await open("?queue=potluck&page=2");
-		await page.click("#vh-pin-link-B0SRC00200");
-		await waitFor(async () => (await pinned()).B0SRC00200);
-		assert.equal((await pinned()).B0SRC00200.source_url, "https://www.amazon.com/vine/vine-items?queue=potluck&page=2");
-		await page.reload();
-		await page.waitForSelector("#vh-status[data-status='productsUpdated']", { state: "attached" });
-		assert.equal(await page.locator("#vh-pin-B0SRC00100 .vh-source-link").getAttribute("href"), SRC);
-		assert.equal(await page.locator("#vh-pin-B0SRC00200 .vh-source-link").getAttribute("href"), "https://www.amazon.com/vine/vine-items?queue=potluck&page=2");
+	const iconHref = (page, n) => page.locator(`#vh-pin-B0SRC00${n}00 .vh-source-link`).evaluate((a) => ({ href: a.getAttribute("href"), shown: a.style.display !== "none" }));
+	const base = { queue: "encore", thumbnail: PX, is_parent_asin: false, is_pre_release: false };
+	const seed = (entries) =>
+		sw.evaluate(async ({ entries, base }) => {
+			const { pinnedItems } = await chrome.storage.local.get("pinnedItems");
+			for (const [n, extra] of Object.entries(entries)) pinnedItems[`B0SRC00${n}00`] = { ...base, date_added: Date.now(), title: `Seed pin ${n}`, enrollment_guid: `a1b2c3d4-000${n}-4000-8000-00000000000${n}`, ...extra };
+			await chrome.storage.local.set({ pinnedItems });
+		}, { entries, base });
+
+	await test("a pinned item that shows on a page of another address gets that page as its new link (stored and shown); others keep theirs", async () => {
+		await seed({ 2: { source_url: "https://www.amazon.com/vine/vine-items?queue=encore&page=3" } }); // not on the page below
+		const B = "https://www.amazon.com/vine/vine-items?queue=encore&page=16&items=1";
+		const page = await open("?queue=encore&page=16&items=1");
+		await waitFor(async () => (await pinned()).B0SRC00100.source_url === B);
+		assert.deepEqual(await iconHref(page, 1), { href: B, shown: true }, "the tile already shows the new link");
+		assert.equal((await pinned()).B0SRC00200.source_url, "https://www.amazon.com/vine/vine-items?queue=encore&page=3", "not on this page: unchanged");
+		assert.ok((await pinned()).B0SRC00100.source_seen_at > 0);
 		await page.close();
 	});
 
-	await test("older pins (no page known) and junk from a sync get no icon", async () => {
-		await sw.evaluate(async () => {
-			const { pinnedItems } = await chrome.storage.local.get("pinnedItems");
-			const base = { date_added: Date.now(), queue: "encore", thumbnail: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", is_parent_asin: false, is_pre_release: false };
-			pinnedItems.B0SRC00300 = { ...base, title: "Old pin", enrollment_guid: "a1b2c3d4-0003-4000-8000-000000000003" };
-			pinnedItems.B0SRC00400 = { ...base, title: "Junk pin", enrollment_guid: "a1b2c3d4-0004-4000-8000-000000000004", source_url: "javascript:alert(1)" };
-			await chrome.storage.local.set({ pinnedItems });
-		});
-		const page = await open("?queue=encore&page=1");
+	await test("older pins (no page known) and junk from a sync are filled in when the item shows; a pin that is not on the page stays without an icon", async () => {
+		await seed({ 3: {}, 4: { source_url: "javascript:alert(1)" }, 5: {} }); // 5 is never on the page below
+		const C = "https://www.amazon.com/vine/vine-items?queue=encore&page=7&items=3,4";
+		const page = await open("?queue=encore&page=7&items=3,4");
+		await waitFor(async () => (await pinned()).B0SRC00300.source_url === C && (await pinned()).B0SRC00400.source_url === C);
+		assert.deepEqual(await iconHref(page, 3), { href: C, shown: true });
+		assert.deepEqual(await iconHref(page, 4), { href: C, shown: true });
+		assert.equal((await pinned()).B0SRC00500.source_url, undefined);
+		assert.equal((await iconHref(page, 5)).shown, false, "no page known: no icon");
+		await page.close();
+	});
+
+	await test("seeing the item again on the same page changes nothing (no needless rewrite)", async () => {
+		const before = (await pinned()).B0SRC00300.source_seen_at;
+		await new Promise((r) => setTimeout(r, 50));
+		const page = await open("?queue=encore&page=7&items=3,4");
 		await page.waitForSelector("#vh-pin-B0SRC00300", { state: "attached" });
-		await page.waitForSelector("#vh-pin-B0SRC00400", { state: "attached" });
-		assert.equal(await page.locator("#vh-pin-B0SRC00300 .vh-source-link").count(), 0);
-		assert.equal(await page.locator("#vh-pin-B0SRC00400 .vh-source-link").count(), 0);
-		assert.equal(await page.locator("#vh-pin-B0SRC00100 .vh-source-link").count(), 1);
+		await page.waitForTimeout(1500);
+		assert.equal((await pinned()).B0SRC00300.source_seen_at, before);
 		await page.close();
 	});
 
