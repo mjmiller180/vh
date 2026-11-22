@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-09_1130
+// Last compiled at 2026-11-21_1906
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -238,6 +238,13 @@ async function test(name, fn) {
 		assert.equal(await sp.locator("#syncChooseFolder").count(), 1);
 		assert.equal(await sp.locator("input[name='discord.webhook.manual.active']").count(), 1);
 		assert.deepEqual(spErrors, []);
+	});
+
+	await test("the settings header shows the version number from manifest.json", async () => {
+		const shown = (await sp.locator("#version").textContent()).trim();
+		const manifest = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "..", "manifest.json"), "utf8"));
+		assert.equal(shown, manifest.version);
+		assert.match(shown, /^\d+\.\d+$/);
 	});
 
 	await test("settings page edits are saved (Discord switch + webhook toggle)", async () => {
