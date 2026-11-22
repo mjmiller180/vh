@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-21_1848
+// Last compiled at 2026-11-21_1906
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -287,13 +287,21 @@ class Page {
 		};
 	}
 
-	/** Show (or hide, when there is none) the "open the page it was pinned from" icon of a pinned tile. */
+	/**
+	 * Show (or hide, when there is none) the "open the page it was pinned from" icon: in the Pinned tab tile and in the header
+	 * bar of the item's tile in the listing (Available / Hidden tab), where it only shows while the item is pinned.
+	 */
 	setPinnedSource(asin, href) {
-		const link = document.querySelector("#vh-pin-" + CSS.escape(asin) + " .vh-source-link");
-		if (!link) return;
 		const url = cleanSourceUrl(href);
-		if (url) link.href = url;
-		link.style.display = url ? "" : "none";
+		const links = [
+			document.querySelector("#vh-pin-" + CSS.escape(asin) + " .vh-source-link"),
+			document.getElementById("vh-source-link-" + asin),
+		];
+		for (const link of links) {
+			if (!link) continue;
+			if (url) link.href = url;
+			link.style.display = url ? "" : "none";
+		}
 	}
 
 	async #disableItem(notif) {
@@ -318,6 +326,7 @@ class Page {
 
 	async removePinnedTile(asin) {
 		PinnedList.removeItem(asin);
+		this.setPinnedSource(asin, null); //the icon in the item's own tile goes with the pin
 		const pinnedTile = document.getElementById("vh-pin-" + asin);
 		if (pinnedTile) {
 			pinnedTile.remove();

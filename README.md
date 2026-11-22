@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-21_1848 -->
+<!-- Last compiled at 2026-11-21_1906 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -58,8 +58,8 @@ wins; the same applies the other way round in Highlight mode. New words go into 
 (Keywords tab) while it has room (10 alternatives / 350 characters), otherwise a new rule starts. **Undo** puts everything back.
 
 ## Is a pinned item still available?
-Each pin remembers the queue page it was pinned from. In the **Pinned** tab, the new-tab icon in the tile's header opens that
-page in a new tab. A pinned item that is still in the queue shows there with its red pin; the queue shifts as items come and
+Each pin remembers the queue page it was pinned from. The new-tab icon in the white header bar of a pinned item's tile (next to
+the pin icon; also in its **Pinned** tab tile) opens that page in a new tab. A pinned item that is still in the queue shows there with its red pin; the queue shifts as items come and
 go, so look a few pages either way before deciding. If it is gone, it is most likely no longer in enrollment (and the "not in
 enrollment" error you get on Request is expected). The link is kept up to date by itself: whenever a pinned item shows on a queue page, that page becomes its link (this also
 fills in pins made before this feature, the first time you see them in the queue, and corrects a link that has changed).

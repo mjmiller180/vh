@@ -1,14 +1,17 @@
-<!-- Last compiled at 2026-11-21_1848 -->
+<!-- Last compiled at 2026-11-21_1906 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
 
 # Changelog
 
-## [VineSmyths 4.5] - 2026-11
+<!-- Version numbers: MAJOR.MINOR, the same as "version" in manifest.json (shown in the settings header). Every new build
+     gets the next number (npm run bump), starting from 1.5. -->
+
+## [VineSmyths 1.5] - 2026-11
 
 ### Added
-- **Pins remember the queue page they were pinned from.** Every pinned item in the Pinned tab has a new-tab icon in its header that opens that page, so you can look for the item in the queue (a pinned item that is still in the queue shows with its red pin) and page back and forth a few pages: if it is gone from the queue it is most likely no longer in enrollment. Only addresses of Vine items pages are accepted (also from a sync); pins made before this update get their page the first time the item shows up in the queue.
+- **Pins remember the queue page they were pinned from.** A pinned item has a new-tab icon in the white header bar of its tile (next to the pin icon, in Available and Hidden, only while it is pinned) and in its Pinned tab tile; it opens that page, so you can look for the item in the queue (a pinned item that is still in the queue shows with its red pin) and page back and forth a few pages: if it is gone from the queue it is most likely no longer in enrollment. Only addresses of Vine items pages are accepted (also from a sync); pins made before this update get their page the first time the item shows up in the queue.
 - Whenever a pinned item shows on a queue page, that page is saved as its link (added when missing, replaced when it is different); the Pinned tab icon shows the new link at once. When two computers disagree, the most recently updated link wins.
 - SmartSkip makes the Chrome window's **taskbar button flash** when it finds new items (setting in the Keyboard tab, on by default), in addition to the pulsing tab title. It works from any Chrome profile; it does nothing while that window is already in front.
 - The SmartSkip status box can be moved: drag it by its title bar. It starts in the bottom-left corner and the last position is remembered (on this computer only, not synced).

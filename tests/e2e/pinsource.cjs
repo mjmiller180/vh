@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-21_1848
+// Last compiled at 2026-11-21_1906
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -70,6 +70,11 @@ async function test(name, fn) {
 		await waitFor(async () => (await link.count()) === 1);
 		assert.equal(await link.getAttribute("href"), SRC);
 		assert.equal(await link.getAttribute("target"), "_blank");
+		// the same icon in the header bar of the item's own tile in the listing, only while it is pinned
+		const tileIcon = page.locator("#vh-source-link-B0SRC00100");
+		assert.equal(await tileIcon.evaluate((a) => a.style.display !== "none"), true, "icon in the tile header after pinning");
+		assert.equal(await tileIcon.getAttribute("href"), SRC);
+		assert.equal(await page.locator("#vh-source-link-B0SRC00200").evaluate((a) => a.style.display), "none", "not pinned: no icon");
 		const [popup] = await Promise.all([ctx.waitForEvent("page"), link.evaluate((a) => a.click())]);
 		assert.match(popup.url(), /vine-items\?queue=encore&pn=&cn=&page=15$/);
 		await popup.close();
@@ -92,6 +97,8 @@ async function test(name, fn) {
 		await waitFor(async () => (await pinned()).B0SRC00100.source_url === B);
 		assert.deepEqual(await iconHref(page, 1), { href: B, shown: true }, "the tile already shows the new link");
 		assert.equal((await pinned()).B0SRC00200.source_url, "https://www.amazon.com/vine/vine-items?queue=encore&page=3", "not on this page: unchanged");
+		const tileIcon = page.locator("#vh-source-link-B0SRC00100");
+		assert.deepEqual(await tileIcon.evaluate((a) => ({ href: a.getAttribute("href"), shown: a.style.display !== "none" })), { href: B, shown: true }, "old pin: icon in its tile header with the new link");
 		assert.ok((await pinned()).B0SRC00100.source_seen_at > 0);
 		await page.close();
 	});
@@ -115,6 +122,16 @@ async function test(name, fn) {
 		await page.waitForSelector("#vh-pin-B0SRC00300", { state: "attached" });
 		await page.waitForTimeout(1500);
 		assert.equal((await pinned()).B0SRC00300.source_seen_at, before);
+		await page.close();
+	});
+
+	await test("unpinning takes the icon out of the tile header", async () => {
+		const page = await open("?queue=encore&page=16&items=1");
+		const tileIcon = page.locator("#vh-source-link-B0SRC00100");
+		await waitFor(async () => (await tileIcon.evaluate((a) => a.style.display)) !== "none");
+		await page.click("#vh-pin-link-B0SRC00100"); // unpin
+		await waitFor(async () => !(await pinned()).B0SRC00100);
+		assert.equal(await tileIcon.evaluate((a) => a.style.display), "none");
 		await page.close();
 	});
 
