@@ -1,4 +1,4 @@
-/* Last compiled at 2026-11-09_1647 */
+/* Last compiled at 2026-11-25_2020 */
 /* Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. */
 /* https://toolsmyths.com */
 /* SPDX-License-Identifier: LicenseRef-Proprietary */
@@ -449,6 +449,14 @@ input.dualslider[type="range"] {
 	margin: 0;
 	font-size: 1.6em;
 	line-height: 1.2;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+.header-row .header-badge {
+	height: 64px;
+	width: 64px;
+	flex: none;
 }
 .header-row div.buttons-header {
 	width: auto !important;

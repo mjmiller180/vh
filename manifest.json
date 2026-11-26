@@ -3,7 +3,7 @@
 	"key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7YVov2s8ksebCT/wGzmwa5Eo0pMi9QebX8k00B/6AcxU9VPgK9K+1WF5jcHCtYiP23s6ViWPp1gEFnRjIGzn5Q6wmDG0ecmKS8gkMdLZO6eFXrR8mdYW2N+dGbyx7W1KzZGCS5Mh5LPeHsQT7Vc33wYjmAvAQ+2pjVemUR1lvgJEF1Oub58lCPnsnZn1wKIu4SYptw1pm9DjF7A0YpderScyviMnTqRSS9uyGcXI6dOiMA+frEDi/E44b4053NTkvhgkJpKLsXMyVzOU4++jY7om4RemMd3CM0lw4xzKhlTe4zAZ1lovyQYVuL6+o2sxa45IHmt2+ygESqjdTApDuQIDAQAB",
 	"name": "VineSmyths",
 	"description": "Improve the Amazon Vine experience.",
-	"version": "1.5",
+	"version": "1.6",
 	"permissions": [
 		"contextMenus",
 		"storage",
@@ -14,6 +14,7 @@
 		"extension_pages": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://discord.com https://discordapp.com https://sheets.googleapis.com https://www.googleapis.com https://lh3.googleusercontent.com https://lh4.googleusercontent.com https://lh5.googleusercontent.com https://lh6.googleusercontent.com; img-src 'self' data: https://*.media-amazon.com;"
 	},
 	"icons": {
+		"16": "resource/image/icon-16.png",
 		"32": "resource/image/icon-32.png",
 		"48": "resource/image/icon-48.png",
 		"128": "resource/image/icon-128.png"
@@ -21,7 +22,12 @@
 	"action": {
 		"default_popup": "popup/homepage.html",
 		"default_title": "VineSmyths",
-		"default_icon": "resource/image/icon-48.png"
+		"default_icon": {
+			"16": "resource/image/icon-16.png",
+			"32": "resource/image/icon-32.png",
+			"48": "resource/image/icon-48.png",
+			"128": "resource/image/icon-128.png"
+		}
 	},
 	"options_ui": {
 		"page": "popup/homepage.html"

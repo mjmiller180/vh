@@ -1,4 +1,4 @@
-<!-- Last compiled at 2026-11-21_1906 -->
+<!-- Last compiled at 2026-11-25_2020 -->
 <!-- Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved. -->
 <!-- https://toolsmyths.com -->
 <!-- SPDX-License-Identifier: LicenseRef-Proprietary -->
@@ -7,6 +7,11 @@
 
 <!-- Version numbers: MAJOR.MINOR, the same as "version" in manifest.json (shown in the settings header). Every new build
      gets the next number (npm run bump), starting from 1.5. -->
+
+## [VineSmyths 1.6] - 2026-11-26
+
+### Added
+- New logos: the "VS" monogram is the extension's icon in Chrome's extensions bar (16 / 32 / 48 / 128 px, transparent background, like the other extension icons), and the round Vine Smyths badge is shown in the header of the settings page and the popup and in the dialogs.
 
 ## [VineSmyths 1.5] - 2026-11
 
