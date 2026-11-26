@@ -11,7 +11,7 @@
 ## [VineSmyths 1.6] - 2026-11-26
 
 ### Added
-- New logos: the "VS" monogram is the extension's icon in Chrome's extensions bar (16 / 32 / 48 / 128 px, on a rounded dark tile so it reads on light and dark toolbars), and the round Vine Smyths badge is shown in the header of the settings page and the popup and in the dialogs.
+- New logos: the "VS" monogram is the extension's icon in Chrome's extensions bar (16 / 32 / 48 / 128 px, transparent background, like the other extension icons), and the round Vine Smyths badge is shown in the header of the settings page and the popup and in the dialogs.
 
 ## [VineSmyths 1.5] - 2026-11
 
