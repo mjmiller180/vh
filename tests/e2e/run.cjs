@@ -1,4 +1,4 @@
-// Last compiled at 2026-11-21_1906
+// Last compiled at 2026-11-25_2020
 // Copyright (c) 2026 SMYTHS TRADING CO LLC. All rights reserved.
 // https://toolsmyths.com
 // SPDX-License-Identifier: LicenseRef-Proprietary
@@ -244,6 +244,7 @@ async function test(name, fn) {
 		const shown = (await sp.locator("#version").textContent()).trim();
 		const manifest = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "..", "manifest.json"), "utf8"));
 		assert.equal(shown, manifest.version);
+		assert.ok(await sp.locator(".header-badge").evaluate((img) => img.complete && img.naturalWidth > 0), "the logo badge loads in the header");
 		assert.match(shown, /^\d+\.\d+$/);
 	});
 
